@@ -1,0 +1,4 @@
+(executable
+ (name interactive_agent)
+ (modules interactive_agent hypergraphs)
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))
