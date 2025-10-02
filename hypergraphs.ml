@@ -63,3 +63,5 @@ module ParametricBDDs : HornClauses = struct
   let reachable_vars _t = []
   let is_reachable _var _t = false
 end
+
+let calculate r = r

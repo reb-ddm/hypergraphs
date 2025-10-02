@@ -13,5 +13,3 @@ let rec loop () =
 let start_agent () =
   print_endline "This program bla bla please input a horn clause.";
   loop ()
-
-let () = start_agent ()
