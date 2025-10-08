@@ -356,7 +356,7 @@ module Hypergraph : HornClauses = struct
         | Simple id ->
           let vname = Vars.int_to_var hg.vars id in
           Buffer.add_string b
-            (Printf.sprintf "  n%s [label=\"%s\", shape=point];\n"
+            (Printf.sprintf "  n%s [label=\"%s\", shape=plaintext];\n"
                (get_id_of_node node) vname)
         | Compound _ -> 
           let id = get_id_of_node node in 
