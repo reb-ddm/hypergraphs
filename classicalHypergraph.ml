@@ -244,15 +244,14 @@ module Hypergraph : HornClauses = struct
           NodeSet.fold (fun e (acc_hg, acc_s) ->
               let acc_hg = recalculate_weight acc_hg e in
               if Node.is_simple e then 
-                (acc_hg, (*TODO PQ.update scc_s prio:new_weight e*) acc_s)
+                (acc_hg, PQ.decrease_key ~prio:(weight_of hg e) e acc_s)
               else
                 (* composite node: update also the head of the edge *)
                 NodeSet.fold (fun v' (acc_hg, acc_s) ->
                     let acc_hg = recalculate_weight acc_hg v' in
                     (* update priority of v' in S *)
                     let rank_v' = weight_of hg v' in
-                    (*TODO PQ.update acc_s ~prio:rank_v' v'*)
-                    let acc_s = PQ.add ~prio:rank_v' v' acc_s
+                    let acc_s = PQ.decrease_key ~prio:rank_v' v' acc_s
                     in
                     acc_hg, acc_s
                   ) (succs_of acc_hg e) (acc_hg, acc_s)

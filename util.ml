@@ -67,8 +67,10 @@ end
     | Some (prio, elt) ->
     Some (prio, elt, IntOptionSet.remove (prio, elt) q)
 
-  let decrease_key q elt new_prio = (* TODO this is not very efficient *)
-    let old_elt = IntOptionSet.find_first (fun (_, q_elt) -> Elt.compare q_elt elt = 0) q in
+  let decrease_key elt ~prio:new_prio q = (* TODO this is not very efficient *)
+    match IntOptionSet.find_first_opt (fun (_, q_elt) -> Elt.compare q_elt elt = 0) q with
+    | None -> q
+    | Some old_elt ->
     q |> IntOptionSet.remove old_elt |> add ~prio:new_prio elt
 
 end
