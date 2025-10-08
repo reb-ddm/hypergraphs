@@ -37,43 +37,39 @@ type node_data = {
 let make_node_data ?(weight=None) ?(min_pred=None) ?(succs=NodeSet.empty) ?(preds=NodeSet.empty) is_compound =
   { weight; min_pred; succs; preds; is_compound }
 
-(* Priority queue 
-Priority None represents infinity 
+(**
+Priority queue 
+None represents the value infinity.
+Source = https://lewinb.net/posts/22_priorityqueue_ocaml/
 *)
-module PQ = struct
-  module IntMap = Map.Make(Int)
-  type t = NodeSet.t IntMap.t * NodeSet.t
+module PriorityQueue (Elt : Set.OrderedType) = struct
+  module EltWithPrio = struct
+  type t = int option * Elt.t
+  let compare (a,e1) (b,e2) = 
+    match a, b with 
+    | None, _ -> 1
+    | _, None -> -1
+    | Some x, Some y -> 
+      let c = Int.compare x y in
+      if c = 0 then Elt.compare e1 e2 else c
+end
+  module IntOptionSet = Set.Make(EltWithPrio)
 
-  let empty = IntMap.empty, NodeSet.empty
-  let is_empty (map, set) = IntMap.is_empty map && NodeSet.is_empty set
+  (* The priority queue (heap) functionality now basically comes for free. *)
+  let empty = IntOptionSet.empty
+  let is_empty = IntOptionSet.is_empty
+  let add ~prio elt q = 
+    IntOptionSet.add (prio, elt) q 
 
-  let add (map, set) ~prio node =
-    match prio with 
-    | None -> (map, NodeSet.add node set)
-    | Some prio ->
-    let set_prio =
-      match IntMap.find_opt prio map with
-      | None -> NodeSet.singleton node
-      | Some s -> NodeSet.add node s
-    in
-    IntMap.add prio set_prio map, set
+  let remove_min_opt q =
+    match IntOptionSet.min_elt_opt q with
+    | None -> None
+    | Some (prio, elt) ->
+    Some (prio, elt, IntOptionSet.remove (prio, elt) q)
 
-  let remove_min_opt (map, set) =
-    match IntMap.min_binding_opt map with
-    | None -> (
-          match NodeSet.choose_opt set with
-          | None -> None
-          | Some node ->
-          let set = NodeSet.remove node set in
-          Some (None, node, (map, set))
-    )
-    | Some (prio, set) ->
-      let node = NodeSet.min_elt set in
-      let set' = NodeSet.remove node set in
-      let map =
-        if NodeSet.is_empty set' then IntMap.remove prio map
-        else IntMap.add prio set' map
-      in
-      Some (Some prio, node, (map, set))
+  let decrease_key q elt new_prio = (* TODO this is not very efficient *)
+    let old_elt = IntOptionSet.find_first (fun (_, q_elt) -> Elt.compare q_elt elt = 0) q in
+    q |> IntOptionSet.remove old_elt |> add ~prio:new_prio elt
+
 end
 

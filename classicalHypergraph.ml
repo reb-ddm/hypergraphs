@@ -11,6 +11,8 @@ module Hypergraph : HornClauses = struct
     vars : Vars.t;
   }
 
+  module PQ = PriorityQueue(Node)
+
   let init ~nr_vars : t =
     { nodes = NodeMap.empty;
       vars = Vars.init ~nr_vars;
@@ -50,7 +52,7 @@ module Hypergraph : HornClauses = struct
     else 
       weight_of hg node
 
-  let opt_min x y = Option.fold ~none:None ~some:(fun y -> Option.map (min y) x) y
+  let opt_min x y = Option.fold ~none:x ~some:(fun y -> Option.fold ~none:(Some y) ~some:(fun x -> Some (min y x)) x) y
 
   let opt_max x y = Option.fold ~none:None ~some:(fun y -> Option.map (max y) x) y
 
@@ -114,13 +116,13 @@ module Hypergraph : HornClauses = struct
         let (hg, new_worklist) =
           NodeSet.fold (fun succ (acc_hg, acc_wl) ->
               let (acc_hg, changed) = update_weight acc_hg succ cur in
-              if changed then (acc_hg, PQ.add ~prio:(weight_of hg succ) acc_wl succ) else (acc_hg, acc_wl) (*TODO maybe return the new weight from the function*)
+              if changed then (acc_hg, PQ.add ~prio:(weight_of hg succ) succ acc_wl) else (acc_hg, acc_wl) (*TODO maybe return the new weight from the function*)
             ) succs (hg, worklist)
         in
         propagate hg new_worklist
     in
     let w = weight_of hg start_node in
-    propagate hg (PQ.add ~prio:w PQ.empty start_node)
+    propagate hg (PQ.add ~prio:w start_node PQ.empty)
 
   (* ---------- Remove edges ---------- *)
 
@@ -177,14 +179,14 @@ module Hypergraph : HornClauses = struct
                 begin match min_pred_of hg v with
                   | Some pred when Node.compare pred y = 0 ->
                     let w_v = weight_of hg v in
-                    PQ.add acc_pq ~prio:w_v v 
+                    PQ.add ~prio:w_v v acc_pq
                   | _ -> acc_pq
                 end
               else
                 NodeSet.fold (fun v' acc_pq ->
                     begin match min_pred_of hg v' with
                       | Some pred when Node.compare pred v = 0 ->
-                        PQ.add acc_pq ~prio:(weight_of hg v') v'
+                        PQ.add ~prio:(weight_of hg v') v' acc_pq
                       | _ -> acc_pq
                     end
                   ) (succs_of hg v) acc_pq
@@ -192,7 +194,7 @@ module Hypergraph : HornClauses = struct
         in
         (* find hyperedge between the predecessors of y with same weight as minPred(y) *)
         let equivalent =
-          NodeSet.find_first_opt (fun pred -> Option.equal (=) (weight_of_successor hg pred) w_y) (preds_of hg y)
+          NodeSet.find_first_opt (fun pred -> Option.equal Int.equal (weight_of_successor hg pred) w_y) (preds_of hg y)
         in
         match equivalent with 
         | None ->
@@ -227,7 +229,7 @@ module Hypergraph : HornClauses = struct
           let rank =
             NodeSet.fold (fun p -> opt_min (weight_of_successor hg_after_reset p)) preds None
           in
-          PQ.add pq_s ~prio:rank z
+          PQ.add ~prio:rank z pq_s
         ) c_set PQ.empty
     in
 
@@ -250,7 +252,7 @@ module Hypergraph : HornClauses = struct
                     (* update priority of v' in S *)
                     let rank_v' = weight_of hg v' in
                     (*TODO PQ.update acc_s ~prio:rank_v' v'*)
-                    let acc_s = PQ.add acc_s ~prio:rank_v' v'
+                    let acc_s = PQ.add ~prio:rank_v' v' acc_s
                     in
                     acc_hg, acc_s
                   ) (succs_of acc_hg e) (acc_hg, acc_s)
@@ -273,7 +275,7 @@ module Hypergraph : HornClauses = struct
       in
       if pred_matches then
         let w_y = weight_of hg y in
-        let pq0 = PQ.add PQ.empty ~prio:w_y y
+        let pq0 = PQ.add ~prio:w_y y PQ.empty
         in
         scan_successors_after_removal hg pq0
       else hg
@@ -309,7 +311,7 @@ module Hypergraph : HornClauses = struct
     remove hg body_set head_id
 
   let reachable_vars hg =
-    (* iterate over known var_name_to_int and collect those whose simple node weight != None *)
+    (* a node is reachable if weight != None *)
     StringMap.bindings hg.vars.var_name_to_int
     |> List.fold_left (fun acc (name, id) ->
         match weight_of hg (simple_node_of_id id) with
