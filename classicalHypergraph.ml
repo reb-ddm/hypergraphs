@@ -2,8 +2,7 @@ open Signatures
 open Util
 
 (*TODO in this implementation the information pred(c) for a compound node c is redundant as it is already in the set c. We should use an id for the compound nodes instead or remove pred(c)*)
-exception UnknownNodeId
-exception LogicalError
+exception UnknownNodeId of ((string * int * int * int) * Node.t)
 
 module Hypergraph : HornClauses = struct
   type t = {
@@ -21,10 +20,17 @@ module Hypergraph : HornClauses = struct
   let get_node_data hg node =
     match NodeMap.find_opt node hg.nodes with
     | Some nd -> nd
-    | None -> raise UnknownNodeId
+    | None -> raise (UnknownNodeId (__POS__, node))
 
   let set_node_data hg node nd =
     { hg with nodes = NodeMap.add node nd hg.nodes }
+
+  let add_node hg node = 
+    set_node_data hg node (make_node_data (Node.is_compound node))
+
+  let remove_node hg node = 
+    let nodes' = NodeMap.remove node hg.nodes in
+    { hg with nodes = nodes' }
 
   let weight_of hg node =
     (get_node_data hg node).weight
@@ -38,12 +44,14 @@ module Hypergraph : HornClauses = struct
   let preds_of hg node =
     (get_node_data hg node).preds
 
-  let get_id hg var =
-    let (vars', id) = Vars.var_to_int hg.vars var in
-    ({ hg with vars = vars' }, id)
-
   let simple_node_of_id id = Node.Simple id
   let compound_node_of_intset s = Node.Compound s
+
+  let get_id hg var =
+    let (vars', id, is_new_var) = Vars.var_to_int hg.vars var in
+    let hg = if is_new_var then
+        add_node hg (simple_node_of_id id) else hg in
+    ({ hg with vars = vars' }, id)
 
   (* The weight the next node would have if there was a simple edge from this node to the successor*)
   let weight_of_successor hg node =
@@ -97,6 +105,7 @@ module Hypergraph : HornClauses = struct
       (hg, q_node, changed)
     else
       let comp = compound_node_of_intset xset in
+      let hg = add_node hg comp in
       let hg =
         IdSet.fold (fun i acc_hg ->
             let s = simple_node_of_id i in
@@ -150,9 +159,8 @@ module Hypergraph : HornClauses = struct
           ) xset hg
       in
       let hg = remove_simple_edge hg comp y in
-      if NodeSet.is_empty (succs_of hg comp) then 
-        let nodes' = NodeMap.remove comp hg.nodes in
-        { hg with nodes = nodes' }
+      if NodeSet.is_empty (succs_of hg comp) then
+        remove_node hg comp
       else hg
     else
       let x = IdSet.choose xset in
@@ -291,9 +299,10 @@ module Hypergraph : HornClauses = struct
           (acc_hg, IdSet.add id acc_ids)
         ) (hg, IdSet.empty) body
     in
-    let (hg', node, changed) = add_hyperedge hg body_set head_id in
+    let (hg, node, changed) = add_hyperedge hg body_set head_id in
     if changed then 
-      closure hg' node
+      let _ = print_endline "changed" in
+      closure hg node
     else hg
 
   let add_clauses cls hg =
@@ -332,7 +341,10 @@ module Hypergraph : HornClauses = struct
     let get_id_of_node (node: Node.t) =
       match node with 
       | Simple id -> "s" ^ string_of_int id
-      | Compound id_set -> "c" ^ string_of_int (Hashtbl.hash id_set) (*TODO give the compound nodes an actual ID*)
+      | Compound id_set -> 
+        "c" ^ let s = string_of_int (Hashtbl.hash id_set) 
+        in String.sub s 0 2 
+        (*TODO give the compound nodes an actual ID*)
     in
     let b = Buffer.create 1024 in
     Buffer.add_string b "digraph hypergraph {\n";
@@ -349,7 +361,7 @@ module Hypergraph : HornClauses = struct
         | Compound _ -> 
           let id = get_id_of_node node in 
           Buffer.add_string b
-            (Printf.sprintf "  n%s [label=\"%s\", shape=circle, style=filled, fillcolor=white, color=black, width=0.1];\n"
+            (Printf.sprintf "  n%s [label=\"%s\", shape=circle, style=filled, fillcolor=white, color=black, width=0.2, fixedsize=true];\n"
                id id)
       ) hg.nodes;
     (* Print edges *)

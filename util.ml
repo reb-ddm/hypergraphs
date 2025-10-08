@@ -14,7 +14,7 @@ module Node = struct
   let is_simple = function Simple _ -> true | Compound _ -> false
   let is_compound = function Simple _ -> false | Compound _ -> true
 
-  let compare a b = (*TODO where is this used? Why not use the OCaml Set.compare function?*)
+  let compare a b = (*TODO where is this used?*)
     match a, b with
     | Simple i, Simple j -> Id.compare i j
     | Simple _, Compound _ -> -1
