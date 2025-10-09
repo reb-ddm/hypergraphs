@@ -1,4 +1,6 @@
-module ParametricHypergraph : HornClauses = struct
+open Util
+
+module ParametricHypergraph : HornClausesReachability = struct
 
   type orthogonal_set = int NodeMap.t
   type adjacency_list = int (*TODO*)
@@ -12,7 +14,7 @@ module ParametricHypergraph : HornClauses = struct
     nr_vars: int;
     (*TODO data structure for removal*)
   }
-  type clause = Vars.var * Vars.var list
+  type edge = Node.t * Node.t
   let init ~nr_vars = {
     orthogonal_sets = [];
     adjacency_list = 0;
@@ -21,10 +23,11 @@ module ParametricHypergraph : HornClauses = struct
     nr_vars;
   }
 
+  let add_node _node t = t
   let add_clause _clause t = t
   let add_clauses _clauses t = t
   let remove_clause _clause t = t
   let reachable_vars _t = []
   let is_reachable _var _t = false
-  let to_dot _ = ""
+  let to_dot _ _ = ""
 end

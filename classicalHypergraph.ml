@@ -1,9 +1,9 @@
 open Util
 
 (*TODO in this implementation the information pred(c) for a compound node c is redundant as it is already in the set c. We should use an id for the compound nodes instead or remove pred(c)*)
-exception UnknownNodeId of ((string * int * int * int) * Node.t)
+exception UnknownNodeId of (string * Node.t)
 
-module Hypergraph : HornClauses = struct
+module Hypergraph : HornClausesReachability = struct
   module NodeData = struct
     type t = {
       weight : int option; (* rank(/length) of the minimal path from the source (="true" node) to the current node. None if the node is unreachable. *)
@@ -37,7 +37,7 @@ module Hypergraph : HornClauses = struct
   let get_node_data hg node =
     match NodeMap.find_opt node hg with
     | Some nd -> nd
-    | None -> raise (UnknownNodeId (__POS__, node))
+    | None -> raise (UnknownNodeId (__LOC__, node))
 
   let set_node_data hg node nd = NodeMap.add node nd hg
 
@@ -103,7 +103,7 @@ module Hypergraph : HornClauses = struct
         opt_min w_q2 w1_successor
     in
     if new_w <> w_q2 then
-      let hg = update_min_pred q2 q1 w_q2 hg in
+      let hg = update_min_pred q2 q1 new_w hg in
       (hg, true)
     else (hg, false)
 
@@ -123,7 +123,7 @@ module Hypergraph : HornClauses = struct
           (* add nodes from the simple edges to the compound edge "tail" *)
           Node.fold (
             fun i acc_hg -> fst (add_simple_edge i tail acc_hg)
-          ) tail hg
+          ) tail (add_node tail hg)
       in
       add_simple_edge tail head hg
 
@@ -297,8 +297,9 @@ module Hypergraph : HornClauses = struct
     Buffer.add_string b "  rankdir=LR;\n";
     Buffer.add_string b "  node [fontsize=10, penwidth=1.2];\n";
     (* Add nodes to buffer *)
-    NodeMap.iter (fun node _ ->
-        Node.dot_of_node node int_to_var b
+    NodeMap.iter (fun node node_data ->
+        let w = node_data.NodeData.weight in
+        Node.dot_of_node node int_to_var b w
       ) hg;
     (* Add edges to buffer *)
     NodeMap.iter (fun node node_data ->

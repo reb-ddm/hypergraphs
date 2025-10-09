@@ -1,13 +1,18 @@
 open Util
-module HornClauseHandler (HC : HornClauses) = struct
-  (*TODO initial state
-    TODO not add duplicate clauses?
+
+
+exception InvalidVarName of string
+exception InvalidCharachter of string
+exception InvalidCommand of string
+
+module HornClauseHandler (HC : HornClausesReachability) = struct
+  (*TODO not add duplicate clauses?
     TODO all indexes change after removing something. This is not so good 
-    TODO catch errors
     TODO maybe print for each add/delete and accept "p" "a" "r" as commands
     TODO ignore case in commands
     TODO check that true is well handled in each function
-    TODO why is add_node never used *)
+    TODO write tests 
+    TODO better help text*)
   type clause = (int * IdSet.t)
   type t = 
     {
@@ -31,17 +36,19 @@ module HornClauseHandler (HC : HornClauses) = struct
     in
     (update_vars hc vars', id)
 
-  exception InvalidVarName of string
-  exception InvalidCharachter of string
-  exception InvalidCommand of string
-
   let init ~nr_vars = 
     { vars = Vars.init ~nr_vars;
       horn_clauses_rev= []; 
       horn_clause_handler= HC.init ~nr_vars }
 
-      let clause_to_edge (head, body) =  
-        Node.simple_node_of_id head, Node.compound_node_of_intset body
+  let clause_to_edge (head, body) =  
+    let head_node = Node.simple_node_of_id head in
+    if IdSet.is_empty body then 
+      head_node, Node.True
+    else if IdSet.cardinal body = 1 then
+      head_node, Node.simple_node_of_id (IdSet.choose body)
+    else 
+      head_node, Node.compound_node_of_intset body
 
   let add_clause (head, body) hc =
     let edge = clause_to_edge (head, body) in
@@ -65,6 +72,9 @@ module HornClauseHandler (HC : HornClauses) = struct
         | true -> name :: acc
       ) []
     |> List.rev
+
+  let reachable_vars_string hc =
+    String.concat ", " (reachable_vars hc)
 
   let to_dot hc = HC.to_dot hc.horn_clause_handler (Vars.int_to_var hc.vars)
 
@@ -129,8 +139,8 @@ module HornClauseHandler (HC : HornClauses) = struct
     let _, lines =
       List.fold_left
         (fun (i, acc) (head, body) ->
-          let lhs = Vars.int_to_var hc.vars head in
-          let rhs_list = List.map (fun x -> Vars.int_to_var hc.vars x) (List.of_seq (IdSet.to_seq body)) in
+           let lhs = Vars.int_to_var hc.vars head in
+           let rhs_list = List.map (fun x -> Vars.int_to_var hc.vars x) (List.of_seq (IdSet.to_seq body)) in
            let rhs = String.concat "," rhs_list
            in
            let line = Printf.sprintf "%d: %s := %s" i lhs rhs in
@@ -142,28 +152,66 @@ end
 
 module HypergraphHCH = HornClauseHandler(ClassicalHypergraph)
 
+let help_message =
+  "Available commands:
+  - quit
+  - help
+  - add <horn clause>
+  - remove <horn clause>
+  - print
+  - reachable
+  - dot 
+
+  Horn clause syntax:
+    <head> := <body>
+  "
+
 let rec loop hc =
   print_string "> ";
   flush stdout;
-  match String.trim (read_line ()) with
-  | "quit" -> print_endline "Goodbye!"
-  | "dot" -> 
-    let output = HypergraphHCH.to_dot hc in
-    print_endline output;
+  let error_message s = "Invalid input: " ^ s ^ ". Please try again. Type 'help' for help." in
+  try
+    match String.trim (read_line ()) with
+    | "quit" -> print_endline "Goodbye!"
+    | "help" -> 
+      print_endline help_message
+    | "dot" -> 
+      let output = HypergraphHCH.to_dot hc in
+      print_endline output;
+      loop hc
+    | "print" -> 
+      let output = HypergraphHCH.to_string hc in
+      print_endline output;
+      loop hc
+    | "reachable" -> 
+      let output = HypergraphHCH.reachable_vars_string hc in
+      print_endline output;
+      loop hc
+    | input ->
+      let hc, index, clause, must_be_added = HypergraphHCH.parse_clause input hc in
+      let hc = if must_be_added then
+          HypergraphHCH.add_clause clause hc
+        else
+          HypergraphHCH.remove_clause hc clause index 
+      in
+      print_endline "done";
+      loop hc
+  with 
+  | ClassicalHypergraph.UnknownNodeId (loc, node) ->
+    print_endline ("Exception: UnknownNodeId " ^ Node.string_of_node node ^ " in " ^ loc)
+  | Util.ExceededNrOfVars ->
+    print_endline ("Exception: ExceededNrOfVars")
+  | InvalidVarName s ->
+    print_endline (error_message ("Not a valid variable name: " ^ s));
     loop hc
-  | "print" -> 
-    let output = HypergraphHCH.to_string hc in
-    print_endline output;
+  | InvalidCharachter s ->
+    print_endline (error_message ("Unexpected charachter: " ^ s));
     loop hc
-  | input ->
-    let hc, index, clause, must_be_added = HypergraphHCH.parse_clause input hc in
-    let hc = if must_be_added then
-        HypergraphHCH.add_clause clause hc
-      else
-        HypergraphHCH.remove_clause hc clause index 
-    in
-    print_endline "done";
+  | InvalidCommand s ->
+    print_endline (error_message ("Command not recognized: " ^ s));
     loop hc
+
+
 
 let start_agent () =
   print_endline "This program bla bla please input a horn clause.";

@@ -52,23 +52,26 @@ module Node = struct
   (*TODO give the compound nodes an actual ID*)
 
 
-  let dot_of_node node int_to_string b =
+  let dot_of_node node int_to_string b weight =
+    let w_string = match weight with
+      | None -> ""
+      | Some w -> "("^string_of_int w^")" in
     match node with
     | True ->
       let id = string_of_node node in 
       Buffer.add_string b
-        (Printf.sprintf "  n%s [label=\"%s\", shape=plaintext];\n"
-           id id)
+        (Printf.sprintf "  n%s [label=\"%s%s\", shape=plaintext];\n"
+           id id w_string)
     | Simple id ->
       let vname = int_to_string id in
       Buffer.add_string b
-        (Printf.sprintf "  n%s [label=\"%s\", shape=plaintext];\n"
-           (string_of_node node) vname)
+        (Printf.sprintf "  n%s [label=\"%s%s\", shape=plaintext];\n"
+           (string_of_node node) vname w_string)
     | Compound _ -> 
       let id = string_of_node node in 
       Buffer.add_string b
-        (Printf.sprintf "  n%s [label=\"%s\", shape=circle, style=filled, fillcolor=white, color=black, width=0.2, fixedsize=true];\n"
-           id id)
+        (Printf.sprintf "  n%s [label=\"%s%s\", shape=circle, style=filled, fillcolor=white, color=black, width=0.2, fixedsize=true];\n"
+           id id w_string)
 
   let dot_of_edge node successor b =
     let edge_style =
@@ -167,7 +170,7 @@ module Vars = struct
 
 end
 
-module type HornClauses = sig
+module type HornClausesReachability = sig
   type t
   type edge = Node.t * Node.t
   val init : nr_vars:int -> t
