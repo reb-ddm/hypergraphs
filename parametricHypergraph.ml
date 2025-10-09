@@ -1,5 +1,3 @@
-open Signatures 
-
 module ParametricHypergraph : HornClauses = struct
 
   type orthogonal_set = int NodeMap.t

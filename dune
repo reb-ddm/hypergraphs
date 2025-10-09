@@ -1,7 +1,7 @@
 (executable
  (name HornClauses)
  (libraries num yojson str kappa_staticanalyses kappa_kasa_frontend)
- (modules HornClauses InteractiveAgent Signatures ClassicalHypergraph ParametricHypergraph Util)
+ (modules HornClauses InteractiveAgent ClassicalHypergraph ParametricHypergraph Util)
  (public_name HornClauses)
  (package kappa-binaries)
  (flags

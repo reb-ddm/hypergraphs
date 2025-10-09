@@ -1,57 +1,78 @@
-open Signatures
 open Util
 
 (*TODO in this implementation the information pred(c) for a compound node c is redundant as it is already in the set c. We should use an id for the compound nodes instead or remove pred(c)*)
 exception UnknownNodeId of ((string * int * int * int) * Node.t)
 
 module Hypergraph : HornClauses = struct
-  type t = {
-    nodes : node_data NodeMap.t; 
-    vars : Vars.t;
-  }
+  module NodeData = struct
+    type t = {
+      weight : int option; (* rank(/length) of the minimal path from the source (="true" node) to the current node. None if the node is unreachable. *)
+      min_pred : Node.t option; (* Previous node in the minimal path from the source. None if the node is compound or if the node is unreachable. *)
+      succs : NodeSet.t; (* outgoing edges *)
+      preds : NodeSet.t; (* incoming edges *)
+    }
+
+    let make_node_data ?(weight=None) ?(min_pred=None) ?(succs=NodeSet.empty) ?(preds=NodeSet.empty) () =
+      { weight; min_pred; succs; preds }
+
+    let update_weight nd w = {nd with weight = w}
+    let update_min_pred nd minpred = {nd with min_pred = minpred}
+    let is_reachable nd = Option.is_some nd.weight
+    let add_successor nd succ = {nd with succs = NodeSet.add succ nd.succs}
+    let add_predecessor nd pred = {nd with preds = NodeSet.add pred nd.preds}
+    let remove_successor nd succ = {nd with succs = NodeSet.remove succ nd.succs}
+    let remove_predecessor nd pred = {nd with preds = NodeSet.remove pred nd.preds}
+
+  end 
+
+  type t = NodeData.t NodeMap.t
 
   module PQ = PriorityQueue(Node)
 
-  let init ~nr_vars : t =
-    { nodes = NodeMap.empty;
-      vars = Vars.init ~nr_vars;
-    }
+  let init ~nr_vars = 
+    let _ = nr_vars in
+    let true_node_data = NodeData.make_node_data ~weight:(Some 0) () in
+    let node_map = NodeMap.empty in NodeMap.add True true_node_data node_map
 
   let get_node_data hg node =
-    match NodeMap.find_opt node hg.nodes with
+    match NodeMap.find_opt node hg with
     | Some nd -> nd
     | None -> raise (UnknownNodeId (__POS__, node))
 
-  let set_node_data hg node nd =
-    { hg with nodes = NodeMap.add node nd hg.nodes }
+  let set_node_data hg node nd = NodeMap.add node nd hg
 
-  let add_node hg node = 
-    set_node_data hg node (make_node_data (Node.is_compound node))
+  let add_node node hg = 
+    set_node_data hg node (NodeData.make_node_data ())
 
-  let remove_node hg node = 
-    let nodes' = NodeMap.remove node hg.nodes in
-    { hg with nodes = nodes' }
+  let remove_node hg node = NodeMap.remove node hg
 
   let weight_of hg node =
-    (get_node_data hg node).weight
+    (get_node_data hg node).NodeData.weight
 
   let min_pred_of hg node =
-    (get_node_data hg node).min_pred
+    (get_node_data hg node).NodeData.min_pred
 
   let succs_of hg node =
-    (get_node_data hg node).succs
+    (get_node_data hg node).NodeData.succs
 
   let preds_of hg node =
-    (get_node_data hg node).preds
+    (get_node_data hg node).NodeData.preds
 
-  let simple_node_of_id id = Node.Simple id
-  let compound_node_of_intset s = Node.Compound s
+  let update_min_pred node min_pred w hg =
+    (set_node_data hg node (NodeData.update_weight (NodeData.update_min_pred (get_node_data hg node) (Some min_pred)) w))
 
-  let get_id hg var =
-    let (vars', id, is_new_var) = Vars.var_to_int hg.vars var in
-    let hg = if is_new_var then
-        add_node hg (simple_node_of_id id) else hg in
-    ({ hg with vars = vars' }, id)
+  let remove_min_pred node hg = 
+    (set_node_data hg node (NodeData.update_weight (NodeData.update_min_pred (get_node_data hg node) None) None))
+
+  let is_reachable node hg = NodeData.is_reachable (get_node_data hg node)
+  let add_successor node ~succ:succ hg = 
+    (set_node_data hg node (NodeData.add_successor (get_node_data hg node) succ))
+  let add_predecessor node ~pred:pred hg = 
+    (set_node_data hg node (NodeData.add_predecessor (get_node_data hg node) pred))
+  let remove_successor node ~succ:succ hg = 
+    (set_node_data hg node (NodeData.remove_successor (get_node_data hg node) succ))
+  let remove_predecessor node ~pred:pred hg = 
+    (set_node_data hg node (NodeData.remove_predecessor (get_node_data hg node) pred))
 
   (* The weight the next node would have if there was a simple edge from this node to the successor*)
   let weight_of_successor hg node =
@@ -60,7 +81,9 @@ module Hypergraph : HornClauses = struct
     else 
       weight_of hg node
 
-  let opt_min x y = Option.fold ~none:x ~some:(fun y -> Option.fold ~none:(Some y) ~some:(fun x -> Some (min y x)) x) y
+  (*None represents the largest value (infinite)*)
+  let opt_min x y = 
+    Option.fold ~none:x ~some:(fun y -> Option.fold ~none:(Some y) ~some:(fun x -> Some (min y x)) x) y
 
   let opt_max x y = Option.fold ~none:None ~some:(fun y -> Option.map (max y) x) y
 
@@ -69,52 +92,40 @@ module Hypergraph : HornClauses = struct
 
   (* this function updates the weight of the node q2 after an insertion of the edge q1 -> q2.
      It returns true if the weight of q2 was changed. *)
-  let update_weight hg q2 q1 =
-    let nd2 = get_node_data hg q2 in
+  let update_weight_for_new_edge q2 q1 hg =
     let w1_successor = weight_of_successor hg q1 in
+    let w_q2 = weight_of hg q2 in
     let new_w =
-      if nd2.is_compound then
-        opt_max nd2.weight w1_successor
+      if Node.is_compound q2 then
+        opt_max w_q2 w1_successor
       else
         (* Q2 is a simple node *)
-        opt_min nd2.weight w1_successor
+        opt_min w_q2 w1_successor
     in
-    if new_w <> nd2.weight then
-      let nd2' = { nd2 with weight = new_w; min_pred = Some q1 } in
-      (set_node_data hg q2 nd2', true)
+    if new_w <> w_q2 then
+      let hg = update_min_pred q2 q1 w_q2 hg in
+      (hg, true)
     else (hg, false)
 
-  let add_simple_edge hg q1 q2 =
-    let nd1 = get_node_data hg q1 in
-    let nd2 = get_node_data hg q2 in
-    let nd1' = { nd1 with succs = NodeSet.add q2 nd1.succs } in
-    let nd2' = { nd2 with preds = NodeSet.add q1 nd2.preds } in
-    let hg = set_node_data (set_node_data hg q1 nd1') q2 nd2' in
-    update_weight hg q2 q1
+  let add_simple_edge q1 q2 hg =
+    hg 
+    |> add_successor q1 ~succ:q2 
+    |> add_predecessor q2 ~pred:q1 
+    |> update_weight_for_new_edge q2 q1
 
-  let add_hyperedge hg xset q_id =
-    let q_node = simple_node_of_id q_id in
-    if IdSet.mem q_id xset then 
+  let add_hyperedge hg tail head =
+    if Node.is_reflexive_edge head tail then 
       (*reflexive edges are not allowed*)
-      (hg, q_node, false) 
-    else if IdSet.cardinal xset = 1 then
-      (*add a simple edge between the two nodes*)
-      let i = IdSet.choose xset in
-      let s = simple_node_of_id i in
-      let (hg, changed) = add_simple_edge hg s q_node in
-      (hg, q_node, changed)
-    else
-      let comp = compound_node_of_intset xset in
-      let hg = add_node hg comp in
-      let hg =
-        IdSet.fold (fun i acc_hg ->
-            let s = simple_node_of_id i in
-            let (hg2, _) = add_simple_edge acc_hg s comp in
-            hg2
-          ) xset hg
+      (hg, false) 
+    else 
+      let hg = 
+        if Node.is_simple tail then hg else 
+          (* add nodes from the simple edges to the compound edge "tail" *)
+          Node.fold (
+            fun i acc_hg -> fst (add_simple_edge i tail acc_hg)
+          ) tail hg
       in
-      let (hg, changed) = add_simple_edge hg comp q_node in
-      (hg, comp, changed)
+      add_simple_edge tail head hg
 
   let closure hg start_node =
     let rec propagate hg worklist =
@@ -124,7 +135,7 @@ module Hypergraph : HornClauses = struct
         let succs = succs_of hg cur in
         let (hg, new_worklist) =
           NodeSet.fold (fun succ (acc_hg, acc_wl) ->
-              let (acc_hg, changed) = update_weight acc_hg succ cur in
+              let (acc_hg, changed) = update_weight_for_new_edge succ cur acc_hg in
               if changed then (acc_hg, PQ.add ~prio:(weight_of hg succ) succ acc_wl) else (acc_hg, acc_wl) (*TODO maybe return the new weight from the function*)
             ) succs (hg, worklist)
         in
@@ -135,46 +146,33 @@ module Hypergraph : HornClauses = struct
 
   (* ---------- Remove edges ---------- *)
 
-  let remove_simple_edge hg q1 q2 =
-    let nd1 = get_node_data hg q1 in
-    let nd2 = get_node_data hg q2 in
-    let nd1' = { nd1 with succs = NodeSet.remove q2 nd1.succs } in
-    let nd2' = { nd2 with preds = NodeSet.remove q1 nd2.preds } in
-    let nodes' =
-      let m1 = NodeMap.add q1 nd1' hg.nodes in
-      NodeMap.add q2 nd2' m1
-    in
-    { hg with nodes = nodes' }
+  let remove_simple_edge q1 q2 hg =
+    hg
+    |> remove_successor q1 ~succ:q2 
+    |> remove_predecessor q2 ~pred:q1 
 
-  (* Assumption: xset is not empty*)
-  let remove_edge hg xset y_id =
-    let y = simple_node_of_id y_id in
-    (*TODO check that the edge exists*)
-    if IdSet.cardinal xset > 1 then
-      let comp = compound_node_of_intset xset in
+  let remove_hyperedge hg tail head =
+    if Node.is_compound tail then
       let hg =
-        IdSet.fold (fun i hg_acc ->
-            let s = simple_node_of_id i in
-            remove_simple_edge hg_acc s comp
-          ) xset hg
+        Node.fold (fun i hg_acc ->
+            remove_simple_edge i tail hg_acc
+          ) tail hg
       in
-      let hg = remove_simple_edge hg comp y in
-      if NodeSet.is_empty (succs_of hg comp) then
-        remove_node hg comp
+      let hg = remove_simple_edge tail head hg in
+      if NodeSet.is_empty (succs_of hg tail) then
+        remove_node hg tail
       else hg
     else
-      let x = IdSet.choose xset in
-      let s = simple_node_of_id x in
-      remove_simple_edge hg s y
+      remove_simple_edge tail head hg
 
   let recalculate_weight hg q2 = (*TODO there is a better method for this*)
     let preds = preds_of hg q2 in
     NodeSet.fold (fun q1 acc_hg ->
-        let (acc_hg, _ch) = update_weight acc_hg q2 q1 in
+        let (acc_hg, _ch) = update_weight_for_new_edge q2 q1 acc_hg in
         acc_hg
       ) preds hg
 
-
+  (*invariant for the priority queue pq: it only contains simple edges *)
   let scan_successors_after_removal hg initial_pq =
     (* select phase *)
     let rec update_successors_after_removal hg pq c_set =
@@ -186,7 +184,7 @@ module Hypergraph : HornClauses = struct
               if Node.is_simple v then
                 begin match min_pred_of hg v with
                   | Some pred when Node.compare pred y = 0 ->
-                    let w_v = weight_of hg v in
+                    let w_v = weight_of hg v in (* TODO isnt it weight_of_successor hg pred?*)
                     PQ.add ~prio:w_v v acc_pq
                   | _ -> acc_pq
                 end
@@ -194,7 +192,7 @@ module Hypergraph : HornClauses = struct
                 NodeSet.fold (fun v' acc_pq ->
                     begin match min_pred_of hg v' with
                       | Some pred when Node.compare pred v = 0 ->
-                        PQ.add ~prio:(weight_of hg v') v' acc_pq
+                        PQ.add ~prio:(weight_of hg v') v' acc_pq (*TODO same*)
                       | _ -> acc_pq
                     end
                   ) (succs_of hg v) acc_pq
@@ -207,29 +205,25 @@ module Hypergraph : HornClauses = struct
         match equivalent with 
         | None ->
           (* set weight to infinite if no such edge has been found *)
-          let node_y = get_node_data hg y in
-          let node_y' = { node_y with min_pred = None; weight = None } in
-          let hg = set_node_data hg y node_y' in
+          let hg = remove_min_pred y hg in
           let hg =
             NodeSet.fold (fun e'' acc_hg ->
-                let node_e = get_node_data acc_hg e'' in
-                let node_e' = { node_e with weight = None } in
-                set_node_data acc_hg e'' node_e'
+                if Node.is_compound e'' then 
+                  remove_min_pred e'' acc_hg
+                else acc_hg
               ) (succs_of hg y) hg
           in
           update_successors_after_removal hg pq (NodeSet.add y c_set)
         | Some edge ->
           (* else set the edge as the new predecessor in the minimal path *)
-          let node_y = get_node_data hg y in
-          let node_y' = { node_y with min_pred = Some edge; weight = weight_of_successor hg edge} in
-          let hg = set_node_data hg y node_y' in
+          let hg = update_min_pred y edge (weight_of_successor hg edge) hg in
           update_successors_after_removal hg pq c_set   
     in
-    let (hg_after_reset, c_set) = update_successors_after_removal hg initial_pq NodeSet.empty in
-
-
+    let (hg_after_reset, c_set) = 
+      update_successors_after_removal hg initial_pq NodeSet.empty 
+    in
     (* propagate phase *)
-    (* build the priority queue of nodes we need to process *) (*TODO can't you build it instead of building C?*)
+    (* build the priority queue of nodes we need to process *) (*TODO can't you build it instead of building C? Maybe not because the predecessors are changed in the meantime *)
     let pq_s =
       NodeSet.fold (fun z pq_s ->
           (* compute minimal weight among preds *)
@@ -240,12 +234,11 @@ module Hypergraph : HornClauses = struct
           PQ.add ~prio:rank z pq_s
         ) c_set PQ.empty
     in
-
     (* while S has nodes with rank < infinite, extract min and update the weights *)
     let rec process_s hg s =
       match PQ.remove_min_opt s with
       | None -> hg
-      | Some (_rank, v, s') ->
+      | Some (_w, v, s') ->
         let hg = recalculate_weight hg v in
         let succs = succs_of hg v in
         let (hg, s') =
@@ -269,18 +262,27 @@ module Hypergraph : HornClauses = struct
     in
     process_s hg_after_reset pq_s
 
-  (* remove a hyperedge from the graph *)
-  let remove hg xset yid =
-    let hg = remove_edge hg xset yid in
-    let y = simple_node_of_id yid in
+  type edge = Node.t * Node.t
+
+  (* add an edge x -> y to the hypergraph *)
+  let add_clause (y, x) hg =
+    let (hg, changed) = add_hyperedge hg x y in
+    if changed then 
+      let _ = print_endline "changed" in
+      closure hg y
+    else hg
+
+  let add_clauses cls hg =
+    List.fold_left (fun acc c -> add_clause c acc) hg cls
+
+  (* remove a hyperedge x -> y from the graph *)    
+  let remove_clause (y, x) hg =
+    let hg = remove_hyperedge hg x y in
     match min_pred_of hg y with
     | Some pred ->
-      let pred_matches =
-        match pred with
-        | Node.Compound s -> IdSet.equal s xset
-        | Node.Simple i -> (IdSet.cardinal xset = 1 && IdSet.choose xset = i)
-      in
-      if pred_matches then
+      (* If the removed edge was the predecessor of y in the minimal path from true to y,
+         then change the min. predecessor and propagate to all successors of y.*)
+      if Node.compare pred x = 0 then
         let w_y = weight_of hg y in
         let pq0 = PQ.add ~prio:w_y y PQ.empty
         in
@@ -288,95 +290,22 @@ module Hypergraph : HornClauses = struct
       else hg
     | None -> hg
 
-  type clause = Vars.var * Vars.var list
-
-  (* add an edge body_list -> head to the hypergraph *)
-  let add_clause (head, body) hg0 =
-    let (hg, head_id) = get_id hg0 head in
-    let (hg, body_set) =
-      List.fold_left (fun (acc_hg, acc_ids) v ->
-          let (acc_hg, id) = get_id acc_hg v in
-          (acc_hg, IdSet.add id acc_ids)
-        ) (hg, IdSet.empty) body
-    in
-    let (hg, node, changed) = add_hyperedge hg body_set head_id in
-    if changed then 
-      let _ = print_endline "changed" in
-      closure hg node
-    else hg
-
-  let add_clauses cls hg =
-    List.fold_left (fun acc c -> add_clause c acc) hg cls
-
-  let remove_clause (head, body) hg0 =
-    let (hg, head_id) = get_id hg0 head in
-    let (hg, body_set) =
-      List.fold_left (fun (acc_hg, acc_ids) v ->
-          let (acc_hg, id) = get_id acc_hg v in
-          (acc_hg, IdSet.add id acc_ids)
-        ) (hg, IdSet.empty) body
-    in
-    remove hg body_set head_id
-
-  let reachable_vars hg =
-    (* a node is reachable if weight != None *)
-    StringMap.bindings hg.vars.var_name_to_int
-    |> List.fold_left (fun acc (name, id) ->
-        match weight_of hg (simple_node_of_id id) with
-        | None -> acc
-        | Some _ -> name :: acc
-      ) []
-    |> List.rev
-
-  let is_reachable var hg =
-    match StringMap.find_opt var hg.vars.var_name_to_int with
-    | None -> false
-    | Some id ->
-      match weight_of hg (simple_node_of_id id) with
-      | None -> false
-      | Some _ -> true
-
   (*TODO compile with `dot -Tpng graph.dot -o graph.png`*)
-  let to_dot (hg : t) : string =
-    let get_id_of_node (node: Node.t) =
-      match node with 
-      | Simple id -> "s" ^ string_of_int id
-      | Compound id_set -> 
-        "c" ^ let s = string_of_int (Hashtbl.hash id_set) 
-        in String.sub s 0 2 
-        (*TODO give the compound nodes an actual ID*)
-    in
+  let to_dot hg int_to_var =
     let b = Buffer.create 1024 in
     Buffer.add_string b "digraph hypergraph {\n";
     Buffer.add_string b "  rankdir=LR;\n";
     Buffer.add_string b "  node [fontsize=10, penwidth=1.2];\n";
-    (* Print nodes *)
+    (* Add nodes to buffer *)
     NodeMap.iter (fun node _ ->
-        match node with
-        | Simple id ->
-          let vname = Vars.int_to_var hg.vars id in
-          Buffer.add_string b
-            (Printf.sprintf "  n%s [label=\"%s\", shape=plaintext];\n"
-               (get_id_of_node node) vname)
-        | Compound _ -> 
-          let id = get_id_of_node node in 
-          Buffer.add_string b
-            (Printf.sprintf "  n%s [label=\"%s\", shape=circle, style=filled, fillcolor=white, color=black, width=0.2, fixedsize=true];\n"
-               id id)
-      ) hg.nodes;
-    (* Print edges *)
+        Node.dot_of_node node int_to_var b
+      ) hg;
+    (* Add edges to buffer *)
     NodeMap.iter (fun node node_data ->
         NodeSet.iter (fun successor ->
-            let edge_style =
-              match node, successor with
-              | Simple _, Compound _ -> " [style=dashed]"
-              | _ -> ""
-            in
-            Buffer.add_string b
-              (Printf.sprintf "  n%s -> n%s%s;\n" (get_id_of_node node) (get_id_of_node successor) edge_style)
-          ) node_data.succs
-      ) hg.nodes;
-
+            Node.dot_of_edge node successor b 
+          ) (node_data.NodeData.succs)
+      ) hg;
     Buffer.add_string b "}\n";
     Buffer.contents b
 
