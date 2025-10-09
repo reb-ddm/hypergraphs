@@ -6,7 +6,14 @@ let t1 = "very_simple_add", [
     ("add c:=", ["a";"b";"c"]);
   ]
 
-let enabled_tests = [t1]
+let t2 = "very_simple_remove", [
+    ("add a:=", ["a"]);
+    ("add b:=", ["a";"b"]);
+    ("remove 1", ["b"]);
+    ("remove 1", []);
+  ]
+
+let enabled_tests = [t1; t2]
 
 module HypergraphHCH = HornClauseHandler(ClassicalHypergraph)
 
@@ -22,13 +29,14 @@ let run_test hc testid (input, expected_output) =
     if List.compare String.compare actual_output expected_output = 0 then
       true
     else
-      let () = print_endline ("TEST " ^ testid ^ " FAILED!")
+      let () = print_endline ("   TEST " ^ testid ^ " FAILED!")
       in false 
   in hc, success
 
 
 let run_tests () = 
   List.iter (fun (test_name, commands) ->
+    print_endline ("Starting test "^test_name);
       let hc = HypergraphHCH.init ~nr_vars:400 in 
       let _ = List.fold_left (fun (hc,i,success) test ->
           if success then 
