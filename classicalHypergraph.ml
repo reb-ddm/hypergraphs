@@ -151,7 +151,7 @@ module Hypergraph : HornClausesReachability = struct
     |> update_weight_for_new_edge q2 q1
 
   let add_hyperedge hg tail head =
-    if Node.is_reflexive_edge head tail then 
+    if Node.is_reflexive_edge tail head then 
       (*reflexive edges are not allowed*)
       (hg, false) 
     else 
@@ -306,18 +306,22 @@ module Hypergraph : HornClausesReachability = struct
 
   (* remove a hyperedge x -> y from the graph *)    
   let remove_clause (y, x) hg =
-    let hg = remove_hyperedge hg x y in
-    match min_pred_of hg y with
-    | Some pred ->
-      (* If the removed edge was the predecessor of y in the minimal path from true to y,
-         then change the min. predecessor and propagate to all successors of y.*)
-      if Node.compare pred x = 0 then
-        let w_y = weight_of hg y in
-        let pq0 = PQ.add ~prio:w_y y PQ.empty
-        in
-        scan_successors_after_removal hg pq0
-      else hg
-    | None -> hg
+    if Node.is_reflexive_edge x y then 
+      (*reflexive edges are not allowed*)
+      hg 
+    else
+      let hg = remove_hyperedge hg x y in
+      match min_pred_of hg y with
+      | Some pred ->
+        (* If the removed edge was the predecessor of y in the minimal path from true to y,
+           then change the min. predecessor and propagate to all successors of y.*)
+        if Node.compare pred x = 0 then
+          let w_y = weight_of hg y in
+          let pq0 = PQ.add ~prio:w_y y PQ.empty
+          in
+          scan_successors_after_removal hg pq0
+        else hg
+      | None -> hg
 
   (*TODO compile with `dot -Tpng graph.dot -o graph.png`*)
   let to_dot hg int_to_var =
