@@ -42,7 +42,10 @@ module Hypergraph : HornClausesReachability = struct
   let set_node_data hg node nd = NodeMap.add node nd hg
 
   let add_node node hg = 
-    set_node_data hg node (NodeData.make_node_data ())
+    if Node.is_compound node then 
+      set_node_data hg node (NodeData.make_node_data ~weight:(Some 0) ())
+    else
+      set_node_data hg node (NodeData.make_node_data ())
 
   let remove_node hg node = NodeMap.remove node hg
 
@@ -295,7 +298,6 @@ module Hypergraph : HornClausesReachability = struct
   let add_clause (y, x) hg =
     let (hg, changed) = add_hyperedge hg x y in
     if changed then 
-      let _ = print_endline "changed" in
       closure hg y
     else hg
 
