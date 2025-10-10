@@ -52,7 +52,7 @@ let rec loop hc =
       loop hc
   with 
   | ClassicalHypergraph.UnknownNodeId (loc, node) ->
-    print_endline ("Exception: UnknownNodeId " ^ Util.Node.string_of_node node ^ " in " ^ loc)
+    print_endline ("Exception: UnknownNodeId " ^ Util.Node.to_string node ^ " in " ^ loc)
   | Util.ExceededNrOfVars ->
     print_endline ("Exception: ExceededNrOfVars")
   | InvalidVarName s ->

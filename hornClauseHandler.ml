@@ -56,7 +56,7 @@ module HornClauseHandler (HC : HornClausesReachability) = struct
       horn_clause_handler= HC.add_clause edge hc.horn_clause_handler }
 
   let remove_clause hc (head, body) index = 
-    let clause = (Node.simple_node_of_id head, Node.compound_node_of_intset body) in
+    let clause = clause_to_edge (head, body) in
     {hc with
      horn_clauses_rev = 
        List.filteri (fun i _ -> not (i = index)) hc.horn_clauses_rev; 

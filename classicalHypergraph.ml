@@ -59,7 +59,10 @@ module Hypergraph : HornClausesReachability = struct
     (get_node_data hg node).NodeData.preds
 
   let update_min_pred node min_pred w hg =
-    (set_node_data hg node (NodeData.update_weight (NodeData.update_min_pred (get_node_data hg node) (Some min_pred)) w))
+    if Node.is_compound node then 
+      (set_node_data hg node (NodeData.update_weight (get_node_data hg node) w)) 
+    else 
+      (set_node_data hg node (NodeData.update_weight (NodeData.update_min_pred (get_node_data hg node) (Some min_pred)) w)) 
 
   let remove_min_pred node hg = 
     (set_node_data hg node (NodeData.update_weight (NodeData.update_min_pred (get_node_data hg node) None) None))
@@ -107,6 +110,37 @@ module Hypergraph : HornClausesReachability = struct
       (hg, true)
     else (hg, false)
 
+  let recalculate_weight hg q2 = (*TODO there is a better method for this*)
+    let hg = if Node.is_simple q2 then
+        set_node_data hg q2 (NodeData.update_weight (get_node_data hg q2) None)
+      else
+        set_node_data hg q2 (NodeData.update_weight (get_node_data hg q2) (Some 0)) in
+    let preds = preds_of hg q2 in
+    NodeSet.fold (fun q1 acc_hg ->
+        let (acc_hg, _ch) = update_weight_for_new_edge q2 q1 acc_hg in
+        acc_hg
+      ) preds hg
+
+  (* recalculate weight for q2 after the weight of q1 has decreased *)
+  let recalculate_weight_decrease q2 q1 hg = (*TODO check*)
+    if Node.is_compound q2 then
+      let w_q2 = weight_of hg q2 in
+      let hg = recalculate_weight hg q2
+      in hg, weight_of hg q2 <> w_q2
+    else
+      (* Q2 is a simple node *)
+      update_weight_for_new_edge q2 q1 hg
+
+  (* recalculate weight for q2 after the weight of q1 has increased *)
+  let _recalculate_weight_increase q2 q1 hg = (*TODO check*)
+    if Node.is_compound q2 then
+      update_weight_for_new_edge q2 q1 hg
+    else
+      (* Q2 is a simple node *)
+      let w_q2 = weight_of hg q2 in
+      let hg = recalculate_weight hg q2
+      in hg, weight_of hg q2 <> w_q2
+
   let add_simple_edge q1 q2 hg =
     hg 
     |> add_successor q1 ~succ:q2 
@@ -135,7 +169,7 @@ module Hypergraph : HornClausesReachability = struct
         let succs = succs_of hg cur in
         let (hg, new_worklist) =
           NodeSet.fold (fun succ (acc_hg, acc_wl) ->
-              let (acc_hg, changed) = update_weight_for_new_edge succ cur acc_hg in
+              let (acc_hg, changed) = recalculate_weight_decrease succ cur acc_hg in
               if changed then (acc_hg, PQ.add ~prio:(weight_of hg succ) succ acc_wl) else (acc_hg, acc_wl) (*TODO maybe return the new weight from the function*)
             ) succs (hg, worklist)
         in
@@ -164,13 +198,6 @@ module Hypergraph : HornClausesReachability = struct
       else hg
     else
       remove_simple_edge tail head hg
-
-  let recalculate_weight hg q2 = (*TODO there is a better method for this*)
-    let preds = preds_of hg q2 in
-    NodeSet.fold (fun q1 acc_hg ->
-        let (acc_hg, _ch) = update_weight_for_new_edge q2 q1 acc_hg in
-        acc_hg
-      ) preds hg
 
   (*invariant for the priority queue pq: it only contains simple edges *)
   let scan_successors_after_removal hg initial_pq =

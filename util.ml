@@ -42,7 +42,7 @@ module Node = struct
     | Compound xset -> IdSet.fold 
                          (fun i acc -> let node = simple_node_of_id i in f node acc) xset acc
 
-  let string_of_node node =
+  let to_string node =
     match node with
     | True -> "true"
     | Simple id -> "s" ^ string_of_int id
@@ -58,7 +58,7 @@ module Node = struct
       | Some w -> "("^string_of_int w^")" in
     match node with
     | True ->
-      let id = string_of_node node in 
+      let id = to_string node in 
       Buffer.add_string b
         (Printf.sprintf "  n%s [label=\"%s%s\", shape=plaintext];\n"
            id id w_string)
@@ -66,9 +66,9 @@ module Node = struct
       let vname = int_to_string id in
       Buffer.add_string b
         (Printf.sprintf "  n%s [label=\"%s%s\", shape=plaintext];\n"
-           (string_of_node node) vname w_string)
+           (to_string node) vname w_string)
     | Compound _ -> 
-      let id = string_of_node node in 
+      let id = to_string node in 
       Buffer.add_string b
         (Printf.sprintf "  n%s [label=\"%s%s\", shape=circle, style=filled, fillcolor=white, color=black, width=0.2, fixedsize=true];\n"
            id id w_string)
@@ -80,22 +80,28 @@ module Node = struct
       | _ -> ""
     in
     Buffer.add_string b
-      (Printf.sprintf "  n%s -> n%s%s;\n" (string_of_node node) (string_of_node successor) edge_style)
+      (Printf.sprintf "  n%s -> n%s%s;\n" (to_string node) (to_string successor) edge_style)
 end
 
 module NodeSet = Set.Make(Node)
 module NodeMap = Map.Make(Node)
+
+module type OrderedAndPrintable = sig
+  include Set.OrderedType 
+  val to_string : t -> string
+end
 
 (**
    Priority queue 
    None represents the value infinity.
    Source = https://lewinb.net/posts/22_priorityqueue_ocaml/
 *)
-module PriorityQueue (Elt : Set.OrderedType) = struct
+module PriorityQueue (Elt : OrderedAndPrintable) = struct
   module EltWithPrio = struct
     type t = int option * Elt.t
     let compare (a,e1) (b,e2) = 
       match a, b with 
+      | None, None -> 0
       | None, _ -> 1
       | _, None -> -1
       | Some x, Some y -> 
@@ -122,6 +128,14 @@ module PriorityQueue (Elt : Set.OrderedType) = struct
     | Some old_elt ->
       q |> IntOptionSet.remove old_elt |> add ~prio:new_prio elt
 
+  let print_all_elements q = 
+    let () = IntOptionSet.iter (fun (i,n) -> 
+        let node_string = Elt.to_string n in
+        Option.iter print_int i;
+        print_string ";";
+        print_string node_string;
+        print_string ","
+      ) q in print_newline ()
 end
 
 
