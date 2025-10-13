@@ -1,17 +1,10 @@
-open Util
+open Hypergraph_sig
 
 exception InvalidVarName of string
 exception InvalidCharachter of string
 exception InvalidCommand of string
 
-module HornClauseHandler (HC : HornClausesReachability) = struct
-  (*TODO not add duplicate clauses?
-    TODO all indexes change after removing something. This is not so good 
-    TODO maybe print for each add/delete and accept "p" "a" "r" as commands
-    TODO ignore case in commands
-    TODO check that true is well handled in each function
-    TODO write tests 
-    TODO better help text*)
+module IncrementalHandler (HC : IncrementalHornClauses) = struct
   type clause = (int * IdSet.t)
   type t = 
     {
@@ -54,14 +47,6 @@ module HornClauseHandler (HC : HornClausesReachability) = struct
     { hc with
       horn_clauses_rev= (head, body)::hc.horn_clauses_rev; 
       horn_clause_handler= HC.add_clause edge hc.horn_clause_handler }
-
-  let remove_clause hc (head, body) index = 
-    let clause = clause_to_edge (head, body) in
-    {hc with
-     horn_clauses_rev = 
-       List.filteri (fun i _ -> not (i = index)) hc.horn_clauses_rev; 
-     horn_clause_handler = 
-       HC.remove_clause clause hc.horn_clause_handler }
 
   let reachable_vars hc =
     StringMap.bindings hc.vars.var_name_to_int
@@ -147,4 +132,24 @@ module HornClauseHandler (HC : HornClausesReachability) = struct
         (List.length hc.horn_clauses_rev, []) hc.horn_clauses_rev
     in
     String.concat "\n" lines
+end
+
+module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
+  (*TODO not add duplicate clauses?
+    TODO all indexes change after removing something. This is not so good 
+    TODO maybe print for each add/delete and accept "p" "a" "r" as commands
+    TODO ignore case in commands
+    TODO check that true is well handled in each function
+    TODO write tests 
+    TODO better help text*)
+  include IncrementalHandler(HC)
+
+  let remove_clause hc (head, body) index = 
+    let clause = clause_to_edge (head, body) in
+    {hc with
+     horn_clauses_rev = 
+       List.filteri (fun i _ -> not (i = index)) hc.horn_clauses_rev; 
+     horn_clause_handler = 
+       HC.remove_clause clause hc.horn_clause_handler }
+
 end

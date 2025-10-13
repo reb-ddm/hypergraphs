@@ -1,0 +1,7 @@
+(library
+ (name incremental_analysis_util)
+ ; (libraries yojson result lwt kappa-library.generic kappa-library.runtime)
+ (flags
+  (:standard
+   -w
+   @a-40-42)))

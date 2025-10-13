@@ -1,6 +1,6 @@
-open Util
+(* open Hypergraph_sig
 
-module ParametricHypergraph : HornClausesReachability = struct
+module ParametricHypergraph : FullyDynamicHornClauses = struct
 
   type orthogonal_set = int NodeMap.t
   type adjacency_list = int (*TODO*)
@@ -31,3 +31,5 @@ module ParametricHypergraph : HornClausesReachability = struct
   let is_reachable _var _t = false
   let to_dot _ _ = ""
 end
+
+include ParametricHypergraph *)

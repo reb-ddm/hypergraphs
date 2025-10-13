@@ -1,4 +1,4 @@
-open HornClauseHandler
+open HcHandler
 open GenerateTests
 
 let t1 = "very_simple_add", [
@@ -42,26 +42,27 @@ let t5 = "reflexive_edge",[
     ("remove 1", []);
     ("add a:=f,a,w", []);
     ("remove 1", []);
-]
+  ]
 
-let simple_tests = [t1; t2; t3; t4; t5]
-let generated_tests () = [test_add 10 2; test_add 100 2; test_add 1000 2;
-test_add 10 20; test_add 100 20; test_add 1000 20;
-test_add 10 200; test_add 100 200; test_add 1000 200;
-test_add 10 2000; test_add 100 2000; test_add 1000 2000;] 
-let enabled_tests = [test_add 20000 2;] (*they generate before the program starts running*)
+let _simple_tests = [t1; t2; t3; t4; t5]
+let _generated_tests () = [test_add 10 2; test_add 100 2; test_add 1000 2;
+                          test_add 10 20; test_add 100 20; test_add 1000 20;
+                          test_add 10 200; test_add 100 200; test_add 1000 200;
+                          test_add 10 2000; test_add 100 2000; test_add 1000 2000;] 
+let enabled_tests = [ test_add 10000 2000;] (*they generate before the program starts running*)
 
-module HypergraphHCH = HornClauseHandler(ClassicalHypergraph)
+(* module HypergraphHCH = HornClauseHandler(FullyDynamicHypergraph) *)
+module HypergraphHCH = IncrementalHandler(IncrementalHypergraph)
 
 let run_test hc testid (input, expected_output) = 
-   (* let () = print_endline input in *)
+  (* let () = print_endline input in *)
   (*  let () = print_endline (String.concat "," expected_output) in *)
-  let hc, index, clause, must_be_added = HypergraphHCH.parse_clause input hc in
+  let hc, _index, clause, must_be_added = HypergraphHCH.parse_clause input hc in
   let t1 = Sys.time() in
   let hc = if must_be_added then
       HypergraphHCH.add_clause clause hc
-    else
-      HypergraphHCH.remove_clause hc clause index 
+    else hc
+      (* HypergraphHCH.remove_clause hc clause index  *)
   in 
   let actual_output = HypergraphHCH.reachable_vars hc in
   let t2 = Sys.time() in

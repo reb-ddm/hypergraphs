@@ -1,8 +1,9 @@
 
 
-open HornClauseHandler
+open HcHandler
+open Incremental_analysis_algorithms
 
-module HypergraphHCH = HornClauseHandler(ClassicalHypergraph)
+module HypergraphHCH = HornClauseHandler(FullyDynamicHypergraph)
 
 let help_message =
   "Available commands:
@@ -51,9 +52,9 @@ let rec loop hc =
       print_endline "done";
       loop hc
   with 
-  | ClassicalHypergraph.UnknownNodeId (loc, node) ->
-    print_endline ("Exception: UnknownNodeId " ^ Util.Node.to_string node ^ " in " ^ loc)
-  | Util.ExceededNrOfVars ->
+  | FullyDynamicHypergraph.UnknownNodeId (loc, node) ->
+    print_endline ("Exception: UnknownNodeId " ^ Hypergraph_sig.Node.to_string node ^ " in " ^ loc)
+  | Hypergraph_sig.ExceededNrOfVars ->
     print_endline ("Exception: ExceededNrOfVars")
   | InvalidVarName s ->
     print_endline (error_message ("Not a valid variable name: " ^ s));

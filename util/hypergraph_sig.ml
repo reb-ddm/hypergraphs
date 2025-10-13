@@ -4,7 +4,13 @@ module Id = struct
   let compare = Stdlib.compare
 end
 
-module IdSet = Set.Make(Id)
+let set_to_string string_of_elt to_seq s = 
+    String.concat ", " (List.map (fun e -> string_of_elt e) (List.of_seq (to_seq s)))
+
+module IdSet = struct
+  include Set.Make(Id)
+  let to_string  = set_to_string string_of_int to_seq
+end
 
 module Node = struct
   type t =
@@ -12,9 +18,11 @@ module Node = struct
     | Simple of Id.t
     | Compound of IdSet.t (*this represents the source set of an edge*)
 
-  let is_true_node = function True -> true | _ -> false
-  let is_simple = function Simple _ | True -> true | _ -> false
-  let is_compound = function Simple _ -> false | _ -> true
+  let empty = True
+
+  let is_true_node = function True -> true | Simple _ | Compound _ -> false
+  let is_simple = function Simple _ | True -> true | Compound _ -> false
+  let is_compound = function Simple _ | True -> false | Compound _ -> true
 
   let compare a b =
     match a, b with
@@ -33,7 +41,7 @@ module Node = struct
   let is_reflexive_edge tail head =
     match tail, head with
     | Compound xset, Simple x -> IdSet.mem x xset
-    | _ -> false
+    | Compound _, _ | Simple _, _ | True, _ -> false
 
   let fold f node acc =
     match node with 
@@ -77,18 +85,23 @@ module Node = struct
     let edge_style =
       match node, successor with
       | Simple _, Compound _ -> " [style=dashed]"
-      | _ -> ""
+      | Simple _, _ | Compound _, _ | True, _ -> ""
     in
     Buffer.add_string b
       (Printf.sprintf "  n%s -> n%s%s;\n" (to_string node) (to_string successor) edge_style)
 end
 
-module NodeSet = Set.Make(Node)
+module NodeSet = struct
+  include Set.Make(Node)
+  let to_string = set_to_string Node.to_string to_seq
+end
+
 module NodeMap = Map.Make(Node)
 
 module type OrderedAndPrintable = sig
   include Set.OrderedType 
   val to_string : t -> string
+  val empty : t
 end
 
 (**
@@ -175,7 +188,7 @@ module Vars = struct
           vars with
           var_name_to_int = StringMap.add var i vars.var_name_to_int;
           int_name_to_var = IntMap.add i var vars.int_name_to_var;
-          next_unused_int = vars.next_unused_int + 1;
+          next_unused_int = i + 1;
         }, i, true)
 
   let int_to_var vars id =
@@ -184,14 +197,20 @@ module Vars = struct
 
 end
 
-module type HornClausesReachability = sig
+
+module type IncrementalHornClauses = sig
   type t
   type edge = Node.t * Node.t
   val init : nr_vars:int -> t
   val add_node : Node.t -> t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
-  val remove_clause : edge -> t -> t
   val is_reachable : Node.t -> t -> bool
   val to_dot : t -> (int -> string) -> string
+end
+
+
+module type FullyDynamicHornClauses = sig
+  include IncrementalHornClauses
+  val remove_clause : edge -> t -> t
 end

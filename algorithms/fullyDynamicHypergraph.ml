@@ -1,9 +1,9 @@
-open Util
+open Hypergraph_sig
 
 (*TODO in this implementation the information pred(c) for a compound node c is redundant as it is already in the set c. We should use an id for the compound nodes instead or remove pred(c)*)
 exception UnknownNodeId of (string * Node.t)
 
-module Hypergraph : HornClausesReachability = struct
+module Hypergraph : FullyDynamicHornClauses = struct
   module NodeData = struct
     type t = {
       weight : int option; (* rank(/length) of the minimal path from the source (="true" node) to the current node. None if the node is unreachable. *)

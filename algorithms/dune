@@ -1,0 +1,14 @@
+(library
+ (name incremental_analysis_algorithms)
+ (libraries yojson result lwt incremental_analysis_util kappa_kasa_frontend kappa_data_structures kappa_kasa_kastor_toolset)
+ (flags
+  (:standard
+   -w
+   @a-40-42
+   -open
+   Incremental_analysis_util
+   -open 
+   Kappa_kasa_frontend
+   -open 
+   Kappa_data_structures
+   -open Kappa_kasa_kastor_toolset)))

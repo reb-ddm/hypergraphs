@@ -1,0 +1,11 @@
+(library
+ (name incremental_analysis_tests)
+ (libraries yojson result lwt incremental_analysis_util incremental_analysis_algorithms)
+ (flags
+  (:standard
+   -w
+   @a-40-42
+   -open
+   Incremental_analysis_util
+   -open
+   Incremental_analysis_algorithms)))
