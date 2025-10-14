@@ -5,20 +5,51 @@ module Id = struct
 end
 
 let set_to_string string_of_elt to_seq s = 
-    String.concat ", " (List.map (fun e -> string_of_elt e) (List.of_seq (to_seq s)))
+  String.concat ", " (List.map (fun e -> string_of_elt e) (List.of_seq (to_seq s)))
 
 module IdSet = struct
   include Set.Make(Id)
   let to_string  = set_to_string string_of_int to_seq
 end
 
+module IdSetMap = Map.Make(IdSet)
+
+module CompoundIntConversion = struct
+
+  type t = {
+    compound_to_int : int IdSetMap.t;
+    next_compound_int: int;
+  }
+
+  let empty = {compound_to_int = IdSetMap.empty;
+               next_compound_int = 0}
+
+  let bindings t = IdSetMap.bindings t.compound_to_int
+
+  let compound_to_int cti node =
+    match IdSetMap.find_opt node cti.compound_to_int with
+    | Some i -> cti, i
+    | None -> 
+      let next_int = cti.next_compound_int in
+      let compound_to_int = IdSetMap.add node next_int cti.compound_to_int
+      in {compound_to_int; next_compound_int = next_int + 1}, next_int
+
+  let remove_node cti node =
+    match IdSetMap.find_opt node cti.compound_to_int with
+    | Some i -> 
+      let next_compound_int = 
+        if i = cti.next_compound_int - 1 then i 
+        else cti.next_compound_int in (*TODO fill blanks?*)
+      let compound_to_int = IdSetMap.remove node cti.compound_to_int in
+      {compound_to_int; next_compound_int}
+    | None -> cti
+end
+
 module Node = struct
   type t =
     | True
     | Simple of Id.t
-    | Compound of IdSet.t (*this represents the source set of an edge*)
-
-  let empty = True
+    | Compound of Id.t
 
   let is_true_node = function True -> true | Simple _ | Compound _ -> false
   let is_simple = function Simple _ | True -> true | Compound _ -> false
@@ -32,33 +63,24 @@ module Node = struct
     | Simple i, Simple j -> Id.compare i j
     | Simple _, Compound _ -> -1
     | Compound _, Simple _ -> 1
-    | Compound s1, Compound s2 -> IdSet.compare s1 s2
-
+    | Compound s1, Compound s2 -> Id.compare s1 s2
 
   let simple_node_of_id id = Simple id
-  let compound_node_of_intset s = Compound s
+  let compound_node_of_intset s cti = 
+    let cti, i = CompoundIntConversion.compound_to_int cti s in
+    cti, Compound i
 
-  let is_reflexive_edge tail head =
-    match tail, head with
-    | Compound xset, Simple x -> IdSet.mem x xset
-    | Compound _, _ | Simple _, _ | True, _ -> false
-
-  let fold f node acc =
-    match node with 
-    | True -> acc
-    | Simple _ -> f node acc
-    | Compound xset -> IdSet.fold 
-                         (fun i acc -> let node = simple_node_of_id i in f node acc) xset acc
+  let is_reflexive_edge tail_set head =
+    match head with
+    | Simple x -> IdSet.mem x tail_set
+    | Compound _ | True -> false
 
   let to_string node =
     match node with
     | True -> "true"
     | Simple id -> "s" ^ string_of_int id
-    | Compound id_set -> 
-      "c" ^ let s = string_of_int (Hashtbl.hash id_set) 
-      in String.sub s 0 2 
-  (*TODO give the compound nodes an actual ID*)
-
+    | Compound id -> 
+      "c" ^ string_of_int id
 
   let dot_of_node node int_to_string b weight =
     let w_string = match weight with
@@ -101,6 +123,10 @@ module NodeMap = Map.Make(Node)
 module type OrderedAndPrintable = sig
   include Set.OrderedType 
   val to_string : t -> string
+end
+
+module type HasEmpty = sig
+  type t
   val empty : t
 end
 
@@ -123,7 +149,6 @@ module PriorityQueue (Elt : OrderedAndPrintable) = struct
   end
   module IntOptionSet = Set.Make(EltWithPrio)
 
-  (* The priority queue (heap) functionality now basically comes for free. *)
   let empty = IntOptionSet.empty
   let is_empty = IntOptionSet.is_empty
   let add ~prio elt q = 
@@ -195,15 +220,7 @@ module Vars = struct
     IntMap.find id vars.int_name_to_var
 end
 
-module IdSetMap = Map.Make(IdSet)    
-type compound_to_int = int IdSetMap.t
-
-let compound_to_int cti next_int node =
-  match IdSetMap.find_opt node cti with
-  | Some i -> cti, i, next_int
-  | None -> IdSetMap.add node next_int cti, next_int, next_int + 1
-
-module MutableNodeMap (Elt: OrderedAndPrintable) = struct
+module MutableNodeMap (Elt: HasEmpty) = struct
   type t = {
     true_node_map: Elt.t option;
     simple_nodes_map: Elt.t Array.t;
@@ -214,17 +231,16 @@ module MutableNodeMap (Elt: OrderedAndPrintable) = struct
     simple_nodes_map = Array.make size Elt.empty;
     compound_nodes_map = IntMap.empty;
   }
-  let add node elt map cti = 
+  let add node elt map = 
     match node with 
     | Node.True -> {map with true_node_map = Some elt}
     | Node.Simple i -> 
       let _ = Array.set map.simple_nodes_map i elt in map
-    | Node.Compound xset ->
-      let i = IdSetMap.find xset cti in (*TODO what if it doesnt exists*)
+    | Node.Compound i ->
       let compound_nodes_map = IntMap.add i elt map.compound_nodes_map in
       {map with compound_nodes_map}
 
-  let get node map cti = 
+  let get node map = 
     match node with 
     | Node.True -> 
       begin match map.true_node_map with 
@@ -233,23 +249,53 @@ module MutableNodeMap (Elt: OrderedAndPrintable) = struct
       end 
     | Node.Simple i -> 
       Array.get map.simple_nodes_map i
-    | Node.Compound xset ->
-      let i = IdSetMap.find xset cti in (*TODO what if it doesnt exists*)
+    | Node.Compound i ->
       match IntMap.find_opt i map.compound_nodes_map with 
       | None -> Elt.empty 
       | Some elt -> elt
+
+  let remove node map = 
+    match node with 
+    | Node.True -> 
+      begin match map.true_node_map with 
+        | None -> map
+        | Some _ ->
+          {map with true_node_map = None}
+      end
+    | Node.Simple i -> 
+      let _ = Array.set map.simple_nodes_map i Elt.empty in
+      map
+    | Node.Compound i ->
+      if IntMap.mem i map.compound_nodes_map then 
+        {map with 
+         compound_nodes_map = IntMap.remove i map.compound_nodes_map}
+      else
+        map
+
+  let iter f t = 
+    let _ = 
+      match t.true_node_map with 
+      | None -> ()
+      | Some elt -> f Node.True elt in
+    let _ = Array.iteri (fun i elt -> f (Node.Simple i) elt) t.simple_nodes_map in
+    let _ = IntMap.iter (fun i elt -> f (Node.Compound i) elt) t.compound_nodes_map in
+    ()
+
 end
 
 
 module type IncrementalHornClauses = sig
   type t
-  type edge = Node.t * Node.t
+
+  (**(lhs, rhs, set of literals in the rhs)*)
+  type edge = Node.t * Node.t * IdSet.t 
   val init : nr_vars:int -> t
-  val add_node : Node.t -> t -> t
+  val add_node : Node.t -> IdSet.t -> t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool
-  val to_dot : t -> (int -> string) -> string
+  val weight_of : t -> Node.t -> int option
+  val succs_of : t -> Node.t -> NodeSet.t
 end
 
 

@@ -10,7 +10,8 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
     {
       vars : Vars.t;
       horn_clauses_rev: clause list;
-      horn_clause_handler: HC.t
+      horn_clause_handler: HC.t;
+      compound_to_int : CompoundIntConversion.t;
     }
 
   let update_vars hc vars'= { hc with vars = vars' }
@@ -22,7 +23,7 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
     let node = Node.simple_node_of_id id in
     let hc = 
       if is_new_var then
-        let hch = HC.add_node node hc.horn_clause_handler in
+        let hch = HC.add_node node (IdSet.singleton id) hc.horn_clause_handler in
         update_handler hc hch
       else hc 
     in
@@ -31,22 +32,24 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
   let init ~nr_vars = 
     { vars = Vars.init ~nr_vars;
       horn_clauses_rev= []; 
-      horn_clause_handler= HC.init ~nr_vars }
+      horn_clause_handler= HC.init ~nr_vars;
+      compound_to_int = CompoundIntConversion.empty }
 
-  let clause_to_edge (head, body) =  
+  let clause_to_edge (head, body) hc =  
     let head_node = Node.simple_node_of_id head in
     if IdSet.is_empty body then 
-      head_node, Node.True
+      (head_node, Node.True, IdSet.empty), hc
     else if IdSet.cardinal body = 1 then
-      head_node, Node.simple_node_of_id (IdSet.choose body)
-    else 
-      head_node, Node.compound_node_of_intset body
+      (head_node, Node.simple_node_of_id (IdSet.choose body), body), hc
+    else
+      let cti, node = Node.compound_node_of_intset body hc.compound_to_int in
+      (head_node, node, body), {hc with compound_to_int = cti}
 
   let add_clause (head, body) hc =
-    let edge = clause_to_edge (head, body) in
+    let edge, hc = clause_to_edge (head, body) hc in
     { hc with
-      horn_clauses_rev= (head, body)::hc.horn_clauses_rev; 
-      horn_clause_handler= HC.add_clause edge hc.horn_clause_handler }
+      horn_clauses_rev = (head, body)::hc.horn_clauses_rev; 
+      horn_clause_handler = HC.add_clause edge hc.horn_clause_handler; }
 
   let reachable_vars hc =
     StringMap.bindings hc.vars.var_name_to_int
@@ -60,7 +63,30 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
   let reachable_vars_string hc =
     String.concat ", " (reachable_vars hc)
 
-  let to_dot hc = HC.to_dot hc.horn_clause_handler (Vars.int_to_var hc.vars)
+  let to_dot hg =
+    let b = Buffer.create 1024 in
+    Buffer.add_string b "digraph hypergraph {\n";
+    Buffer.add_string b "  rankdir=LR;\n";
+    Buffer.add_string b "  node [fontsize=10, penwidth=1.2];\n";
+    let nodes = 
+      Node.True :: 
+      List.init hg.vars.nr_vars
+        (fun x -> Node.Simple x) @ 
+      List.map (fun (_, id) -> Node.Compound id) (CompoundIntConversion.bindings hg.compound_to_int) 
+    in
+    (* Add nodes to buffer *)
+    List.iter (fun node ->
+        let reach = HC.weight_of hg.horn_clause_handler node in
+        Node.dot_of_node node (Vars.int_to_var hg.vars) b reach
+      ) nodes;
+    (* Add edges to buffer *)
+    List.iter (fun node ->
+        NodeSet.iter (fun successor ->
+            Node.dot_of_edge node successor b 
+          ) (HC.succs_of hg.horn_clause_handler node)
+      ) nodes;
+    Buffer.add_string b "}\n";
+    Buffer.contents b
 
   (**
      returns (index, clause, bool)
@@ -145,7 +171,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
   include IncrementalHandler(HC)
 
   let remove_clause hc (head, body) index = 
-    let clause = clause_to_edge (head, body) in
+    let clause, hc = clause_to_edge (head, body) hc in
     {hc with
      horn_clauses_rev = 
        List.filteri (fun i _ -> not (i = index)) hc.horn_clauses_rev; 

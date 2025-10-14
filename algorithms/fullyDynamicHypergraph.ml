@@ -3,7 +3,7 @@ open Hypergraph_sig
 (*TODO in this implementation the information pred(c) for a compound node c is redundant as it is already in the set c. We should use an id for the compound nodes instead or remove pred(c)*)
 exception UnknownNodeId of (string * Node.t)
 
-module Hypergraph : FullyDynamicHornClauses = struct
+module Hypergraph = struct
   module NodeData = struct
     type t = {
       weight : int option; (* rank(/length) of the minimal path from the source (="true" node) to the current node. None if the node is unreachable. *)
@@ -15,6 +15,8 @@ module Hypergraph : FullyDynamicHornClauses = struct
     let make_node_data ?(weight=None) ?(min_pred=None) ?(succs=NodeSet.empty) ?(preds=NodeSet.empty) () =
       { weight; min_pred; succs; preds }
 
+    let empty = make_node_data ()
+
     let update_weight nd w = {nd with weight = w}
     let update_min_pred nd minpred = {nd with min_pred = minpred}
     let is_reachable nd = Option.is_some nd.weight
@@ -22,32 +24,31 @@ module Hypergraph : FullyDynamicHornClauses = struct
     let add_predecessor nd pred = {nd with preds = NodeSet.add pred nd.preds}
     let remove_successor nd succ = {nd with succs = NodeSet.remove succ nd.succs}
     let remove_predecessor nd pred = {nd with preds = NodeSet.remove pred nd.preds}
-
   end 
 
-  type t = NodeData.t NodeMap.t
+  module NodeMap = MutableNodeMap(NodeData)
+  type t = NodeMap.t
 
   module PQ = PriorityQueue(Node)
 
   let init ~nr_vars = 
-    let _ = nr_vars in
     let true_node_data = NodeData.make_node_data ~weight:(Some 0) () in
-    let node_map = NodeMap.empty in NodeMap.add True true_node_data node_map
+    NodeMap.add True true_node_data (NodeMap.empty nr_vars)
 
-  let get_node_data hg node =
-    match NodeMap.find_opt node hg with
-    | Some nd -> nd
-    | None -> raise (UnknownNodeId (__LOC__, node))
+  let get_node_data hg node = NodeMap.get node hg
 
   let set_node_data hg node nd = NodeMap.add node nd hg
 
-  let add_node node hg = 
+  let add_node node _set hg = 
     if Node.is_compound node then 
       set_node_data hg node (NodeData.make_node_data ~weight:(Some 0) ())
     else
       set_node_data hg node (NodeData.make_node_data ())
 
-  let remove_node hg node = NodeMap.remove node hg
+  let remove_compound_node hg node = 
+    match node with 
+    | Node.True | Node.Simple _ -> hg
+    | Node.Compound _ -> NodeMap.remove node hg
 
   let weight_of hg node =
     (get_node_data hg node).NodeData.weight
@@ -150,17 +151,17 @@ module Hypergraph : FullyDynamicHornClauses = struct
     |> add_predecessor q2 ~pred:q1 
     |> update_weight_for_new_edge q2 q1
 
-  let add_hyperedge hg tail head =
-    if Node.is_reflexive_edge tail head then 
+  let add_hyperedge hg tail_set tail head =
+    if Node.is_reflexive_edge tail_set head then 
       (*reflexive edges are not allowed*)
       (hg, false) 
     else 
       let hg = 
         if Node.is_simple tail then hg else 
           (* add nodes from the simple edges to the compound edge "tail" *)
-          Node.fold (
-            fun i acc_hg -> fst (add_simple_edge i tail acc_hg)
-          ) tail (add_node tail hg)
+          IdSet.fold (
+            fun i acc_hg -> fst (add_simple_edge (Simple i) tail acc_hg)
+          ) tail_set (add_node tail tail_set hg)
       in
       add_simple_edge tail head hg
 
@@ -188,16 +189,16 @@ module Hypergraph : FullyDynamicHornClauses = struct
     |> remove_successor q1 ~succ:q2 
     |> remove_predecessor q2 ~pred:q1 
 
-  let remove_hyperedge hg tail head =
+  let remove_hyperedge hg tail_set tail head =
     if Node.is_compound tail then
       let hg =
-        Node.fold (fun i hg_acc ->
-            remove_simple_edge i tail hg_acc
-          ) tail hg
+        IdSet.fold (fun i hg_acc ->
+            remove_simple_edge (Simple i) tail hg_acc
+          ) tail_set hg
       in
       let hg = remove_simple_edge tail head hg in
       if NodeSet.is_empty (succs_of hg tail) then
-        remove_node hg tail
+        remove_compound_node hg tail
       else hg
     else
       remove_simple_edge tail head hg
@@ -292,11 +293,11 @@ module Hypergraph : FullyDynamicHornClauses = struct
     in
     process_s hg_after_reset pq_s
 
-  type edge = Node.t * Node.t
+  type edge = Node.t * Node.t * IdSet.t
 
   (* add an edge x -> y to the hypergraph *)
-  let add_clause (y, x) hg =
-    let (hg, changed) = add_hyperedge hg x y in
+  let add_clause (y, x, x_set) hg =
+    let (hg, changed) = add_hyperedge hg x_set x y in
     if changed then 
       closure hg y
     else hg
@@ -305,12 +306,12 @@ module Hypergraph : FullyDynamicHornClauses = struct
     List.fold_left (fun acc c -> add_clause c acc) hg cls
 
   (* remove a hyperedge x -> y from the graph *)    
-  let remove_clause (y, x) hg =
-    if Node.is_reflexive_edge x y then 
+  let remove_clause (y, x, x_set) hg =
+    if Node.is_reflexive_edge x_set y then 
       (*reflexive edges are not allowed*)
       hg 
     else
-      let hg = remove_hyperedge hg x y in
+      let hg = remove_hyperedge hg x_set x y in
       match min_pred_of hg y with
       | Some pred ->
         (* If the removed edge was the predecessor of y in the minimal path from true to y,
@@ -322,26 +323,6 @@ module Hypergraph : FullyDynamicHornClauses = struct
           scan_successors_after_removal hg pq0
         else hg
       | None -> hg
-
-  (*TODO compile with `dot -Tpng graph.dot -o graph.png`*)
-  let to_dot hg int_to_var =
-    let b = Buffer.create 1024 in
-    Buffer.add_string b "digraph hypergraph {\n";
-    Buffer.add_string b "  rankdir=LR;\n";
-    Buffer.add_string b "  node [fontsize=10, penwidth=1.2];\n";
-    (* Add nodes to buffer *)
-    NodeMap.iter (fun node node_data ->
-        let w = node_data.NodeData.weight in
-        Node.dot_of_node node int_to_var b w
-      ) hg;
-    (* Add edges to buffer *)
-    NodeMap.iter (fun node node_data ->
-        NodeSet.iter (fun successor ->
-            Node.dot_of_edge node successor b 
-          ) (node_data.NodeData.succs)
-      ) hg;
-    Buffer.add_string b "}\n";
-    Buffer.contents b
 
 end
 

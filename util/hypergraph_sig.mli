@@ -11,9 +11,14 @@ module StringMap : Map.S with type key = string
 module IntMap : Map.S with type key = int
 exception ExceededNrOfVars
 
+
 module type OrderedAndPrintable = sig
   include Set.OrderedType 
   val to_string : t -> string
+end
+
+module type HasEmpty = sig
+  type t
   val empty : t
 end
 
@@ -52,25 +57,31 @@ sig
   val int_to_var : t -> int -> string
 end
 
+module CompoundIntConversion : sig
+  type t
+  val empty : t
+  val compound_to_int : t  -> IdSet.t -> t * int 
+  val remove_node : t -> IdSet.t -> t
+  val bindings : t -> (IdSet.t * int) list
+end
+
 module Node : sig
   type t =
     | True
     | Simple of Id.t
-    | Compound of IdSet.t
-
-  val empty: t
+    | Compound of Id.t
 
   val is_true_node : t -> bool
   val is_simple : t -> bool
   val is_compound : t -> bool
 
   val simple_node_of_id : Id.t -> t
-  val compound_node_of_intset : IdSet.t -> t
+  val compound_node_of_intset : 
+    IdSet.t -> CompoundIntConversion.t -> CompoundIntConversion.t * t
 
   val compare : t -> t -> int
 
-  val is_reflexive_edge : t -> t -> bool
-  val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
+  val is_reflexive_edge : IdSet.t -> t -> bool
 
   val to_string : t -> string
 
@@ -85,45 +96,35 @@ module NodeSet : sig
 end with type elt = Node.t
 module NodeMap : Map.S with type key = Node.t
 
-
-module IdSetMap : Map.S with type key = IdSet.t
-type compound_to_int = int IdSetMap.t
-
-val compound_to_int : compound_to_int -> int -> IdSet.t -> compound_to_int * int * int
-
 module MutableNodeMap :
-functor (Elt: OrderedAndPrintable) -> sig
-  type t = {
-    true_node_map: Elt.t option;
-    simple_nodes_map: Elt.t Array.t;
-    compound_nodes_map: Elt.t IntMap.t;
-  }
-  val empty : int -> t
-  val add : Node.t -> Elt.t -> t -> compound_to_int -> t
-  val get : Node.t -> t -> compound_to_int -> Elt.t
-end
+  functor (Elt: HasEmpty) -> sig
+    type t = {
+      true_node_map: Elt.t option;
+      simple_nodes_map: Elt.t Array.t;
+      compound_nodes_map: Elt.t IntMap.t;
+    }
+    val empty : int -> t
+    val add : Node.t -> Elt.t -> t -> t
+    val get : Node.t -> t -> Elt.t
+    val remove : Node.t -> t -> t
+    val iter : (Node.t -> Elt.t -> unit) -> t -> unit
+  end
 
 module type IncrementalHornClauses =
 sig
   type t
-  type edge = Node.t * Node.t
+  type edge = Node.t * Node.t * IdSet.t
   val init : nr_vars:int -> t
-  val add_node : Node.t -> t -> t
+  val add_node : Node.t -> IdSet.t -> t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool
-  val to_dot : t -> (int -> string) -> string
+  val weight_of : t -> Node.t -> int option
+  val succs_of : t -> Node.t -> NodeSet.t
 end
 
 module type FullyDynamicHornClauses =
 sig
-  type t
-  type edge = Node.t * Node.t
-  val init : nr_vars:int -> t
-  val add_node : Node.t -> t -> t
-  val add_clause : edge -> t -> t
-  val add_clauses : edge list -> t -> t
-  val is_reachable : Node.t -> t -> bool
-  val to_dot : t -> (int -> string) -> string
+  include IncrementalHornClauses
   val remove_clause : edge -> t -> t
 end
