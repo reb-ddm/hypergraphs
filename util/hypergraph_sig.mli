@@ -85,6 +85,24 @@ module NodeSet : sig
 end with type elt = Node.t
 module NodeMap : Map.S with type key = Node.t
 
+
+module IdSetMap : Map.S with type key = IdSet.t
+type compound_to_int = int IdSetMap.t
+
+val compound_to_int : compound_to_int -> int -> IdSet.t -> compound_to_int * int * int
+
+module MutableNodeMap :
+functor (Elt: OrderedAndPrintable) -> sig
+  type t = {
+    true_node_map: Elt.t option;
+    simple_nodes_map: Elt.t Array.t;
+    compound_nodes_map: Elt.t IntMap.t;
+  }
+  val empty : int -> t
+  val add : Node.t -> Elt.t -> t -> compound_to_int -> t
+  val get : Node.t -> t -> compound_to_int -> Elt.t
+end
+
 module type IncrementalHornClauses =
 sig
   type t

@@ -1,50 +1,5 @@
 open Hypergraph_sig
 
-module IdSetMap = Map.Make(IdSet)    
-type compound_to_int = int IdSetMap.t
-
-let compound_to_int cti next_int node =
-  match IdSetMap.find_opt node cti with
-  | Some i -> cti, i, next_int
-  | None -> IdSetMap.add node next_int cti, next_int, next_int + 1
-
-module MutableNodeMap (Elt: OrderedAndPrintable) = struct
-  type t = {
-    true_node_map: Elt.t option;
-    simple_nodes_map: Elt.t Array.t;
-    compound_nodes_map: Elt.t IntMap.t;
-  }
-  let empty size = {
-    true_node_map = None; 
-    simple_nodes_map = Array.make size Elt.empty;
-    compound_nodes_map = IntMap.empty;
-  }
-  let add node elt map cti = 
-    match node with 
-    | Node.True -> {map with true_node_map = Some elt}
-    | Node.Simple i -> 
-      let _ = Array.set map.simple_nodes_map i elt in map
-    | Node.Compound xset ->
-      let i = IdSetMap.find xset cti in (*TODO what if it doesnt exists*)
-      let compound_nodes_map = IntMap.add i elt map.compound_nodes_map in
-      {map with compound_nodes_map}
-
-  let get node map cti = 
-    match node with 
-    | Node.True -> 
-      begin match map.true_node_map with 
-        | None -> Elt.empty 
-        | Some elt -> elt
-      end 
-    | Node.Simple i -> 
-      Array.get map.simple_nodes_map i
-    | Node.Compound xset ->
-      let i = IdSetMap.find xset cti in (*TODO what if it doesnt exists*)
-      match IntMap.find_opt i map.compound_nodes_map with 
-      | None -> Elt.empty 
-      | Some elt -> elt
-end
-
 module IncrementalHypergraph : IncrementalHornClauses  = struct
 
   module AdjacencyList = MutableNodeMap(NodeSet)
