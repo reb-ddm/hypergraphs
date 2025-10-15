@@ -25,7 +25,7 @@ let rec loop hc =
   let error_message s = "Invalid input: " ^ s ^ ". Please try again. Type 'help' for help." in
   try
     match String.trim (read_line ()) with
-    | "quit" -> print_endline "Goodbye!"
+    | "quit" -> ()
     | "help" -> 
       print_endline help_message
     | "test" -> 
@@ -66,9 +66,15 @@ let rec loop hc =
     print_endline (error_message ("Command not recognized: " ^ s));
     loop hc
 
-
+let rec ask_nr_variables s =
+  print_endline s;
+  let s = String.trim (read_line ()) in
+  match int_of_string_opt s with 
+  | Some n -> n
+  | None -> ask_nr_variables "Please enter a number. Input the number of variables: "
 
 let start_agent () =
   print_endline "This program bla bla please input a horn clause.";
-  let hc = HypergraphHCH.init ~nr_vars:400 in 
+  let n = ask_nr_variables "Input the number of variables: " in
+  let hc = HypergraphHCH.init ~nr_vars:n in 
   loop hc

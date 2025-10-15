@@ -70,8 +70,8 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
     Buffer.add_string b "  node [fontsize=10, penwidth=1.2];\n";
     let nodes = 
       Node.True :: 
-      List.init hg.vars.nr_vars
-        (fun x -> Node.Simple x) @ 
+      List.map (fun (x, _) -> Node.Simple x) 
+        (IntMap.bindings hg.vars.int_name_to_var) @ 
       List.map (fun (_, id) -> Node.Compound id) (CompoundIntConversion.bindings hg.compound_to_int) 
     in
     (* Add nodes to buffer *)
@@ -138,7 +138,7 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
     else if String.starts_with ~prefix:"remove" s then 
       let s = String.trim (String.sub s 6 (String.length s - 6)) in
       let n = try int_of_string s 
-        with Failure s -> raise (InvalidCharachter s)
+        with Failure f -> raise (InvalidCharachter (s ^ " in function " ^ f))
       in
       let hc_list = hc.horn_clauses_rev in
       let index_in_list = List.length hc_list - n in

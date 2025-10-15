@@ -33,6 +33,7 @@ let add_simple_edges_from_true tests pre_steps_vars reachable_vars =
 
 (*creates a hypergraph with 2*s + p nodes and 2*s + 2*p edges*)
 let test_add size pre_steps =
+  let nr_nodes = 2*size + pre_steps in
   let nr_digits_size = String.length (string_of_int size) in
   let nr_digits_pre_steps = String.length (string_of_int pre_steps) in
   let name_pre_steps_var = "a" in
@@ -65,9 +66,10 @@ let test_add size pre_steps =
   in
   let tests, reachable_vars = next_layer name_vars size tests reachable_vars in
   let tests = add_simple_edges_from_true tests pre_steps_vars reachable_vars  in
-  name, List.rev tests
+  name, nr_nodes, List.rev tests
 
 let test_add2 size pre_steps =
+  let nr_nodes = size + pre_steps + 1 in
   let nr_digits_size = String.length (string_of_int size) in
   let nr_digits_pre_steps = String.length (string_of_int pre_steps) in
   let name_pre_steps_var = "a" in
@@ -83,4 +85,4 @@ let test_add2 size pre_steps =
   (* edge with source the set of all x_i and with goal node y*)
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let tests = add_simple_edges_from_true tests pre_steps_vars reachable_vars  in
-  name, List.rev ((last_test, reachable_vars @ [name_goal_var]) :: tests)
+  name, nr_nodes, List.rev ((last_test, reachable_vars @ [name_goal_var]) :: tests)
