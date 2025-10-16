@@ -2,10 +2,17 @@ open HcHandler
 open Hypergraph_sig
 open Enabled_tests
 
+let debug = false
+
+let debug_print s = 
+  if debug then print_endline s else ()
+
 module RunTestsAdd (HC : IncrementalHornClauses) = struct
   module HypergraphHCH = IncrementalHandler(HC) 
 
   let run_test hc testid (input, expected_output) remove = 
+    let _ = debug_print input in
+    let _ = debug_print (String.concat "," expected_output) in
     let hc, index, clause, must_be_added = HypergraphHCH.parse_clause input hc in
     let t1 = Sys.time() in
     let hc = if must_be_added then
@@ -21,10 +28,11 @@ module RunTestsAdd (HC : IncrementalHornClauses) = struct
         true
       else
         let () = print_endline ("   TEST " ^ testid ^ " FAILED!") in
+        let _ = debug_print (String.concat "," actual_output) in
         false 
     in hc, success, t2-.t1
 
-  let run_tests_remove title remove =
+  let run_tests_remove title remove enabled_tests =
     let _ = print_endline title in 
     List.iter (fun (test_name, nr_vars, commands) ->
         print_endline ("Starting test "^test_name);
@@ -40,9 +48,9 @@ module RunTestsAdd (HC : IncrementalHornClauses) = struct
         print_endline ("Total time: " ^ string_of_float total_time)
       ) enabled_tests
 
-  let ignore_remove hc _ _ = hc
+  (* let ignore_remove hc _ _ = hc *)
 
-  let run_tests title  = run_tests_remove title ignore_remove
+  (* let run_tests title  = run_tests_remove title ignore_remove *)
 end
 
 module RunTests (HC : FullyDynamicHornClauses) = struct
@@ -51,9 +59,11 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
   let run_tests title  = run_tests_remove title HypergraphHCH.remove_clause
 end
 
-module RunTestsIncremental = RunTestsAdd(IncrementalHypergraph)
+(* module RunTestsIncremental = RunTestsAdd(IncrementalHypergraph) *)
 module RunTestsDynamic = RunTests(FullyDynamicHypergraph)
 
-let run_tests () = 
-  let _ = RunTestsIncremental.run_tests "INCREMENTAL REACHABILITY" in
-  RunTestsDynamic.run_tests "MINIMAL SHORTEST PATH"
+let run_tests enabled_tests = 
+  (* let _ = RunTestsIncremental.run_tests "INCREMENTAL REACHABILITY" enabled_tests in *)
+  RunTestsDynamic.run_tests "MINIMAL SHORTEST PATH" enabled_tests
+
+let _ = run_tests (enabled_tests ())

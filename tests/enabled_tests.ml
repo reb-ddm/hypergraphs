@@ -43,17 +43,68 @@ let t5 = "reflexive_edge", 3, [
     ("remove 1", []);
   ]
 
-let _simple_tests = [t1; t2; t3; t4; t5]
+let t6 = "long_chain", 7, [
+    ("add a:=", ["a"]);
+    ("add b:=a", ["a";"b"]);
+    ("add d:=a,b", ["a";"b";"d"]);
+    ("add c2:=c", ["a";"b";"d"]);
+    ("add d:=c2", ["a";"b";"d"]);
+    ("add e:=d", ["a";"b";"d";"e"]);
+    ("add f:=e", ["a";"b";"d";"e";"f"]);
+    ("add c:=b", ["a";"b";"c";"c2";"d";"e";"f"]);
+    ("add e:=a", ["a";"b";"c";"c2";"d";"e";"f"]);
+    ("remove 2", ["a";"e";"f"]);
+    ("remove 1", []);
+    ("remove 1", []);
+    ("remove 1", []);
+    ("remove 1", []);
+    ("remove 1", []);
+    ("remove 1", []);
+    ("remove 1", []);
+    ("remove 1", []);
+  ]
+
+let t7 = "long_chain_v2_", 8, [
+    ("add a:=", ["a"]);
+    ("add d:=a,b", ["a"]);
+    ("add c2:=c", ["a"]);
+    ("add d:=c2", ["a"]);
+    ("add e:=d", ["a"]);
+    ("add f:=e", ["a"]);
+    ("add b:=a", ["a";"b";"d";"e";"f"]);
+    ("add c:=b", ["a";"b";"c";"c2";"d";"e";"f"]);
+    ("add e:=a", ["a";"b";"c";"c2";"d";"e";"f"]);
+    ("remove 2", ["a";"b";"c";"c2";"d";"e";"f"]);
+    ("add g:=a,b,c,d,e,f", ["a";"b";"c";"c2";"d";"e";"f";"g"]);
+    ("remove 4", ["a";"b";"c";"c2";"d";"e";"f";"g"]);
+    ("remove 6", ["a";"b";"e";"f"]);
+    ("remove 5", ["a";"e";"f"]);
+    ("add g:=a,d,e,f", ["a";"e";"f"]);
+    ("add  d:=a,f,e", ["a";"d";"e";"f";"g"]);
+    ("remove 1", []);
+  ]
+
+let _simple_tests = [t1; t2; t3; t4; t5; t6; t7]
 let _generated_tests () = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                            test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
                            test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;
                            test_add2 10 2000; test_add2 100 2000; test_add2 1000 2000; test_add2 10000 2000;
                           ] 
-let big_generated_tests () = [
+let _big_generated_tests () = [
   (* test_add2 10 4000; test_add2 100 4000; test_add2 1000 4000; test_add2 10000 4000; *)
-(* test_add2 20000 2; *)
- (* test_add2 30000 2;  *)
-   test_add2 10 10000; test_add2 100 10000; test_add2 1000 10000; test_add2 10000 10000;
-
+  (* test_add2 20000 2; *)
+  (* test_add2 30000 2;  *)
+  test_add2 20000 4000;
+  (* test_add2 10 10000; test_add2 100 10000; test_add2 1000 10000; test_add2 10000 10000; *)
 ]
-let enabled_tests = big_generated_tests () (*they generate before the program starts running*)
+let _generated_tests_remove () = [test_remove 10 2; test_remove 100 2; test_remove 1000 2; test_remove 10000 2;
+                                  test_remove 10 20; test_remove 100 20; test_remove 1000 20; test_remove 10000 20;
+                                  test_remove 10 200; test_remove 100 200; test_remove 1000 200; test_remove 10000 200;
+                                  test_remove 10 2000; test_remove 100 2000; test_remove 1000 2000; test_remove 10000 2000;
+                                 ] 
+let _generated_tests_remove2 () = [test_remove2 10 2; test_remove2 100 2; test_remove2 1000 2; test_remove2 10000 2;
+                                   test_remove2 10 20; test_remove2 100 20; test_remove2 1000 20; test_remove2 10000 20;
+                                   test_remove2 10 200; test_remove2 100 200; test_remove2 1000 200; test_remove2 10000 200;
+                                   test_remove2 10 2000; test_remove2 100 2000; test_remove2 1000 2000; test_remove2 10000 2000;
+                                  ] 
+let enabled_tests () = _generated_tests_remove2 () (*they generate before the program starts running*)

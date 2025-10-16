@@ -16,7 +16,7 @@ let chain_of_nodes_from_true steps var_name nr_digits =
     ) ([], [], "") pre_steps_vars
 
 (*edges node -> a_1; node -> a_2 ..... node -> a_size*)
-let simlpe_edges_starting_from_a_node node size name_vars nr_digits reachable_vars tests =
+let simple_edges_starting_from_a_node node size name_vars nr_digits reachable_vars tests =
   let vars = 
     List.init size 
       (fun i -> name_vars ^ string_of_int_with_n_digits i nr_digits) in 
@@ -24,6 +24,13 @@ let simlpe_edges_starting_from_a_node node size name_vars nr_digits reachable_va
       let reachable_vars = reachable_vars @ [var] in 
       ("add " ^ var ^ ":=" ^ node, reachable_vars)::tests, reachable_vars
     ) (tests, reachable_vars) vars
+
+(*remove all edges node -> a_1; node -> a_2 ..... node -> a_size*)
+let remove_simple_edges_starting_from_a_node vars =
+  let a,_,_ = (List.fold_left (fun (tests, reachable_vars, i) var -> 
+      ("remove " ^ string_of_int i, reachable_vars)::tests, reachable_vars @ [var], i + 1
+    ) ([], [], 1) vars) 
+  in a
 
 (*add direct edges true -> a_2, then true -> a_3 and so on*)
 let add_simple_edges_from_true tests pre_steps_vars reachable_vars =
@@ -44,7 +51,7 @@ let test_add size pre_steps =
   let pre_steps_vars, (tests, reachable_vars, last_var) = 
     chain_of_nodes_from_true pre_steps name_pre_steps_var nr_digits_pre_steps in
   let _, (tests, reachable_vars) = 
-    simlpe_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
+    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
   (*subsequent layers*)
   let rec next_layer var_prefix nr_vars tests reachable_vars =
     if nr_vars = 1 then 
@@ -81,8 +88,55 @@ let test_add2 size pre_steps =
   let pre_steps_vars, (tests, reachable_vars, last_var) = 
     chain_of_nodes_from_true pre_steps name_pre_steps_var nr_digits_pre_steps in
   let vars, (tests, reachable_vars) = 
-    simlpe_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
+    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
   (* edge with source the set of all x_i and with goal node y*)
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let tests = add_simple_edges_from_true tests pre_steps_vars reachable_vars  in
   name, nr_nodes, List.rev ((last_test, reachable_vars @ [name_goal_var]) :: tests)
+
+let test_remove size pre_steps =
+  let nr_nodes = size + pre_steps + 1 in 
+  let nr_digits_size = String.length (string_of_int size) in
+  let nr_digits_pre_steps = String.length (string_of_int pre_steps) in
+  let name_pre_steps_var = "a" in
+  let name_vars = "x" in
+  let name_goal_var = "y" in
+  let name = 
+    "generated_test_remove_of_size_" ^ string_of_int size ^ 
+    "_with_" ^ string_of_int pre_steps ^ "_preceding_nodes" in
+  let pre_steps_vars, (tests, reachable_vars, last_var) = 
+    chain_of_nodes_from_true pre_steps name_pre_steps_var nr_digits_pre_steps in
+  let vars, (tests, reachable_vars) = 
+    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
+  (* edge with source the set of all x_i and with goal node y*)
+  let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
+  let tests = List.rev ((last_test, reachable_vars @ [name_goal_var]) :: tests) in
+  let remove_tests = remove_simple_edges_starting_from_a_node pre_steps_vars in
+  name, nr_nodes, tests @ remove_tests
+
+
+let test_remove2 size steps =
+  let nr_nodes = size + 2 in 
+  let nr_digits_size = String.length (string_of_int size) in
+  let name_pre_steps_var = "a1" in
+  let name_vars = "x" in
+  let name_goal_var = "y" in
+  let name = 
+    "generated_test_remove2_of_size_" ^ string_of_int size ^ 
+    "_with_" ^ string_of_int steps ^ "_steps" in
+  let tests, reachable_vars = 
+    ["add "^name_pre_steps_var^":=", [name_pre_steps_var]], [name_pre_steps_var] in
+  let vars, (tests, reachable_vars) = 
+    simple_edges_starting_from_a_node name_pre_steps_var size name_vars nr_digits_size reachable_vars tests in
+  (* edge with source the set of all x_i and with goal node y*)
+  let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
+  let reachable_vars = reachable_vars @ [name_goal_var] in
+  let tests = (last_test, reachable_vars) :: tests in
+  let remove_tests = List.init steps (fun i -> 
+      if (i mod 2) = 0 then 
+        let index = if i = 0 then 1 else (2 + size) in
+        "remove " ^ string_of_int index, []
+      else
+        "add "^name_pre_steps_var^":=", reachable_vars
+    ) in
+  name, nr_nodes, List.rev (tests) @ remove_tests

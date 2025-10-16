@@ -1,6 +1,6 @@
 (executable
  (name HornClauses)
- (libraries num yojson str kappa_staticanalyses kappa_kasa_frontend incremental_analysis_algorithms incremental_analysis_tests incremental_analysis_util)
+ (libraries num yojson str kappa_staticanalyses kappa_kasa_frontend incremental_analysis_algorithms incremental_analysis_util)
  (modules HornClauses InteractiveAgent)
  (public_name HornClauses)
  (package kappa-binaries)
@@ -20,6 +20,5 @@
    Incremental_analysis_util
    -open
    Incremental_analysis_algorithms
-   -open
-   Incremental_analysis_tests))
+   ))
  (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))

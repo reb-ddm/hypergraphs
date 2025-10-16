@@ -28,8 +28,6 @@ let rec loop hc =
     | "quit" -> ()
     | "help" -> 
       print_endline help_message
-    | "test" -> 
-      Tests.run_tests ()
     | "dot" -> 
       let output = HypergraphHCH.to_dot hc in
       print_endline output;

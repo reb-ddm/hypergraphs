@@ -221,24 +221,36 @@ module Vars = struct
 end
 
 module MutableNodeMap (Elt: HasEmpty) = struct
+  (*TODO remember and reuse empty index?*)
   type t = {
     true_node_map: Elt.t option;
     simple_nodes_map: Elt.t Array.t;
-    compound_nodes_map: Elt.t IntMap.t;
+    compound_nodes_map: Elt.t option Res.Array.t;
   }
   let empty size = {
     true_node_map = None; 
     simple_nodes_map = Array.make size Elt.empty;
-    compound_nodes_map = IntMap.empty;
+    compound_nodes_map = Res.Array.empty ();
   }
   let add node elt map = 
+    let rec add_element_to_array ar length index elt = 
+      if length = index then 
+        Res.Array.add_one ar (Some elt)
+      else 
+        let _ = Res.Array.add_one ar None in
+        add_element_to_array ar (length + 1) index elt in
     match node with 
     | Node.True -> {map with true_node_map = Some elt}
     | Node.Simple i -> 
       let _ = Array.set map.simple_nodes_map i elt in map
     | Node.Compound i ->
-      let compound_nodes_map = IntMap.add i elt map.compound_nodes_map in
-      {map with compound_nodes_map}
+      let n = Res.Array.length map.compound_nodes_map in
+      let () = 
+        if i >= n then 
+          add_element_to_array map.compound_nodes_map n i elt 
+        else
+          Res.Array.set map.compound_nodes_map i (Some elt) 
+      in map
 
   let get node map = 
     match node with 
@@ -250,9 +262,13 @@ module MutableNodeMap (Elt: HasEmpty) = struct
     | Node.Simple i -> 
       Array.get map.simple_nodes_map i
     | Node.Compound i ->
-      match IntMap.find_opt i map.compound_nodes_map with 
-      | None -> Elt.empty 
-      | Some elt -> elt
+      if Res.Array.length map.compound_nodes_map <= i then
+        Elt.empty 
+      else
+        match Res.Array.get map.compound_nodes_map i with 
+        | None -> 
+          Elt.empty 
+        | Some elt -> elt
 
   let remove node map = 
     match node with 
@@ -266,11 +282,8 @@ module MutableNodeMap (Elt: HasEmpty) = struct
       let _ = Array.set map.simple_nodes_map i Elt.empty in
       map
     | Node.Compound i ->
-      if IntMap.mem i map.compound_nodes_map then 
-        {map with 
-         compound_nodes_map = IntMap.remove i map.compound_nodes_map}
-      else
-        map
+      let _ = Res.Array.set map.compound_nodes_map i None in
+      map
 
   let iter f t = 
     let _ = 
@@ -278,7 +291,9 @@ module MutableNodeMap (Elt: HasEmpty) = struct
       | None -> ()
       | Some elt -> f Node.True elt in
     let _ = Array.iteri (fun i elt -> f (Node.Simple i) elt) t.simple_nodes_map in
-    let _ = IntMap.iter (fun i elt -> f (Node.Compound i) elt) t.compound_nodes_map in
+    let _ = Res.Array.iteri (fun i elt -> 
+        match elt with | None -> ()
+                       | Some elt -> f (Node.Compound i) elt) t.compound_nodes_map in
     ()
 
 end

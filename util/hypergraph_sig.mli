@@ -98,11 +98,7 @@ module NodeMap : Map.S with type key = Node.t
 
 module MutableNodeMap :
   functor (Elt: HasEmpty) -> sig
-    type t = {
-      true_node_map: Elt.t option;
-      simple_nodes_map: Elt.t Array.t;
-      compound_nodes_map: Elt.t IntMap.t;
-    }
+    type t
     val empty : int -> t
     val add : Node.t -> Elt.t -> t -> t
     val get : Node.t -> t -> Elt.t
