@@ -1,3 +1,3 @@
 open Hypergraph_sig
 
-include IncrementalHornClauses
+include FullyDynamicHornClauses

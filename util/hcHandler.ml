@@ -4,7 +4,11 @@ exception InvalidVarName of string
 exception InvalidCharachter of string
 exception InvalidCommand of string
 
-module IncrementalHandler (HC : IncrementalHornClauses) = struct
+module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
+  (*TODO all indexes change after removing something. This is not so good 
+    TODO maybe print for each add/delete and accept "p" "a" "r" as commands
+    TODO ignore case in commands
+    TODO better help text*)
   type clause = (int * IdSet.t)
   type t = 
     {
@@ -17,6 +21,15 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
   let update_vars hc vars'= { hc with vars = vars' }
   let update_handler hc hch = { hc with horn_clause_handler = hch }
   let update_hcr hc hcr = { hc with horn_clauses_rev = hcr }
+
+  let insert_var_with_id hc var id =
+    let vars' = Vars.add_var hc.vars var id in
+    let node = Node.simple_node_of_id id in
+    let hc = 
+        let hch = HC.add_node node (IdSet.singleton id) hc.horn_clause_handler in
+        update_handler hc hch
+    in
+    (update_vars hc vars', id)
 
   let insert_var hc var =
     let (vars', id, is_new_var) = Vars.var_to_int hc.vars var in
@@ -51,8 +64,13 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
       horn_clauses_rev = (head, body)::hc.horn_clauses_rev; 
       horn_clause_handler = HC.add_clause edge hc.horn_clause_handler; }
 
+  let add_clauses variables clauses hc =
+    let hc = List.fold_left (fun hc (i,var) -> 
+        let hc,_ = insert_var_with_id hc var i in hc) hc variables in
+    List.fold_left (fun hc clause -> add_clause clause hc) hc clauses
+
   let reachable_vars hc =
-    StringMap.bindings hc.vars.var_name_to_int
+    Vars.get_vars_in_alphabetical_order hc.vars
     |> List.fold_left (fun acc (name, id) ->
         match HC.is_reachable (Node.simple_node_of_id id) hc.horn_clause_handler with
         | false -> acc
@@ -71,7 +89,7 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
     let nodes = 
       Node.True :: 
       List.map (fun (x, _) -> Node.Simple x) 
-        (IntMap.bindings hg.vars.int_name_to_var) @ 
+        (Vars.get_vars hg.vars) @ 
       List.map (fun (_, id) -> Node.Compound id) (CompoundIntConversion.bindings hg.compound_to_int) 
     in
     (* Add nodes to buffer *)
@@ -158,21 +176,19 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
         (List.length hc.horn_clauses_rev, []) hc.horn_clauses_rev
     in
     String.concat "\n" lines
-end
-
-module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
-  (*TODO all indexes change after removing something. This is not so good 
-    TODO maybe print for each add/delete and accept "p" "a" "r" as commands
-    TODO ignore case in commands
-    TODO better help text*)
-  include IncrementalHandler(HC)
 
   let remove_clause hc (head, body) index = 
-    let clause, hc = clause_to_edge (head, body) hc in
-    {hc with
-     horn_clauses_rev = 
-       List.filteri (fun i _ -> not (i = index)) hc.horn_clauses_rev; 
-     horn_clause_handler = 
-       HC.remove_clause clause hc.horn_clause_handler }
+    let horn_clauses_rev = 
+      List.filteri (fun i _ -> not (i = index)) hc.horn_clauses_rev in
+    match HC.remove_clause with
+    | None -> 
+      let new_hc = init ~nr_vars:(Vars.get_nr_vars hc.vars) in
+      add_clauses (Vars.get_vars hc.vars) (List.rev horn_clauses_rev) new_hc
+    | Some remove_clause ->
+      let clause, hc = clause_to_edge (head, body) hc in
+      {hc with
+       horn_clauses_rev;       
+       horn_clause_handler = 
+         remove_clause clause hc.horn_clause_handler }
 
 end

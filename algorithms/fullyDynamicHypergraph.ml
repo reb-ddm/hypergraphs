@@ -322,7 +322,8 @@ module Hypergraph = struct
           scan_successors_after_removal hg pq0
         else hg
       | None -> hg
-
+      
+  let remove_clause = Some remove_clause
 end
 
 

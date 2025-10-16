@@ -107,4 +107,6 @@ let _generated_tests_remove2 () = [test_remove2 10 2; test_remove2 100 2; test_r
                                    test_remove2 10 200; test_remove2 100 200; test_remove2 1000 200; test_remove2 10000 200;
                                    test_remove2 10 2000; test_remove2 100 2000; test_remove2 1000 2000; test_remove2 10000 2000;
                                   ] 
+let _generated_tests_add_and_remove () = [test_add2 100 100; test_add2 1000 1000;
+test_remove2 100 100; test_remove2 1000 1000]
 let enabled_tests () = _generated_tests_remove2 () (*they generate before the program starts running*)

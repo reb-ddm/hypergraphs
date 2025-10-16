@@ -3,7 +3,7 @@
 open HcHandler
 open Incremental_analysis_algorithms
 
-module HypergraphHCH = HornClauseHandler(FullyDynamicHypergraph)
+module HypergraphHCH = HornClauseHandler(IncrementalHypergraph)
 
 let help_message =
   "Available commands:

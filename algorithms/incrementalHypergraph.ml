@@ -100,6 +100,8 @@ module IncrementalHypergraph  = struct
 
   let weight_of t node =  
     Some (ReachabilityStatus.get node t.reachability_status)
+    
+  let remove_clause = None
 end
 
 include IncrementalHypergraph

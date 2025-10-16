@@ -182,7 +182,6 @@ module IntMap = Map.Make(Int)
 exception ExceededNrOfVars
 
 module Vars = struct
-  type var = string
   type var_to_int_map = int StringMap.t
   type int_to_var_map = string IntMap.t
 
@@ -193,6 +192,11 @@ module Vars = struct
     next_unused_int: int;
   }
 
+  let get_nr_vars v = v.nr_vars
+  let get_vars_in_alphabetical_order v = StringMap.bindings v.var_name_to_int
+  let get_vars v = IntMap.bindings v.int_name_to_var
+
+
   let init ~nr_vars= {
     var_name_to_int = StringMap.empty;
     int_name_to_var = IntMap.empty;
@@ -200,7 +204,22 @@ module Vars = struct
     next_unused_int = 0;
   }
 
-  (*If the variable is new then it is added to the data structure and the function returns true.*)
+  let add_var vars var id =
+      if id >= vars.nr_vars then
+        raise ExceededNrOfVars
+      else
+        let next_unused_int = 
+          if id >= vars.next_unused_int then id + 1 else vars.next_unused_int
+          (*TODO if you remember the free sites then remove id and add everything between unused_int and id*)
+        in
+        {
+          vars with
+          var_name_to_int = StringMap.add var id vars.var_name_to_int;
+          int_name_to_var = IntMap.add id var vars.int_name_to_var;
+          next_unused_int;
+        }
+
+  (**If the variable is new then it is added to the data structure and the function returns true.*)
   let var_to_int vars var =
     match StringMap.find_opt var vars.var_name_to_int with
     | Some i -> (vars, i, false)
@@ -299,7 +318,7 @@ module MutableNodeMap (Elt: HasEmpty) = struct
 end
 
 
-module type IncrementalHornClauses = sig
+module type FullyDynamicHornClauses = sig
   type t
 
   (**(lhs, rhs, set of literals in the rhs)*)
@@ -311,10 +330,5 @@ module type IncrementalHornClauses = sig
   val is_reachable : Node.t -> t -> bool
   val weight_of : t -> Node.t -> int option
   val succs_of : t -> Node.t -> NodeSet.t
-end
-
-
-module type FullyDynamicHornClauses = sig
-  include IncrementalHornClauses
-  val remove_clause : edge -> t -> t
+  val remove_clause : (edge -> t -> t) option
 end

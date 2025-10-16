@@ -2,8 +2,8 @@ open Hypergraph_sig
 exception InvalidVarName of string
 exception InvalidCharachter of string
 exception InvalidCommand of string
-module IncrementalHandler :
-  functor (HC : Hypergraph_sig.IncrementalHornClauses) ->
+module HornClauseHandler :
+  functor (HC : Hypergraph_sig.FullyDynamicHornClauses) ->
   sig
     type clause = int * Hypergraph_sig.IdSet.t
     type t = {
@@ -26,11 +26,5 @@ module IncrementalHandler :
     val to_dot : t -> string
     val parse_clause : string -> t -> t * int * clause * bool
     val to_string : t -> string
-  end
-
-module HornClauseHandler :
-  functor (HC : Hypergraph_sig.FullyDynamicHornClauses) ->
-  sig
-    include module type of IncrementalHandler(HC)
     val remove_clause : t -> int * Hypergraph_sig.IdSet.t -> int -> t
   end

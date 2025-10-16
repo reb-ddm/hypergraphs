@@ -1,6 +1,6 @@
 module Id : sig 
-  type t = int 
-  val compare : 'a -> 'a -> int 
+  type t = int
+  val compare : 'a -> 'a -> t 
 end
 
 module IdSet : sig
@@ -43,16 +43,12 @@ module PriorityQueue :
 
 module Vars :
 sig
-  type var = string
-  type var_to_int_map = int StringMap.t
-  type int_to_var_map = var IntMap.t
-  type t = {
-    var_name_to_int : var_to_int_map;
-    int_name_to_var : int_to_var_map;
-    nr_vars : int;
-    next_unused_int : int;
-  }
+  type t
+  val get_nr_vars : t -> int
+  val get_vars : t -> (int * string) list
+  val get_vars_in_alphabetical_order : t -> (string * int) list
   val init : nr_vars:int -> t
+  val add_var : t -> string -> int -> t
   val var_to_int : t -> string -> t * int * bool
   val int_to_var : t -> int -> string
 end
@@ -106,7 +102,7 @@ module MutableNodeMap :
     val iter : (Node.t -> Elt.t -> unit) -> t -> unit
   end
 
-module type IncrementalHornClauses =
+module type FullyDynamicHornClauses =
 sig
   type t
   type edge = Node.t * Node.t * IdSet.t
@@ -117,10 +113,5 @@ sig
   val is_reachable : Node.t -> t -> bool
   val weight_of : t -> Node.t -> int option
   val succs_of : t -> Node.t -> NodeSet.t
-end
-
-module type FullyDynamicHornClauses =
-sig
-  include IncrementalHornClauses
-  val remove_clause : edge -> t -> t
+  val remove_clause : (edge -> t -> t) option
 end
