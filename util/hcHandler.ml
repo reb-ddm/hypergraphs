@@ -161,12 +161,9 @@ module IncrementalHandler (HC : IncrementalHornClauses) = struct
 end
 
 module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
-  (*TODO not add duplicate clauses?
-    TODO all indexes change after removing something. This is not so good 
+  (*TODO all indexes change after removing something. This is not so good 
     TODO maybe print for each add/delete and accept "p" "a" "r" as commands
     TODO ignore case in commands
-    TODO check that true is well handled in each function
-    TODO write tests 
     TODO better help text*)
   include IncrementalHandler(HC)
 

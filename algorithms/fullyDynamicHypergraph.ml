@@ -1,6 +1,5 @@
 open Hypergraph_sig
 
-(*TODO in this implementation the information pred(c) for a compound node c is redundant as it is already in the set c. We should use an id for the compound nodes instead or remove pred(c)*)
 exception UnknownNodeId of (string * Node.t)
 
 module Hypergraph = struct
@@ -126,7 +125,7 @@ module Hypergraph = struct
       ) preds hg
 
   (* recalculate weight for q2 after the weight of q1 has decreased *)
-  let recalculate_weight_decrease q2 q1 hg = (*TODO check*)
+  let recalculate_weight_decrease q2 q1 hg = 
     if Node.is_compound q2 then
       let w_q2 = weight_of hg q2 in
       let hg = recalculate_weight hg q2
@@ -136,7 +135,7 @@ module Hypergraph = struct
       update_weight_for_new_edge q2 q1 hg
 
   (* recalculate weight for q2 after the weight of q1 has increased *)
-  let _recalculate_weight_increase q2 q1 hg = (*TODO check*)
+  let _recalculate_weight_increase q2 q1 hg = 
     if Node.is_compound q2 then
       update_weight_for_new_edge q2 q1 hg
     else
@@ -215,7 +214,7 @@ module Hypergraph = struct
               if Node.is_simple v then
                 begin match min_pred_of hg v with
                   | Some pred when Node.compare pred y = 0 ->
-                    let w_v = weight_of hg v in (* TODO isnt it weight_of_successor hg pred?*)
+                    let w_v = weight_of hg v in
                     PQ.add ~prio:w_v v acc_pq
                   | _ -> acc_pq
                 end
@@ -223,7 +222,7 @@ module Hypergraph = struct
                 NodeSet.fold (fun v' acc_pq ->
                     begin match min_pred_of hg v' with
                       | Some pred when Node.compare pred v = 0 ->
-                        PQ.add ~prio:(weight_of hg v') v' acc_pq (*TODO same*)
+                        PQ.add ~prio:(weight_of hg v') v' acc_pq
                       | _ -> acc_pq
                     end
                   ) (succs_of hg v) acc_pq
@@ -254,7 +253,7 @@ module Hypergraph = struct
       update_successors_after_removal hg initial_pq NodeSet.empty 
     in
     (* propagate phase *)
-    (* build the priority queue of nodes we need to process *) (*TODO can't you build it instead of building C? Maybe not because the predecessors are changed in the meantime *)
+    (* build the priority queue of nodes we need to process *)
     let pq_s =
       NodeSet.fold (fun z pq_s ->
           (* compute minimal weight among preds *)

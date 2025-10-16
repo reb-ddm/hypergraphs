@@ -205,7 +205,7 @@ module Vars = struct
     match StringMap.find_opt var vars.var_name_to_int with
     | Some i -> (vars, i, false)
     | None ->
-      if vars.next_unused_int = vars.nr_vars then (*TODO this seems unnecessary*)
+      if vars.next_unused_int = vars.nr_vars then
         raise ExceededNrOfVars
       else
         let i = vars.next_unused_int in
