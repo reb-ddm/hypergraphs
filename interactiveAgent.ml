@@ -27,7 +27,8 @@ let rec loop hc =
     match String.trim (read_line ()) with
     | "quit" -> ()
     | "help" -> 
-      print_endline help_message
+      print_endline help_message;
+      loop hc
     | "dot" -> 
       let output = HypergraphHCH.to_dot hc in
       print_endline output;
@@ -72,7 +73,7 @@ let rec ask_nr_variables s =
   | None -> ask_nr_variables "Please enter a number. Input the number of variables: "
 
 let start_agent () =
-  print_endline "This program bla bla please input a horn clause.";
   let n = ask_nr_variables "Input the number of variables: " in
+  print_endline "Please input a horn clause.";
   let hc = HypergraphHCH.init ~nr_vars:n in 
   loop hc
