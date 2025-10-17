@@ -14,7 +14,6 @@ module ParametricHypergraph : FullyDynamicHornClauses = struct
     nr_vars: int;
     (*TODO data structure for removal*)
   }
-  type edge = Node.t * Node.t * IdSet.t
   let init ~nr_vars = {
     orthogonal_sets = [];
     adjacency_list = 0;
@@ -23,7 +22,6 @@ module ParametricHypergraph : FullyDynamicHornClauses = struct
     nr_vars;
   }
 
-  let add_node _node t = t
   let add_clause _clause t = t
   let add_clauses _clauses t = t
   let remove_clause _clause t = t

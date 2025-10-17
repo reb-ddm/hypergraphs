@@ -38,7 +38,7 @@ module Hypergraph = struct
 
   let set_node_data hg node nd = NodeMap.add node nd hg
 
-  let add_node node _set hg = 
+  let add_compound_node node _set hg = 
     if Node.is_compound node then 
       set_node_data hg node (NodeData.make_node_data ~weight:(Some 0) ())
     else
@@ -160,7 +160,7 @@ module Hypergraph = struct
           (* add nodes from the simple edges to the compound edge "tail" *)
           IdSet.fold (
             fun i acc_hg -> fst (add_simple_edge (Simple i) tail acc_hg)
-          ) tail_set (add_node tail tail_set hg)
+          ) tail_set (add_compound_node tail tail_set hg)
       in
       add_simple_edge tail head hg
 
@@ -190,12 +190,13 @@ module Hypergraph = struct
 
   let remove_hyperedge hg tail_set tail head =
     if Node.is_compound tail then
-      let hg =
-        IdSet.fold (fun i hg_acc ->
-            remove_simple_edge (Simple i) tail hg_acc
-          ) tail_set hg
+      let hg = 
+        hg
+        |> IdSet.fold (fun i ->
+            remove_successor (Simple i) ~succ:tail
+          ) tail_set
+        |> remove_simple_edge tail head 
       in
-      let hg = remove_simple_edge tail head hg in
       if NodeSet.is_empty (succs_of hg tail) then
         remove_compound_node hg tail
       else hg
@@ -292,8 +293,6 @@ module Hypergraph = struct
     in
     process_s hg_after_reset pq_s
 
-  type edge = Node.t * Node.t * IdSet.t
-
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) hg =
     let (hg, changed) = add_hyperedge hg x_set x y in
@@ -322,8 +321,7 @@ module Hypergraph = struct
           scan_successors_after_removal hg pq0
         else hg
       | None -> hg
-      
-  let remove_clause = Some remove_clause
+
 end
 
 

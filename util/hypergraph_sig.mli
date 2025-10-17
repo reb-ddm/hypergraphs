@@ -100,18 +100,19 @@ module MutableNodeMap :
     val get : Node.t -> t -> Elt.t
     val remove : Node.t -> t -> t
     val iter : (Node.t -> Elt.t -> unit) -> t -> unit
+    val map : (Node.t -> Elt.t -> Elt.t) -> t -> t
   end
+
+type edge = Node.t * Node.t * IdSet.t
 
 module type FullyDynamicHornClauses =
 sig
   type t
-  type edge = Node.t * Node.t * IdSet.t
   val init : nr_vars:int -> t
-  val add_node : Node.t -> IdSet.t -> t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool
   val weight_of : t -> Node.t -> int option
   val succs_of : t -> Node.t -> NodeSet.t
-  val remove_clause : (edge -> t -> t) option
+  val remove_clause : edge -> t -> t
 end

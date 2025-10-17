@@ -205,19 +205,19 @@ module Vars = struct
   }
 
   let add_var vars var id =
-      if id >= vars.nr_vars then
-        raise ExceededNrOfVars
-      else
-        let next_unused_int = 
-          if id >= vars.next_unused_int then id + 1 else vars.next_unused_int
-          (*TODO if you remember the free sites then remove id and add everything between unused_int and id*)
-        in
-        {
-          vars with
-          var_name_to_int = StringMap.add var id vars.var_name_to_int;
-          int_name_to_var = IntMap.add id var vars.int_name_to_var;
-          next_unused_int;
-        }
+    if id >= vars.nr_vars then
+      raise ExceededNrOfVars
+    else
+      let next_unused_int = 
+        if id >= vars.next_unused_int then id + 1 else vars.next_unused_int
+        (*TODO if you remember the free sites then remove id and add everything between unused_int and id*)
+      in
+      {
+        vars with
+        var_name_to_int = StringMap.add var id vars.var_name_to_int;
+        int_name_to_var = IntMap.add id var vars.int_name_to_var;
+        next_unused_int;
+      }
 
   (**If the variable is new then it is added to the data structure and the function returns true.*)
   let var_to_int vars var =
@@ -315,20 +315,28 @@ module MutableNodeMap (Elt: HasEmpty) = struct
                        | Some elt -> f (Node.Compound i) elt) t.compound_nodes_map in
     ()
 
+  let map f t =
+    let true_node_map = 
+      match t.true_node_map with 
+      | None -> None
+      | Some elt -> Some (f Node.True elt) in
+    let simple_nodes_map = Array.mapi (fun i elt -> f (Node.Simple i) elt) t.simple_nodes_map in
+    let compound_nodes_map = Res.Array.mapi (fun i elt -> 
+        match elt with | None -> None
+                       | Some elt -> Some (f (Node.Compound i) elt)) t.compound_nodes_map in
+    { true_node_map; simple_nodes_map; compound_nodes_map }
 end
 
+(**(lhs, rhs, set of literals in the rhs)*)
+type edge = Node.t * Node.t * IdSet.t 
 
 module type FullyDynamicHornClauses = sig
   type t
-
-  (**(lhs, rhs, set of literals in the rhs)*)
-  type edge = Node.t * Node.t * IdSet.t 
   val init : nr_vars:int -> t
-  val add_node : Node.t -> IdSet.t -> t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool
   val weight_of : t -> Node.t -> int option
   val succs_of : t -> Node.t -> NodeSet.t
-  val remove_clause : (edge -> t -> t) option
+  val remove_clause : edge -> t -> t
 end
