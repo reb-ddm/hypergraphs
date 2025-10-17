@@ -2,8 +2,6 @@ open HcHandler
 open Hypergraph_sig
 open Enabled_tests
 
-let debug = false
-
 let debug_print s = 
   if debug then print_endline s else ()
 
@@ -57,4 +55,4 @@ let run_tests enabled_tests =
   let _ = RunTestsIncremental.run_tests "INCREMENTAL REACHABILITY" enabled_tests in
   RunTestsDynamic.run_tests "MINIMAL SHORTEST PATH" enabled_tests
 
-let _ = run_tests (enabled_tests ())
+let _ = run_tests (if debug then debug_enabled_tests () else enabled_tests ())
