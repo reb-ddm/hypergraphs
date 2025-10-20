@@ -25,20 +25,16 @@ end
 module PriorityQueue :
   functor (Elt : OrderedAndPrintable) ->
   sig
-    module EltWithPrio :
-    sig
-      type t = int option * Elt.t
-      val compare : int option * Elt.t -> int option * Elt.t -> int
-    end
-    module IntOptionSet : Set.S
-    val empty : IntOptionSet.t
-    val is_empty : IntOptionSet.t -> bool
-    val add : prio:int option -> Elt.t -> IntOptionSet.t -> IntOptionSet.t
+    type t
+    val empty : t
+    val is_empty : t -> bool
+    val mem : Elt.t -> t -> bool
+    val add : prio:int option -> Elt.t -> t -> t
     val remove_min_opt :
-      IntOptionSet.t -> (int option * Elt.t * IntOptionSet.t) option
+      t -> (int option * Elt.t * t) option
     val decrease_key :
-      Elt.t -> prio:int option -> IntOptionSet.t -> IntOptionSet.t
-    val print_all_elements : IntOptionSet.t -> unit
+      Elt.t -> prio:int option -> t -> t
+    val print_all_elements : t -> unit
   end
 
 module Vars :

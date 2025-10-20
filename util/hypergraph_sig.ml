@@ -148,25 +148,31 @@ module PriorityQueue (Elt : OrderedAndPrintable) = struct
         if c = 0 then Elt.compare e1 e2 else c
   end
   module IntOptionSet = Set.Make(EltWithPrio)
+  module EltSet = Set.Make(Elt)
 
-  let empty = IntOptionSet.empty
-  let is_empty = IntOptionSet.is_empty
-  let add ~prio elt q = 
-    IntOptionSet.add (prio, elt) q 
+  type t = IntOptionSet.t * EltSet.t
+  let empty = IntOptionSet.empty, EltSet.empty
+  let is_empty (_prio_set, set) = EltSet.is_empty set
+  let mem elt (_prio_set, set) = EltSet.mem elt set
+  let add ~prio elt (prio_set, set) = 
+    if mem elt (prio_set, set) then (prio_set, set) else
+      IntOptionSet.add (prio, elt) prio_set, EltSet.add elt set
 
-  let remove_min_opt q =
-    match IntOptionSet.min_elt_opt q with
+  let remove_min_opt (prio_set, set) =
+    match IntOptionSet.min_elt_opt prio_set with
     | None -> None
     | Some (prio, elt) ->
-      Some (prio, elt, IntOptionSet.remove (prio, elt) q)
+      Some (prio, elt, (IntOptionSet.remove (prio, elt) prio_set, EltSet.remove elt set))
 
-  let decrease_key elt ~prio:new_prio q = (* TODO this is not very efficient *)
+
+  let decrease_key elt ~prio:new_prio (q, set) = (* TODO this is not very efficient *)
     match IntOptionSet.find_first_opt (fun (_, q_elt) -> Elt.compare q_elt elt = 0) q with
-    | None -> q
+    | None -> q, set
     | Some old_elt ->
-      q |> IntOptionSet.remove old_elt |> add ~prio:new_prio elt
+      let q = IntOptionSet.remove old_elt q in
+      add ~prio:new_prio elt (q, set)
 
-  let print_all_elements q = 
+  let print_all_elements (q, _set) = 
     let () = IntOptionSet.iter (fun (i,n) -> 
         let node_string = Elt.to_string n in
         Option.iter print_int i;
