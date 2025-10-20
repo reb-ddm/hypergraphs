@@ -174,18 +174,18 @@ module Hypergraph = struct
       let hg,b,_ = add_simple_edge tail head hg in hg, b
 
 
-    let rec propagate hg worklist =
-      match PQ.remove_min_opt worklist with
-      | None -> hg
-      | Some (_, cur, worklist) ->
-        let succs = succs_of hg cur in
-        let (hg, new_worklist) =
+  let rec propagate hg worklist =
+    match PQ.remove_min_opt worklist with
+    | None -> hg
+    | Some (_, cur, worklist) ->
+      let succs = succs_of hg cur in
+      let (hg, new_worklist) =
         List.fold_left (fun (acc_hg, acc_wl) succ ->
             let (acc_hg, changed, new_w) = recalculate_weight_decrease succ cur acc_hg in
             if changed then (acc_hg, PQ.add ~prio:new_w succ acc_wl) else (acc_hg, acc_wl)
           ) (hg, worklist) succs
-        in
-        propagate hg new_worklist
+      in
+      propagate hg new_worklist
 
   let closure hg start_node =
     let w = weight_of hg start_node in
@@ -248,7 +248,7 @@ module Hypergraph = struct
           (* set weight to infinite if no such edge has been found *)
           hg |> remove_min_pred y
           |> fun hg -> List.fold_left (fun hg e'' ->
-                if Node.is_compound e'' then 
+              if Node.is_compound e'' then 
                 remove_weight e'' hg
               else hg
             ) hg (succs_of hg y) 
@@ -319,16 +319,14 @@ module Hypergraph = struct
     else
       let hg = remove_hyperedge hg x_set x y in
       match min_pred_of hg y with
-      | Some pred ->
+      | Some pred when Node.compare pred x = 0 ->
         (* If the removed edge was the predecessor of y in the minimal path from true to y,
            then change the min. predecessor and propagate to all successors of y.*)
-        if Node.compare pred x = 0 then
-          let w_y = weight_of hg y in
-          let pq0 = PQ.add ~prio:w_y y PQ.empty
-          in
-          scan_successors_after_removal hg pq0
-        else hg
-      | None -> hg
+        let w_y = weight_of hg y in
+        let pq0 = PQ.add ~prio:w_y y PQ.empty
+        in
+        scan_successors_after_removal hg pq0
+      | Some _ | None -> hg
 
   let succs_of a b = 
     NodeSet.of_seq (List.to_seq (succs_of a b))
