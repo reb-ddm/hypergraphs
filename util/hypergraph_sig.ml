@@ -285,7 +285,7 @@ module MutableNodeMap (Elt: HasEmpty) = struct
         | Some elt -> elt
       end 
     | Node.Simple i -> 
-      Array.get map.simple_nodes_map i
+      map.simple_nodes_map.(i)
     | Node.Compound i ->
       if Res.Array.length map.compound_nodes_map <= i then
         Elt.empty 

@@ -7,28 +7,49 @@ module Hypergraph = struct
     type t = {
       weight : int option; (* rank(/length) of the minimal path from the source (="true" node) to the current node. None if the node is unreachable. *)
       min_pred : Node.t option; (* Previous node in the minimal path from the source. None if the node is compound or if the node is unreachable. *)
+      min_succs : NodeSet.t; (* contains all simple nodes for which this node is the min_pred and also contains all the successors that are compound nodes *)
       succs : Node.t List.t; (* outgoing edges *)
       preds : Node.t List.t; (* incoming edges *)
     }
 
-    let make_node_data ?(weight=None) ?(min_pred=None) ?(succs=[]) ?(preds=[]) () =
-      { weight; min_pred; succs; preds }
+    let make_node_data ?(weight=None) ?(min_pred=None) ?(min_succs=NodeSet.empty) ?(succs=[]) ?(preds=[]) () =
+      { weight; min_pred; min_succs; succs; preds }
 
     let empty = make_node_data ()
 
-    let update_weight nd w = {nd with weight = w}
-    let update_min_pred nd minpred = {nd with min_pred = minpred}
+    let update_weight w nd = {nd with weight = w}
+    let update_min_pred minpred nd = {nd with min_pred = minpred}
     let is_reachable nd = Option.is_some nd.weight
-    let add_successor nd succ = {nd with succs = succ::nd.succs}
-    let add_predecessor nd pred = {nd with preds = pred::nd.preds}
-    let remove_successor nd succ = {nd with succs = List.filter (fun s -> Node.compare s succ != 0) nd.succs}
-    let remove_predecessor nd pred = {nd with preds = List.filter (fun p -> Node.compare p pred != 0) nd.succs}
-  end 
+    let add_min_succ succ nd = {nd with min_succs = NodeSet.add succ nd.min_succs}
+    let add_successor succ nd = {nd with succs = succ::nd.succs}
+    let add_predecessor pred nd = {nd with preds = pred::nd.preds}
+    let remove_successor succ nd = {nd with succs = List.filter (fun s -> Node.compare s succ != 0) nd.succs}
+    let remove_predecessor pred nd = {nd with preds = List.filter (fun p -> Node.compare p pred != 0) nd.succs}
+    let remove_min_succ succ nd = {nd with min_succs = NodeSet.remove succ nd.min_succs}
+
+  end
+
+  module PsqPriorityQueue(E: OrderedAndPrintable) = struct
+    module IntOption = struct
+      type t = int option
+      let compare x y = match x,y with
+        | None, None -> 0
+        | None, Some _ -> 1
+        | Some _, None -> -1
+        | Some x, Some y -> Int.compare x y
+    end
+    include Psq.Make(E)(IntOption)
+    let remove_min_opt q = match pop q with 
+      | Some ((a,b),c) -> Some (b,a,c)
+      | None -> None 
+    let add ~prio elt q = add elt prio q
+
+  end
 
   module NodeMap = MutableNodeMap(NodeData)
   type t = NodeMap.t
 
-  module PQ = PriorityQueue(Node)
+  module PQ = PsqPriorityQueue(Node)
 
   let init ~nr_vars = 
     let true_node_data = NodeData.make_node_data ~weight:(Some 0) () in
@@ -40,9 +61,9 @@ module Hypergraph = struct
 
   let add_compound_node node _set hg = 
     if Node.is_compound node then 
-      set_node_data hg node (NodeData.make_node_data ~weight:(Some 0) ())
+      NodeData.make_node_data ~weight:(Some 0) () |> set_node_data hg node
     else
-      set_node_data hg node (NodeData.make_node_data ())
+      NodeData.make_node_data () |> set_node_data hg node
 
   let remove_compound_node hg node = 
     match node with 
@@ -55,6 +76,9 @@ module Hypergraph = struct
   let min_pred_of hg node =
     (get_node_data hg node).NodeData.min_pred
 
+  let min_succs_of hg node =
+    (get_node_data hg node).NodeData.min_succs
+
   let succs_of hg node =
     (get_node_data hg node).NodeData.succs
 
@@ -63,25 +87,51 @@ module Hypergraph = struct
 
   let update_min_pred node min_pred w hg =
     if Node.is_compound node then 
-      (set_node_data hg node (NodeData.update_weight (get_node_data hg node) w)) 
+      get_node_data hg node |> NodeData.update_weight w |> 
+      set_node_data hg node 
     else 
-      (set_node_data hg node (NodeData.update_weight (NodeData.update_min_pred (get_node_data hg node) (Some min_pred)) w)) 
+      let hg = get_node_data hg node |> NodeData.update_weight w |>
+               NodeData.update_min_pred (Some min_pred) |>
+               set_node_data hg node
+      in
+      get_node_data hg min_pred |> NodeData.add_min_succ node |> set_node_data hg min_pred
 
   let remove_min_pred node hg = 
-    set_node_data hg node (NodeData.update_weight (NodeData.update_min_pred (get_node_data hg node) None) None)
+    if Node.is_compound node then 
+      get_node_data hg node |> NodeData.update_weight None |> set_node_data hg node 
+    else 
+      match min_pred_of hg node with
+      | None ->
+        hg
+      | Some min_pred -> 
+        let hg = get_node_data hg node |> 
+                 NodeData.update_weight None |> NodeData.update_min_pred None |> set_node_data hg node in
+        get_node_data hg min_pred |> NodeData.remove_min_succ node |> set_node_data hg min_pred
+
   let update_weight node w hg = 
-    set_node_data hg node (NodeData.update_weight (get_node_data hg node) w)
+    get_node_data hg node |> NodeData.update_weight w |>
+    set_node_data hg node
   let remove_weight node hg = 
-    set_node_data hg node (NodeData.update_weight (get_node_data hg node) None)
-  let is_reachable node hg = NodeData.is_reachable (get_node_data hg node)
+    get_node_data hg node |> NodeData.update_weight None |>
+    set_node_data hg node
+  let is_reachable node hg = get_node_data hg node |> NodeData.is_reachable
   let add_successor node ~succ:succ hg = 
-    set_node_data hg node (NodeData.add_successor (get_node_data hg node) succ)
+    get_node_data hg node |> NodeData.add_successor succ |>
+    (fun x -> if Node.is_compound succ then 
+        NodeData.add_min_succ succ x
+      else x)
+    |>
+    set_node_data hg node
+
   let add_predecessor node ~pred:pred hg = 
-    set_node_data hg node (NodeData.add_predecessor (get_node_data hg node) pred)
+    get_node_data hg node |> NodeData.add_predecessor pred |>
+    set_node_data hg node
   let remove_successor node ~succ:succ hg = 
-    set_node_data hg node (NodeData.remove_successor (get_node_data hg node) succ)
+    get_node_data hg node |> NodeData.remove_successor succ |>
+    set_node_data hg node
   let remove_predecessor node ~pred:pred hg = 
-    set_node_data hg node (NodeData.remove_predecessor (get_node_data hg node) pred)
+    get_node_data hg node |> NodeData.remove_predecessor pred |>
+    set_node_data hg node 
 
   (* The weight the next node would have if there was a simple edge from this node to the successor*)
   let weight_of_successor hg node =
@@ -220,39 +270,32 @@ module Hypergraph = struct
       match PQ.remove_min_opt pq with
       | None -> (hg, c_set)
       | Some (w_y, y, pq) ->
-        let pq =
-          List.fold_left (fun acc_pq v -> (*TODO why add successors to priority queue if the weight might not have changed? Because of loops?*)
-              if Node.is_simple v then
-                begin match min_pred_of hg v with
-                  | Some pred when Node.compare pred y = 0 ->
-                    let w_v = weight_of hg v in
-                    PQ.add ~prio:w_v v acc_pq
-                  | _ -> acc_pq
-                end
-              else
-                List.fold_left (fun acc_pq v' ->
-                    begin match min_pred_of hg v' with
-                      | Some pred when Node.compare pred v = 0 ->
-                        PQ.add ~prio:(weight_of hg v') v' acc_pq
-                      | _ -> acc_pq
-                    end
-                  ) acc_pq (succs_of hg v)
-            ) pq (succs_of hg y)
-        in
         (* find hyperedge between the predecessors of y with same weight as minPred(y) *)
         let equivalent =
           List.find_opt (fun pred -> Option.equal Int.equal (weight_of_successor hg pred) w_y) (preds_of hg y)
         in
         match equivalent with 
         | None ->
+          (* add successors to priority queue if no such edge has been found *)
+          let pq, hg = NodeSet.fold (fun v (acc_pq,hg) ->
+              if Node.is_simple v then
+                (* if not (PQ.mem v acc_pq) then  *)
+                let w_v = weight_of hg v in
+                PQ.add ~prio:w_v v acc_pq, hg
+                (* else acc_pq *)
+              else
+                let pq = NodeSet.fold (fun v' acc_pq ->
+                    if not (PQ.mem v' acc_pq) then 
+                      PQ.add ~prio:(weight_of hg v') v' acc_pq
+                    else
+                      acc_pq
+                  ) (min_succs_of hg v) acc_pq in
+                pq, remove_weight v hg
+            ) (min_succs_of hg y) (pq,hg)
+          in
           (* set weight to infinite if no such edge has been found *)
           hg |> remove_min_pred y
-          |> fun hg -> List.fold_left (fun hg e'' ->
-              if Node.is_compound e'' then 
-                remove_weight e'' hg
-              else hg
-            ) hg (succs_of hg y) 
-                       |> update_successors_after_removal pq (y::c_set)
+          |> update_successors_after_removal pq (y::c_set)
         | Some edge ->
           (* else set the edge as the new predecessor in the minimal path *)
           hg |> update_min_pred y edge (weight_of_successor hg edge)
