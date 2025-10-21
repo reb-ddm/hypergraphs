@@ -48,11 +48,3 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
 end
 
-module RunTestsIncremental = RunTests(IncrementalHypergraph)
-module RunTestsDynamic = RunTests(FullyDynamicHypergraph)
-
-let run_tests enabled_tests = 
-  let _ = RunTestsIncremental.run_tests "INCREMENTAL REACHABILITY" enabled_tests in
-  RunTestsDynamic.run_tests "MINIMAL SHORTEST PATH" enabled_tests
-
-let _ = run_tests (if debug then debug_enabled_tests () else enabled_tests ())

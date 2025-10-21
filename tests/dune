@@ -1,9 +1,6 @@
-(executable
- (name HornClausesTests)
- (libraries incremental_analysis_util incremental_analysis_algorithms)
- (modules HornClausesTests Enabled_tests GenerateTests)
- (public_name HornClausesTests)
- (package kappa-binaries)
+(library
+ (name incremental_analysis_tests)
+ (libraries yojson result lwt incremental_analysis_util kappa_kasa_frontend kappa_data_structures kappa_kasa_kastor_toolset incremental_analysis_algorithms psq)
  (flags
   (:standard
    -w
@@ -11,5 +8,4 @@
    -open
    Incremental_analysis_util
    -open
-   Incremental_analysis_algorithms))
- (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))
+   Incremental_analysis_algorithms)))

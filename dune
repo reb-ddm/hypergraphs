@@ -22,3 +22,35 @@
    Incremental_analysis_algorithms
    ))
  (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))
+
+(executable
+ (name HornClausesTestsIncremental)
+ (libraries incremental_analysis_tests incremental_analysis_util)
+ (modules HornClausesTestsIncremental)
+ (public_name HornClausesTestsIncremental)
+ (package kappa-binaries)
+ (flags
+  (:standard
+   -w
+   @a-40-42
+   -open
+   Incremental_analysis_tests
+   -open
+   Incremental_analysis_util))
+ )
+
+ (executable
+ (name HornClausesTestsMST)
+ (libraries incremental_analysis_tests incremental_analysis_util)
+ (modules HornClausesTestsMST)
+ (public_name HornClausesTestsMST)
+ (package kappa-binaries)
+ (flags
+  (:standard
+   -w
+   @a-40-42
+   -open
+   Incremental_analysis_tests
+   -open
+   Incremental_analysis_util))
+ )
