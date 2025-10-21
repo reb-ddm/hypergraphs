@@ -277,22 +277,19 @@ module Hypergraph = struct
         match equivalent with 
         | None ->
           (* add successors to priority queue if no such edge has been found *)
-          let pq, hg = NodeSet.fold (fun v (acc_pq,hg) ->
+          let pq, hg, successors = NodeSet.fold (fun v (acc_pq,hg, succs) ->
               if Node.is_simple v then
                 (* if not (PQ.mem v acc_pq) then  *)
                 let w_v = weight_of hg v in
-                PQ.add ~prio:w_v v acc_pq, hg
+                PQ.add ~prio:w_v v acc_pq, hg, succs
                 (* else acc_pq *)
               else
-                let pq = NodeSet.fold (fun v' acc_pq ->
-                    if not (PQ.mem v' acc_pq) then 
-                      PQ.add ~prio:(weight_of hg v') v' acc_pq
-                    else
-                      acc_pq
-                  ) (min_succs_of hg v) acc_pq in
-                pq, remove_weight v hg
-            ) (min_succs_of hg y) (pq,hg)
+                pq, remove_weight v hg, NodeSet.union succs (min_succs_of hg v)
+            ) (min_succs_of hg y) (pq,hg, NodeSet.empty)
           in
+          let pq = NodeSet.fold (fun v' acc_pq ->
+              PQ.add ~prio:(weight_of hg v') v' acc_pq (*TODO if there is a loop maybe some things are added multiple times to the priority queue*)
+            ) successors pq in
           (* set weight to infinite if no such edge has been found *)
           hg |> remove_min_pred y
           |> update_successors_after_removal pq (y::c_set)
