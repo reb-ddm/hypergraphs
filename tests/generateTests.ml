@@ -140,3 +140,33 @@ let test_remove2 size steps =
         "add "^name_pre_steps_var^":=", reachable_vars
     ) in
   name, nr_nodes, List.rev (tests) @ remove_tests
+
+
+let test_remove3 size steps =
+  let nr_nodes = size + 3 in
+  let nr_digits_size = String.length (string_of_int size) in
+  let name_pre_steps_var = "a1" in
+  let name_vars = "x" in
+  let name_goal_var = "y" in
+  let name_goal_var2 = "y2" in
+  let name = 
+    "generated_test_remove3_of_size_" ^ string_of_int size ^ 
+    "_with_" ^ string_of_int steps ^ "_steps" in
+  let tests, reachable_vars = 
+    ["add "^name_pre_steps_var^":=", [name_pre_steps_var]], [name_pre_steps_var] in
+  let vars, (tests, reachable_vars) = 
+    simple_edges_starting_from_a_node name_pre_steps_var size name_vars nr_digits_size reachable_vars tests in
+  (* edge with source the set of all x_i and with goal node y*)
+  let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
+  let last_test2 = "add " ^ name_goal_var2 ^ ":=" ^ name_goal_var in
+  let reachable_vars = reachable_vars @ [name_goal_var] in
+  let tests = (last_test2, reachable_vars @ [name_goal_var2])::(last_test, reachable_vars) :: tests in
+  let reachable_vars2 = reachable_vars @ [name_goal_var2] in
+  let remove_tests = List.init steps (fun i -> 
+      if (i mod 2) = 0 then 
+        let index = (3 + size) in
+        "remove " ^ string_of_int index, reachable_vars
+      else
+        "add "^name_goal_var2 ^ ":=" ^ name_goal_var, reachable_vars2
+    ) in
+  name, nr_nodes, List.rev (tests) @ remove_tests

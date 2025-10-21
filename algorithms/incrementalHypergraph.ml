@@ -99,7 +99,7 @@ module IncrementalHypergraph  = struct
       else
         t
 
-  (* add an edge x -> y to the hypergrapremoveh *)
+  (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) t =
     let t = add_hyperedge t x_set x y in
     if is_reachable x t then 

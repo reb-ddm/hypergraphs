@@ -85,10 +85,13 @@ let t7 = "long_chain_v2_", 8, [
   ]
 
 let _simple_tests = [t1; t2; t3; t4; t5; t6; t7]
-let _generated_tests () = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
+let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                            test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
                            test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;
-                           test_add2 10 2000; test_add2 100 2000; test_add2 1000 2000; test_add2 10000 2000;
+                           test_add2 10 2000; test_add2 100 2000; test_add2 1000 2000; 
+                           test_add2 10000 2000;
+                           test_add2 10 4000; test_add2 100 4000; test_add2 1000 4000; 
+                           test_add2 10000 4000;
                           ] 
 let _big_generated_tests () = [
   (* test_add2 10 4000; test_add2 100 4000; test_add2 1000 4000; test_add2 10000 4000; *)
@@ -109,6 +112,6 @@ let _generated_tests_remove2 () = [test_remove2 10 2; test_remove2 100 2; test_r
                                   ] 
 let _generated_tests_add_and_remove () = [test_add2 100 100; test_add2 1000 1000;
 test_remove2 100 100; test_remove2 1000 1000]
-let enabled_tests () = _generated_tests_remove2 () (*they generate before the program starts running*)
+let enabled_tests () = _generated_tests test_add2 (*they generate before the program starts running*)
 let debug = false
-let debug_enabled_tests () = [test_remove2 5 5]
+let debug_enabled_tests () = [test_remove3 5 5]
