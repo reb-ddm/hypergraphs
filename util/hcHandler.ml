@@ -35,7 +35,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
   let clause_to_edge (head, body) hc =  
     let head_node = Node.simple_node_of_id head in
     if IdSet.is_empty body then 
-      (head_node, Node.True, IdSet.empty), hc
+      (head_node, Node.True, IdSet.empty ()), hc
     else if IdSet.cardinal body = 1 then
       (head_node, Node.simple_node_of_id (IdSet.choose body), body), hc
     else
@@ -129,7 +129,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
         List.fold_left (fun (acc_hc, acc_ids) v ->
             let (acc_hc, id) = insert_var acc_hc v in
             (acc_hc, IdSet.add id acc_ids)
-          ) (hc, IdSet.empty) body
+          ) (hc, IdSet.empty ()) body
       in
       hc, index, (head_id, body_set), true
     else if String.starts_with ~prefix:"remove" s then 

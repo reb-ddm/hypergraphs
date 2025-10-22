@@ -12,10 +12,10 @@ module Hypergraph = struct
       preds : Node.t List.t; (* incoming edges *)
     }
 
-    let make_node_data ?(weight=None) ?(min_pred=None) ?(min_succs=NodeSet.empty) ?(succs=[]) ?(preds=[]) () =
+    let make_node_data ?(weight=None) ?(min_pred=None) ?(min_succs=NodeSet.empty ()) ?(succs=[]) ?(preds=[]) () =
       { weight; min_pred; min_succs; succs; preds }
 
-    let empty = make_node_data ()
+    let empty () = make_node_data ()
 
     let update_weight w nd = {nd with weight = w}
     let update_min_pred minpred nd = {nd with min_pred = minpred}

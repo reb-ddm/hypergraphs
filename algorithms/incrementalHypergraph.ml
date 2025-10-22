@@ -3,8 +3,8 @@ open Hypergraph_sig
 module IncrementalHypergraph  = struct
 
   module AdjacencyList = MutableNodeMap(NodeSet)
-  module ReachabilityStatus = MutableNodeMap(struct include Int let empty = 1 end)
-  module NrIncomingEdges = MutableNodeMap(struct include Int let empty = 0 end)
+  module ReachabilityStatus = MutableNodeMap(struct include Int let empty () = 1 end)
+  module NrIncomingEdges = MutableNodeMap(struct include Int let empty () = 0 end)
 
   type t = {
     adjacency_list : AdjacencyList.t;
@@ -125,16 +125,16 @@ module IncrementalHypergraph  = struct
   let remove_hyperedge tail_set tail head hg =
     let hg = remove_successor tail ~succ:head hg in
     if Node.is_compound tail then
-      let hg = 
-        IdSet.fold (fun i ->
-            remove_successor (Simple i) ~succ:tail
-          ) tail_set hg
-      in
       if NodeSet.is_empty (succs_of hg tail) then
+        let hg = 
+          IdSet.fold (fun i ->
+              remove_successor (Simple i) ~succ:tail
+            ) tail_set hg
+        in
         remove_compound_node hg tail
       else hg
     else
-      remove_successor tail ~succ:head hg
+      hg
 
   let remove_all_weights t =
     let reachability_status = ReachabilityStatus.map (fun node _ -> 

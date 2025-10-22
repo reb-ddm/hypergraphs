@@ -10,6 +10,8 @@ let set_to_string string_of_elt to_seq s =
 module IdSet = struct
   include Set.Make(Id)
   let to_string  = set_to_string string_of_int to_seq
+  let empty () = empty
+
 end
 
 module IdSetMap = Map.Make(IdSet)
@@ -115,6 +117,7 @@ end
 
 module NodeSet = struct
   include Set.Make(Node)
+  let empty () = empty
   let to_string = set_to_string Node.to_string to_seq
 end
 
@@ -127,7 +130,7 @@ end
 
 module type HasEmpty = sig
   type t
-  val empty : t
+  val empty : unit -> t
 end
 
 (**
@@ -151,7 +154,7 @@ module PriorityQueue (Elt : OrderedAndPrintable) = struct
   module EltSet = Set.Make(Elt)
 
   type t = IntOptionSet.t * EltSet.t
-  let empty = IntOptionSet.empty, EltSet.empty
+  let empty () = IntOptionSet.empty, EltSet.empty
   let is_empty (_prio_set, set) = EltSet.is_empty set
   let mem elt (_prio_set, set) = EltSet.mem elt set
   let add ~prio elt (prio_set, set) = 
@@ -254,7 +257,7 @@ module MutableNodeMap (Elt: HasEmpty) = struct
   }
   let empty size = {
     true_node_map = None; 
-    simple_nodes_map = Array.make size Elt.empty;
+    simple_nodes_map = Array.make size (Elt.empty ());
     compound_nodes_map = Res.Array.empty ();
   }
   let add node elt map = 
@@ -281,18 +284,18 @@ module MutableNodeMap (Elt: HasEmpty) = struct
     match node with 
     | Node.True -> 
       begin match map.true_node_map with 
-        | None -> Elt.empty 
+        | None -> Elt.empty ()
         | Some elt -> elt
       end 
     | Node.Simple i -> 
       map.simple_nodes_map.(i)
     | Node.Compound i ->
       if Res.Array.length map.compound_nodes_map <= i then
-        Elt.empty 
+        Elt.empty ()
       else
         match Res.Array.get map.compound_nodes_map i with 
         | None -> 
-          Elt.empty 
+          Elt.empty ()
         | Some elt -> elt
 
   let remove node map = 
@@ -304,7 +307,7 @@ module MutableNodeMap (Elt: HasEmpty) = struct
           {map with true_node_map = None}
       end
     | Node.Simple i -> 
-      let _ = Array.set map.simple_nodes_map i Elt.empty in
+      let _ = Array.set map.simple_nodes_map i (Elt.empty ()) in
       map
     | Node.Compound i ->
       let _ = Res.Array.set map.compound_nodes_map i None in

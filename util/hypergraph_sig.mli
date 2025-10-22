@@ -6,6 +6,7 @@ end
 module IdSet : sig
   include Set.S
   val to_string : t -> string
+  val empty : unit -> t
 end with type elt = Id.t
 module StringMap : Map.S with type key = string
 module IntMap : Map.S with type key = int
@@ -19,14 +20,14 @@ end
 
 module type HasEmpty = sig
   type t
-  val empty : t
+  val empty : unit -> t
 end
 
 module PriorityQueue :
   functor (Elt : OrderedAndPrintable) ->
   sig
     type t
-    val empty : t
+    val empty : unit -> t
     val is_empty : t -> bool
     val mem : Elt.t -> t -> bool
     val add : prio:int option -> Elt.t -> t -> t
@@ -84,6 +85,7 @@ end
 
 module NodeSet : sig 
   include Set.S 
+  val empty : unit -> t
   val to_string : t -> string 
 end with type elt = Node.t
 module NodeMap : Map.S with type key = Node.t
