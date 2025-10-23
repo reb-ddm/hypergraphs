@@ -26,18 +26,22 @@ module ParametricHypergraph  = struct
     preds : AdjacencyList.t; (* incoming edges *)
   }
 
-  let init ~nr_vars = 
+  let init ~nr_vars true_node = 
+    let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
+    let () = Edges_intbdu.init parameters in
+    let reachability_status = ReachabilityStatus.empty nr_vars in
+    let () = ReachabilityStatus.add true_node (Edges_intbdu.mvbdu_true ()) reachability_status in
     {
       adjacency_list = AdjacencyList.empty nr_vars;
-      reachability_status = 
-        ReachabilityStatus.add True (Edges_intbdu.mvbdu_true ()) (ReachabilityStatus.empty nr_vars);
+      reachability_status;
       restriction_bdu = Edges_intbdu.mvbdu_true ();
       preds = AdjacencyList.empty nr_vars;
     }
 
   let is_reachable node t = 
-    let _mvbdu = ReachabilityStatus.get node t.reachability_status in true
-  (* Edges_intbdu.traverse= TODO *)
+    let mvbdu = ReachabilityStatus.get node t.reachability_status in 
+    let mvbdu_false = Edges_intbdu.mvbdu_false () in
+    not (Edges_intbdu.equal mvbdu mvbdu_false)
 
   let mvbdu_and = Edges_intbdu.mvbdu_and
 
@@ -49,9 +53,8 @@ module ParametricHypergraph  = struct
     let previous_mvbdu = 
       ReachabilityStatus.get node t.reachability_status in 
     let or_mvbdu = mvbdu_or t previous_mvbdu mvbdu in
-    {t with 
-     reachability_status =
-       ReachabilityStatus.add node or_mvbdu t.reachability_status}
+    let () = ReachabilityStatus.add node or_mvbdu t.reachability_status in
+    t
 
   let abstract_away_parameter mvbdu parameter = 
     let vars = Edges_intbdu.build_variables_list [parameter] in
@@ -67,9 +70,9 @@ module ParametricHypergraph  = struct
     ReachabilityStatus.get node t.reachability_status
 
   let set_successors node succs t = 
-    let adjacency_list = 
+    let () = 
       AdjacencyList.add node succs t.adjacency_list in
-    {t with adjacency_list}
+    t
 
   let add_successor node ~succ t = 
     let successors = succs_of t node in 
@@ -80,9 +83,9 @@ module ParametricHypergraph  = struct
       set_successors node new_set t
 
   let set_predecessors node p t = 
-    let preds = 
+    let () = 
       AdjacencyList.add node p t.preds in
-    {t with preds}
+    t
 
   let add_predecessor node ~pred t = 
     let predecessors = preds_of t node in 
@@ -100,9 +103,9 @@ module ParametricHypergraph  = struct
           reachability_mvbdu_of (Simple node) t
         in mvbdu_and reach status
       ) set new_mvbdu in
-    let reachability_status = 
+    let () = 
       ReachabilityStatus.add (Compound id) reach t.reachability_status
-    in {t with reachability_status}
+    in t
 
   let add_compound_node node set t =
     match node with
@@ -112,12 +115,13 @@ module ParametricHypergraph  = struct
       let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in (*TODO is the range inclusive or not?*)
       let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
       {t with restriction_bdu}
-    | Node.Simple _ | Node.True -> t
+    | Node.Simple _ -> t
 
   let remove_compound_node t id = 
-    {t with adjacency_list = AdjacencyList.remove (Node.Compound id) t.adjacency_list;
-            reachability_status = ReachabilityStatus.remove (Node.Compound id) t.reachability_status;
-            restriction_bdu = abstract_away_parameter t.restriction_bdu id}
+    let () =  AdjacencyList.remove (Node.Compound id) t.adjacency_list in
+    let () = ReachabilityStatus.remove (Node.Compound id) t.reachability_status in 
+    {t with 
+     restriction_bdu = abstract_away_parameter t.restriction_bdu id}
 
   (* ---------- Add edges ---------- *)
   let add_hyperedge t tail_set tail head =
@@ -137,7 +141,8 @@ module ParametricHypergraph  = struct
         let t = add_successor tail ~succ:head_id t in
         let t = add_predecessor head ~pred:node_id t in
         or_reachability head (reachability_mvbdu_of tail t) t 
-      | Node.Compound _,_| Node.Simple _,_| Node.True ,_-> t
+      | Node.Compound _,_-> print_endline "ERROR: EDGE WAS NOT ADDED Compound"; t
+      | Node.Simple _,_ -> print_endline "ERROR: EDGE WAS NOT ADDED Simple"; t
 
   let rec closure node t =
     let node_reachability = 
@@ -179,9 +184,9 @@ module ParametricHypergraph  = struct
     let successors = succs_of t node in 
     if IdSet.mem succ successors then 
       let new_set = IdSet.remove succ successors in
-      let adjacency_list = 
+      let () = 
         AdjacencyList.add node new_set t.adjacency_list in
-      {t with adjacency_list}
+      t
     else
       t
 
@@ -189,9 +194,9 @@ module ParametricHypergraph  = struct
     let predecessors = preds_of t node in 
     if IdSet.mem pred predecessors then 
       let new_set = IdSet.remove pred predecessors in
-      let adjacency_list = 
+      let () = 
         AdjacencyList.add node new_set t.adjacency_list in
-      {t with adjacency_list}
+      t
     else
       t
 
@@ -227,7 +232,7 @@ module ParametricHypergraph  = struct
       | Node.Compound x_id, Node.Simple y_id -> 
         hg |> remove_hyperedge x_set x_id y_id 
         |> remove_abstract_parameter_for_all_nodes x_id
-      | Node.Compound _, _ | Node.Simple _,_ | Node.True,_ -> hg
+      | Node.Compound _, _ | Node.Simple _,_ -> hg
 
   let succs_of t node = 
     let succs = succs_of t node in

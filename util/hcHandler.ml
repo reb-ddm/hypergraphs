@@ -27,20 +27,19 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     (update_vars hc vars', id)
 
   let init ~nr_vars = 
+    (*compound node for True*)
+    let cti, true_node = Node.compound_node_of_intset (IdSet.empty ()) CompoundIntConversion.empty in
     { vars = Vars.init ~nr_vars;
       horn_clauses_rev= []; 
-      horn_clause_handler= HC.init ~nr_vars;
-      compound_to_int = CompoundIntConversion.empty }
+      horn_clause_handler= HC.init ~nr_vars true_node;
+      compound_to_int = cti }
 
   let clause_to_edge (head, body) hc =  
     let head_node = Node.simple_node_of_id head in
-    if IdSet.is_empty body then 
-      (head_node, Node.True, IdSet.empty ()), hc
-    else if IdSet.cardinal body = 1 then
-      (head_node, Node.simple_node_of_id (IdSet.choose body), body), hc
-    else
-      let cti, node = Node.compound_node_of_intset body hc.compound_to_int in
-      (head_node, node, body), {hc with compound_to_int = cti}
+    (* else if IdSet.cardinal body = 1 then
+       (head_node, Node.simple_node_of_id (IdSet.choose body), body), hc *)
+    let cti, node = Node.compound_node_of_intset body hc.compound_to_int in
+    (head_node, node, body), {hc with compound_to_int = cti}
 
   let add_clause (head, body) hc =
     let edge, hc = clause_to_edge (head, body) hc in
@@ -66,7 +65,6 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     Buffer.add_string b "  rankdir=LR;\n";
     Buffer.add_string b "  node [fontsize=10, penwidth=1.2];\n";
     let nodes = 
-      Node.True :: 
       List.map (fun (x, _) -> Node.Simple x) 
         (Vars.get_vars hg.vars) @ 
       List.map (fun (_, id) -> Node.Compound id) (CompoundIntConversion.bindings hg.compound_to_int) 

@@ -49,19 +49,14 @@ end
 
 module Node = struct
   type t =
-    | True
     | Simple of Id.t
     | Compound of Id.t
 
-  let is_true_node = function True -> true | Simple _ | Compound _ -> false
-  let is_simple = function Simple _ | True -> true | Compound _ -> false
-  let is_compound = function Simple _ | True -> false | Compound _ -> true
+  let is_simple = function Simple _ -> true | Compound _ -> false
+  let is_compound = function Simple _ -> false | Compound _ -> true
 
   let compare a b =
     match a, b with
-    | True, True -> 0
-    | True, _ -> -1
-    | _, True -> 1
     | Simple i, Simple j -> Id.compare i j
     | Simple _, Compound _ -> -1
     | Compound _, Simple _ -> 1
@@ -75,11 +70,10 @@ module Node = struct
   let is_reflexive_edge tail_set head =
     match head with
     | Simple x -> IdSet.mem x tail_set
-    | Compound _ | True -> false
+    | Compound _ -> false
 
   let to_string node =
     match node with
-    | True -> "true"
     | Simple id -> "s" ^ string_of_int id
     | Compound id -> 
       "c" ^ string_of_int id
@@ -89,11 +83,6 @@ module Node = struct
       | None -> ""
       | Some w -> "("^string_of_int w^")" in
     match node with
-    | True ->
-      let id = to_string node in 
-      Buffer.add_string b
-        (Printf.sprintf "  n%s [label=\"%s%s\", shape=plaintext];\n"
-           id id w_string)
     | Simple id ->
       let vname = int_to_string id in
       Buffer.add_string b
@@ -109,7 +98,7 @@ module Node = struct
     let edge_style =
       match node, successor with
       | Simple _, Compound _ -> " [style=dashed]"
-      | Simple _, _ | Compound _, _ | True, _ -> ""
+      | Simple _, _ | Compound _, _ -> ""
     in
     Buffer.add_string b
       (Printf.sprintf "  n%s -> n%s%s;\n" (to_string node) (to_string successor) edge_style)
@@ -251,15 +240,15 @@ end
 module MutableNodeMap (Elt: HasEmpty) = struct
   (*TODO remember and reuse empty index?*)
   type t = {
-    true_node_map: Elt.t option;
     simple_nodes_map: Elt.t Array.t;
     compound_nodes_map: Elt.t option Res.Array.t;
   }
+  
   let empty size = {
-    true_node_map = None; 
     simple_nodes_map = Array.make size (Elt.empty ());
     compound_nodes_map = Res.Array.empty ();
   }
+
   let add node elt map = 
     let rec add_element_to_array ar length index elt = 
       if length = index then 
@@ -268,25 +257,17 @@ module MutableNodeMap (Elt: HasEmpty) = struct
         let _ = Res.Array.add_one ar None in
         add_element_to_array ar (length + 1) index elt in
     match node with 
-    | Node.True -> {map with true_node_map = Some elt}
     | Node.Simple i -> 
-      let _ = Array.set map.simple_nodes_map i elt in map
+      Array.set map.simple_nodes_map i elt
     | Node.Compound i ->
       let n = Res.Array.length map.compound_nodes_map in
-      let () = 
         if i >= n then 
           add_element_to_array map.compound_nodes_map n i elt 
         else
           Res.Array.set map.compound_nodes_map i (Some elt) 
-      in map
 
   let get node map = 
-    match node with 
-    | Node.True -> 
-      begin match map.true_node_map with 
-        | None -> Elt.empty ()
-        | Some elt -> elt
-      end 
+    match node with
     | Node.Simple i -> 
       map.simple_nodes_map.(i)
     | Node.Compound i ->
@@ -300,40 +281,23 @@ module MutableNodeMap (Elt: HasEmpty) = struct
 
   let remove node map = 
     match node with 
-    | Node.True -> 
-      begin match map.true_node_map with 
-        | None -> map
-        | Some _ ->
-          {map with true_node_map = None}
-      end
     | Node.Simple i -> 
-      let _ = Array.set map.simple_nodes_map i (Elt.empty ()) in
-      map
+      Array.set map.simple_nodes_map i (Elt.empty ())
     | Node.Compound i ->
-      let _ = Res.Array.set map.compound_nodes_map i None in
-      map
+      Res.Array.set map.compound_nodes_map i None
 
   let iter f t = 
-    let _ = 
-      match t.true_node_map with 
-      | None -> ()
-      | Some elt -> f Node.True elt in
     let _ = Array.iteri (fun i elt -> f (Node.Simple i) elt) t.simple_nodes_map in
-    let _ = Res.Array.iteri (fun i elt -> 
+    Res.Array.iteri (fun i elt -> 
         match elt with | None -> ()
-                       | Some elt -> f (Node.Compound i) elt) t.compound_nodes_map in
-    ()
+                       | Some elt -> f (Node.Compound i) elt) t.compound_nodes_map 
 
   let map f t =
-    let true_node_map = 
-      match t.true_node_map with 
-      | None -> None
-      | Some elt -> Some (f Node.True elt) in
     let simple_nodes_map = Array.mapi (fun i elt -> f (Node.Simple i) elt) t.simple_nodes_map in
     let compound_nodes_map = Res.Array.mapi (fun i elt -> 
         match elt with | None -> None
                        | Some elt -> Some (f (Node.Compound i) elt)) t.compound_nodes_map in
-    { true_node_map; simple_nodes_map; compound_nodes_map }
+    { simple_nodes_map; compound_nodes_map }
 end
 
 (**(lhs, rhs, set of literals in the rhs)*)
@@ -341,7 +305,7 @@ type edge = Node.t * Node.t * IdSet.t
 
 module type FullyDynamicHornClauses = sig
   type t
-  val init : nr_vars:int -> t
+  val init : nr_vars:int -> Node.t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool

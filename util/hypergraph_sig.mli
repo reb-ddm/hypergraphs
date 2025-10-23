@@ -60,11 +60,9 @@ end
 
 module Node : sig
   type t =
-    | True
     | Simple of Id.t
     | Compound of Id.t
 
-  val is_true_node : t -> bool
   val is_simple : t -> bool
   val is_compound : t -> bool
 
@@ -94,9 +92,9 @@ module MutableNodeMap :
   functor (Elt: HasEmpty) -> sig
     type t
     val empty : int -> t
-    val add : Node.t -> Elt.t -> t -> t
+    val add : Node.t -> Elt.t -> t -> unit
     val get : Node.t -> t -> Elt.t
-    val remove : Node.t -> t -> t
+    val remove : Node.t -> t -> unit
     val iter : (Node.t -> Elt.t -> unit) -> t -> unit
     val map : (Node.t -> Elt.t -> Elt.t) -> t -> t
   end
@@ -106,7 +104,7 @@ type edge = Node.t * Node.t * IdSet.t
 module type FullyDynamicHornClauses =
 sig
   type t
-  val init : nr_vars:int -> t
+  val init : nr_vars:int -> Node.t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool

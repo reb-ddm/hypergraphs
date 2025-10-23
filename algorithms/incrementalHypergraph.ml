@@ -10,14 +10,19 @@ module IncrementalHypergraph  = struct
     adjacency_list : AdjacencyList.t;
     reachability_status : ReachabilityStatus.t;
     nr_incoming_edges : NrIncomingEdges.t; (*we only store the number of incoming nodes for the compound nodes, not the simple nodes.*)
+    true_node : Node.t
   }
 
-  let init ~nr_vars = 
+  let init ~nr_vars true_node = 
+    let reachability_status = ReachabilityStatus.empty nr_vars in 
+    let () = ReachabilityStatus.add true_node 0 reachability_status in
+    let nr_incoming_edges = NrIncomingEdges.empty 0 in
+    let () = NrIncomingEdges.add true_node 1 nr_incoming_edges in
     {
       adjacency_list = AdjacencyList.empty nr_vars;
-      reachability_status = 
-        ReachabilityStatus.add True 0 (ReachabilityStatus.empty nr_vars);
-      nr_incoming_edges = NrIncomingEdges.empty 0;
+      reachability_status;
+      nr_incoming_edges;
+      true_node;
     }
 
   let is_reachable node t = 
@@ -26,9 +31,7 @@ module IncrementalHypergraph  = struct
   let decrement_reachability t node = 
     let previous_i = 
       ReachabilityStatus.get node t.reachability_status in 
-    {t with 
-     reachability_status =
-       ReachabilityStatus.add node (previous_i - 1) t.reachability_status}
+    let () = ReachabilityStatus.add node (previous_i - 1) t.reachability_status in t
 
   let succs_of t node =
     AdjacencyList.get node t.adjacency_list
@@ -39,9 +42,9 @@ module IncrementalHypergraph  = struct
       t
     else
       let new_set = NodeSet.add succ successors in
-      let adjacency_list = 
+      let () = 
         AdjacencyList.add node new_set t.adjacency_list in
-      {t with adjacency_list}
+      t
 
   let add_compound_node node set t =
     match node with
@@ -51,21 +54,22 @@ module IncrementalHypergraph  = struct
             ReachabilityStatus.get (Simple node) t.reachability_status
           in reach + status
         ) set 0 in
-      let reachability_status = 
+      let () = 
         ReachabilityStatus.add node reach t.reachability_status
       in
       let nr_nodes = IdSet.cardinal set in
-      let nr_incoming_edges = NrIncomingEdges.add (Node.Compound id) nr_nodes t.nr_incoming_edges in
-      {t with reachability_status; nr_incoming_edges}
-    | Node.Simple _ | Node.True -> t
+      let () = NrIncomingEdges.add (Node.Compound id) nr_nodes t.nr_incoming_edges in
+      t
+    | Node.Simple _ -> t
 
   let remove_compound_node t node = 
     match node with 
-    | Node.True | Node.Simple _ -> t
+    | Node.Simple _ -> t
     | Node.Compound _ -> 
-      { adjacency_list = AdjacencyList.remove node t.adjacency_list;
-        reachability_status = ReachabilityStatus.remove node t.reachability_status;
-        nr_incoming_edges = NrIncomingEdges.remove node t.nr_incoming_edges }
+      let () = AdjacencyList.remove node t.adjacency_list in
+      let () = ReachabilityStatus.remove node t.reachability_status in
+      let () = NrIncomingEdges.remove node t.nr_incoming_edges in
+      t
 
   (* ---------- Add edges ---------- *)
 
@@ -116,9 +120,9 @@ module IncrementalHypergraph  = struct
     let successors = succs_of t node in 
     if NodeSet.mem succ successors then 
       let new_set = NodeSet.remove succ successors in
-      let adjacency_list = 
+      let () = 
         AdjacencyList.add node new_set t.adjacency_list in
-      {t with adjacency_list}
+      t
     else
       t
 
@@ -139,7 +143,6 @@ module IncrementalHypergraph  = struct
   let remove_all_weights t =
     let reachability_status = ReachabilityStatus.map (fun node _ -> 
         match node with 
-        | Node.True -> 1
         | Node.Simple _ -> 1
         | Node.Compound _ -> 
           NrIncomingEdges.get node t.nr_incoming_edges
@@ -155,7 +158,7 @@ module IncrementalHypergraph  = struct
     else
       hg |> remove_hyperedge x_set x y 
       |> remove_all_weights (*set all nodes to unreachable (except the node "true")*)
-      |> closure True
+      |> closure hg.true_node
 
 end
 
