@@ -53,7 +53,7 @@ end
 module CompoundIntConversion : sig
   type t
   val empty : t
-  val compound_to_int : t  -> IdSet.t -> t * int 
+  val val_to_int : t  -> IdSet.t -> t * int 
   val remove_node : t -> IdSet.t -> t
   val bindings : t -> (IdSet.t * int) list
 end
@@ -80,6 +80,18 @@ module Node : sig
   val dot_of_node : t -> (Id.t -> string) -> Buffer.t -> int option -> unit
 
   val dot_of_edge : t -> t -> Buffer.t -> unit
+end
+
+module Edge : sig
+  type t = Node.t * Node.t
+  val compare : t -> t -> int
+end
+module EdgeIntConversion : sig
+  type t
+  val empty : t
+  val val_to_int : t  -> Edge.t -> t * int 
+  val remove_node : t -> Edge.t -> t
+  val bindings : t -> (Edge.t * int) list
 end
 
 module NodeSet : sig 

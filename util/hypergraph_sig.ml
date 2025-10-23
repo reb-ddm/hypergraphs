@@ -14,38 +14,39 @@ module IdSet = struct
 
 end
 
-module IdSetMap = Map.Make(IdSet)
-
-module CompoundIntConversion = struct
+module IntConversion(ConversionMap : Map.S) = struct
 
   type t = {
-    compound_to_int : int IdSetMap.t;
+    val_to_int : int ConversionMap.t;
     next_compound_int: int;
   }
 
-  let empty = {compound_to_int = IdSetMap.empty;
+  let empty = {val_to_int = ConversionMap.empty;
                next_compound_int = 0}
 
-  let bindings t = IdSetMap.bindings t.compound_to_int
+  let bindings t = ConversionMap.bindings t.val_to_int
 
-  let compound_to_int cti node =
-    match IdSetMap.find_opt node cti.compound_to_int with
+  let val_to_int cti node =
+    match ConversionMap.find_opt node cti.val_to_int with
     | Some i -> cti, i
     | None -> 
       let next_int = cti.next_compound_int in
-      let compound_to_int = IdSetMap.add node next_int cti.compound_to_int
-      in {compound_to_int; next_compound_int = next_int + 1}, next_int
+      let val_to_int = ConversionMap.add node next_int cti.val_to_int
+      in {val_to_int; next_compound_int = next_int + 1}, next_int
 
   let remove_node cti node =
-    match IdSetMap.find_opt node cti.compound_to_int with
+    match ConversionMap.find_opt node cti.val_to_int with
     | Some i -> 
       let next_compound_int = 
         if i = cti.next_compound_int - 1 then i 
         else cti.next_compound_int in (*TODO fill blanks?*)
-      let compound_to_int = IdSetMap.remove node cti.compound_to_int in
-      {compound_to_int; next_compound_int}
+      let val_to_int = ConversionMap.remove node cti.val_to_int in
+      {val_to_int; next_compound_int}
     | None -> cti
 end
+
+module IdSetMap = Map.Make(IdSet)
+module CompoundIntConversion = IntConversion(IdSetMap)
 
 module Node = struct
   type t =
@@ -64,7 +65,7 @@ module Node = struct
 
   let simple_node_of_id id = Simple id
   let compound_node_of_intset s cti = 
-    let cti, i = CompoundIntConversion.compound_to_int cti s in
+    let cti, i = CompoundIntConversion.val_to_int cti s in
     cti, Compound i
 
   let is_reflexive_edge tail_set head =
@@ -103,6 +104,12 @@ module Node = struct
     Buffer.add_string b
       (Printf.sprintf "  n%s -> n%s%s;\n" (to_string node) (to_string successor) edge_style)
 end
+
+module Edge = struct
+  type t = Node.t * Node.t[@@deriving ord]
+end
+module EdgeMap = Map.Make(Edge)
+module EdgeIntConversion = IntConversion(EdgeMap)
 
 module NodeSet = struct
   include Set.Make(Node)
