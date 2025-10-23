@@ -51,13 +51,15 @@ module Hypergraph = struct
 
   module PQ = PsqPriorityQueue(Node)
 
-  let init ~nr_vars = 
-    let true_node_data = NodeData.make_node_data ~weight:(Some 0) () in
-    NodeMap.add True true_node_data (NodeMap.empty nr_vars)
+  let init ~nr_vars true_node = 
+    let true_node_data = NodeData.make_node_data ~weight:(Some 1) () in
+    let node_map = NodeMap.empty nr_vars in
+    let () = NodeMap.add true_node true_node_data node_map in
+    node_map
 
   let get_node_data hg node = NodeMap.get node hg
 
-  let set_node_data hg node nd = NodeMap.add node nd hg
+  let set_node_data hg node nd = NodeMap.add node nd hg; hg
 
   let add_compound_node node _set hg = 
     if Node.is_compound node then 
@@ -67,8 +69,8 @@ module Hypergraph = struct
 
   let remove_compound_node hg node = 
     match node with 
-    | Node.True | Node.Simple _ -> hg
-    | Node.Compound _ -> NodeMap.remove node hg
+    | Node.Simple _ -> hg
+    | Node.Compound _ -> let () = NodeMap.remove node hg in hg
 
   let weight_of hg node =
     (get_node_data hg node).NodeData.weight
@@ -285,7 +287,7 @@ module Hypergraph = struct
                 (* else acc_pq *)
               else
                 pq, remove_weight v hg, NodeSet.union succs (min_succs_of hg v)
-            ) (min_succs_of hg y) (pq,hg, NodeSet.empty)
+            ) (min_succs_of hg y) (pq,hg, NodeSet.empty ())
           in
           let pq = NodeSet.fold (fun v' acc_pq ->
               PQ.add ~prio:(weight_of hg v') v' acc_pq (*TODO if there is a loop maybe some things are added multiple times to the priority queue*)
