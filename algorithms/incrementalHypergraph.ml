@@ -49,17 +49,18 @@ module IncrementalHypergraph  = struct
   let add_compound_node node set t =
     match node with
     | Node.Compound id ->
-      let reach = IdSet.fold (fun node reach ->
-          let status = 
-            ReachabilityStatus.get (Simple node) t.reachability_status
-          in reach + status
-        ) set 0 in
-      let () = 
-        ReachabilityStatus.add node reach t.reachability_status
-      in
-      let nr_nodes = IdSet.cardinal set in
-      let () = NrIncomingEdges.add (Node.Compound id) nr_nodes t.nr_incoming_edges in
-      t
+      if ReachabilityStatus.mem node t.reachability_status then t else
+        let reach = IdSet.fold (fun node reach ->
+            let status = 
+              ReachabilityStatus.get (Simple node) t.reachability_status
+            in reach + status
+          ) set 0 in
+        let () = 
+          ReachabilityStatus.add node reach t.reachability_status
+        in
+        let nr_nodes = IdSet.cardinal set in
+        let () = NrIncomingEdges.add (Node.Compound id) nr_nodes t.nr_incoming_edges in
+        t
     | Node.Simple _ -> t
 
   let remove_compound_node t node = 

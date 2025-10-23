@@ -243,11 +243,23 @@ module MutableNodeMap (Elt: HasEmpty) = struct
     simple_nodes_map: Elt.t Array.t;
     compound_nodes_map: Elt.t option Res.Array.t;
   }
-  
+
   let empty size = {
     simple_nodes_map = Array.make size (Elt.empty ());
     compound_nodes_map = Res.Array.empty ();
   }
+
+  let mem node map = 
+    match node with 
+    | Node.Simple i -> 
+      i < Array.length map.simple_nodes_map 
+    | Node.Compound i ->
+      let n = Res.Array.length map.compound_nodes_map in
+      if i < n then 
+        match Res.Array.get map.compound_nodes_map i with 
+        | None -> false
+        | Some _ -> true
+      else false
 
   let add node elt map = 
     let rec add_element_to_array ar length index elt = 
@@ -261,10 +273,10 @@ module MutableNodeMap (Elt: HasEmpty) = struct
       Array.set map.simple_nodes_map i elt
     | Node.Compound i ->
       let n = Res.Array.length map.compound_nodes_map in
-        if i >= n then 
-          add_element_to_array map.compound_nodes_map n i elt 
-        else
-          Res.Array.set map.compound_nodes_map i (Some elt) 
+      if i >= n then 
+        add_element_to_array map.compound_nodes_map n i elt 
+      else
+        Res.Array.set map.compound_nodes_map i (Some elt) 
 
   let get node map = 
     match node with

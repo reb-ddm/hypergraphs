@@ -36,10 +36,11 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
 
   let clause_to_edge (head, body) hc =  
     let head_node = Node.simple_node_of_id head in
-    (* else if IdSet.cardinal body = 1 then
-       (head_node, Node.simple_node_of_id (IdSet.choose body), body), hc *)
-    let cti, node = Node.compound_node_of_intset body hc.compound_to_int in
-    (head_node, node, body), {hc with compound_to_int = cti}
+    if IdSet.cardinal body = 1 then
+      (head_node, Node.simple_node_of_id (IdSet.choose body), body), hc
+    else
+      let cti, node = Node.compound_node_of_intset body hc.compound_to_int in
+      (head_node, node, body), {hc with compound_to_int = cti}
 
   let add_clause (head, body) hc =
     let edge, hc = clause_to_edge (head, body) hc in

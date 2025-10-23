@@ -62,10 +62,11 @@ module Hypergraph = struct
   let set_node_data hg node nd = NodeMap.add node nd hg; hg
 
   let add_compound_node node _set hg = 
-    if Node.is_compound node then 
-      NodeData.make_node_data ~weight:(Some 0) () |> set_node_data hg node
-    else
-      NodeData.make_node_data () |> set_node_data hg node
+    if NodeMap.mem node hg then hg else
+      if Node.is_compound node then 
+        NodeData.make_node_data ~weight:(Some 0) () |> set_node_data hg node
+      else
+        NodeData.make_node_data () |> set_node_data hg node
 
   let remove_compound_node hg node = 
     match node with 

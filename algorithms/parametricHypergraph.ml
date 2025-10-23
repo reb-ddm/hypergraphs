@@ -28,7 +28,10 @@ module ParametricHypergraph  = struct
 
   let init ~nr_vars true_node = 
     let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
-    let () = Edges_intbdu.init parameters in
+    let () = if Edges_intbdu.is_init () then 
+        ()
+      else
+        Edges_intbdu.init parameters in
     let reachability_status = ReachabilityStatus.empty nr_vars in
     let () = ReachabilityStatus.add true_node (Edges_intbdu.mvbdu_true ()) reachability_status in
     {
@@ -110,11 +113,12 @@ module ParametricHypergraph  = struct
   let add_compound_node node set t =
     match node with
     | Node.Compound id ->
-      let t = recalculate_mvbdu_compound id set t
-      in
-      let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in (*TODO is the range inclusive or not?*)
-      let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
-      {t with restriction_bdu}
+      if ReachabilityStatus.mem node t.reachability_status then t else
+        let t = recalculate_mvbdu_compound id set t
+        in
+        let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in (*TODO is the range inclusive or not?*)
+        let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
+        {t with restriction_bdu}
     | Node.Simple _ -> t
 
   let remove_compound_node t id = 

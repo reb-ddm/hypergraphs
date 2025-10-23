@@ -59,6 +59,7 @@ module CompoundIntConversion : sig
 end
 
 module Node : sig
+  (**The "true" node is a compound node with Id 0 (It has no incoming edge)*)
   type t =
     | Simple of Id.t
     | Compound of Id.t
@@ -92,6 +93,7 @@ module MutableNodeMap :
   functor (Elt: HasEmpty) -> sig
     type t
     val empty : int -> t
+    val mem : Node.t -> t -> bool
     val add : Node.t -> Elt.t -> t -> unit
     val get : Node.t -> t -> Elt.t
     val remove : Node.t -> t -> unit
