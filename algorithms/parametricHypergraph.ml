@@ -27,12 +27,15 @@ module ParametricHypergraph  = struct
     edge_to_int : EdgeIntConversion.t;
   }
 
+  let _print_mvbdu mvbdu =
+    let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
+    Edges_intbdu.print parameters mvbdu
+
   let init ~nr_vars true_node = 
     let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
-    let () = if Edges_intbdu.is_init () then 
-        ()
-      else
-        Edges_intbdu.init parameters in
+    let () = if not (Edges_intbdu.is_init ()) then 
+        Edges_intbdu.init parameters 
+    in
     let reachability_status = ReachabilityStatus.empty nr_vars in
     let () = ReachabilityStatus.add true_node (Edges_intbdu.mvbdu_true ()) reachability_status in
     {
@@ -62,8 +65,9 @@ module ParametricHypergraph  = struct
     let previous_mvbdu = 
       ReachabilityStatus.get node t.reachability_status in 
     let or_mvbdu = mvbdu_or t previous_mvbdu mvbdu in
-    let () = ReachabilityStatus.add node or_mvbdu t.reachability_status in
-    t
+    (* let () = print_mvbdu or_mvbdu in *)
+    let () = ReachabilityStatus.add node or_mvbdu t.reachability_status
+    in t 
 
   let abstract_away_edge mvbdu edge t = 
     let t, parameter = get_int_of_edge edge t in
@@ -105,43 +109,36 @@ module ParametricHypergraph  = struct
       let new_set = NodeSet.add pred predecessors in
       set_predecessors node new_set t
 
-  let recalculate_mvbdu_compound edge set t = 
-    let t, id = get_int_of_edge edge t in  
+  let recalculate_mvbdu_simple_edge (node, head) t =
+    let t, id = get_int_of_edge (node, head) t in  
     let association_list = [(id, 1)] in
-    let new_mvbdu = Edges_intbdu.mvbdu_of_association_list association_list in
-    let reach = IdSet.fold (fun node reach ->
-        let status = 
-          reachability_mvbdu_of (Simple node) t
-        in mvbdu_and reach status
-      ) set new_mvbdu in
-    let () = 
-      ReachabilityStatus.add (Compound id) reach t.reachability_status
-    in t
+    let new_mvbdu_node2 = Edges_intbdu.mvbdu_of_association_list association_list in
+    let reach_and_edge = mvbdu_and (reachability_mvbdu_of node t) new_mvbdu_node2 in
+    or_reachability head reach_and_edge t 
 
-  let recalculate_mvbdu_compound_nodes edge set t = (*TODO this is code duplication*)
-    let (tail, _head) = edge in
-    let t, id = get_int_of_edge edge t in  
-    let association_list = [(id, 1)] in
-    let new_mvbdu = Edges_intbdu.mvbdu_of_association_list association_list in
-    let reach = NodeSet.fold (fun node reach ->
+  let recalculate_mvbdu_compound_node node1 set fold to_node t = 
+    let reach = fold (fun node reach ->
+        let node = to_node node in
         let status = 
           reachability_mvbdu_of node t
         in mvbdu_and reach status
-      ) set new_mvbdu in
+      ) set (Edges_intbdu.mvbdu_true ()) in
     let () = 
-      ReachabilityStatus.add tail reach t.reachability_status (*TODO check*)
-    in t
+      ReachabilityStatus.add node1 reach t.reachability_status in
+    t
 
-  let add_compound_node node set head t =
-    match node with
-    | Node.Compound id ->
-      if ReachabilityStatus.mem node t.reachability_status then t else
-        let t = recalculate_mvbdu_compound (node, head) set t
-        in
-        let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in (*TODO is the range inclusive or not?*)
-        let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
-        {t with restriction_bdu}
-    | Node.Simple _ -> t
+  let add_new_edge_reachabilities node set head fold to_node t =
+    let t =
+      if Node.is_simple node || ReachabilityStatus.mem node t.reachability_status then 
+        t
+      else
+        recalculate_mvbdu_compound_node node set fold to_node t
+    in
+    let t = recalculate_mvbdu_simple_edge (node, head) t in 
+    let t, id = get_int_of_edge (node, head) t in  
+    let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in (*TODO is the range inclusive or not?*)
+    let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
+    {t with restriction_bdu}
 
   let remove_compound_node t (head, tail) = 
     let () = AdjacencyList.remove tail t.adjacency_list in
@@ -160,23 +157,22 @@ module ParametricHypergraph  = struct
       (*reflexive edges are not allowed*)
       t
     else 
-      let t = 
-        (* add nodes from the simple edges to the compound edge "tail" *)
-        IdSet.fold (
-          fun i acc_hg -> add_simple_edge (Simple i) tail acc_hg
-        ) tail_set (add_compound_node tail tail_set head t) 
-      in
-      let t = add_simple_edge tail head t in
-      or_reachability head (reachability_mvbdu_of tail t) t 
+      let t = add_new_edge_reachabilities tail tail_set head IdSet.fold (fun x -> Simple x) t in
+      let t = if Node.is_compound tail then  
+          (* add nodes from the simple edges to the compound edge "tail" *)
+          IdSet.fold (
+            fun i acc_hg -> add_simple_edge (Simple i) tail acc_hg
+          ) tail_set t else t
+      in 
+      t |> add_simple_edge tail head 
 
   let rec closure node t =
-    let node_reachability = 
-      reachability_mvbdu_of node t in
     NodeSet.fold (fun succ t ->
         let old_mvbdu = reachability_mvbdu_of succ t in
-        let t = if Node.is_compound succ then         (*look at all the predecessors*)
-            recalculate_mvbdu_compound_nodes (node, succ) (preds_of t succ) t 
-          else or_reachability succ node_reachability t
+        let t = if Node.is_compound succ then 
+            (*look at all the predecessors*)
+            recalculate_mvbdu_compound_node succ (preds_of t succ) NodeSet.fold (fun x -> x) t 
+          else recalculate_mvbdu_simple_edge (node, succ) t
         in
         let new_mvbdu = reachability_mvbdu_of succ t in
         if Edges_intbdu.equal old_mvbdu new_mvbdu then
@@ -190,14 +186,21 @@ module ParametricHypergraph  = struct
     let t = add_hyperedge t x_set x y in
     let new_mvbdu = reachability_mvbdu_of y t in
     if Edges_intbdu.equal old_mvbdu new_mvbdu then
-      t
+      (print_endline "No closure";
+       t)
     else closure y t 
 
   let add_clauses cls hg =
     List.fold_left (fun acc c -> add_clause c acc) hg cls
 
-  let weight_of _t _node =  
-    None
+  let weight_of t node =  
+    let mvbdu = reachability_mvbdu_of node t in
+    (* let () = print_mvbdu mvbdu in *)
+    let formula = Edges_intbdu.mvbdu_to_formula ~cartesian_decomposition:false mvbdu in
+    let formula = Logical_formulae.simplify formula in
+    let _, string_formula = Logical_formulae.convert_p (fun x _ -> (), string_of_int x)  () formula in
+    let string = Logical_formulae.print_formula "" (^) string_formula in
+    Some string
 
   let remove_successor node ~succ t = 
     let successors = succs_of t node in 
@@ -222,7 +225,9 @@ module ParametricHypergraph  = struct
   let remove_hyperedge tail_set tail head hg =
     let hg = remove_successor tail ~succ:head hg in
     let hg = remove_predecessor head ~pred:tail hg in
-    if NodeSet.is_empty (succs_of hg tail) then
+    let () = print_endline ("tail: "^Node.to_string tail ^"; head: "^Node.to_string head) in
+    if Node.is_compound tail && NodeSet.is_empty (succs_of hg tail) then (*TODO what if true is removed?*)
+      let () = print_endline "Removing compound node" in
       let hg = 
         IdSet.fold (fun i ->
             remove_successor (Simple i) ~succ:tail

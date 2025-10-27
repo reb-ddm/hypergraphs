@@ -115,7 +115,7 @@ module IncrementalHypergraph  = struct
     List.fold_left (fun acc c -> add_clause c acc) hg cls
 
   let weight_of t node =  
-    Some (ReachabilityStatus.get node t.reachability_status)
+    Some (string_of_int (ReachabilityStatus.get node t.reachability_status))
 
   let remove_successor node ~succ:succ t = 
     let successors = succs_of t node in 

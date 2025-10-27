@@ -252,19 +252,13 @@ module Hypergraph = struct
     |> remove_predecessor q2 ~pred:q1 
 
   let remove_hyperedge hg tail_set tail head =
-    if Node.is_compound tail then
-      let hg = 
-        hg
-        |> IdSet.fold (fun i ->
-            remove_successor (Simple i) ~succ:tail
-          ) tail_set
-        |> remove_simple_edge tail head 
-      in
-      if (succs_of hg tail) = [] then
-        remove_compound_node hg tail
-      else hg
-    else
-      remove_simple_edge tail head hg
+    let hg = remove_simple_edge tail head hg in
+    if Node.is_compound tail && (succs_of hg tail) = [] then
+      remove_compound_node hg tail
+      |> IdSet.fold (fun i ->
+          remove_successor (Simple i) ~succ:tail
+        ) tail_set
+    else hg
 
   (*invariant for the priority queue pq: it only contains simple edges *)
   let scan_successors_after_removal hg initial_pq =
@@ -373,6 +367,8 @@ module Hypergraph = struct
 
   let succs_of a b = 
     NodeSet.of_seq (List.to_seq (succs_of a b))
+
+  let weight_of a b = Option.map string_of_int (weight_of a b)
 end
 
 

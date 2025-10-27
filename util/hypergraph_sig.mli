@@ -77,7 +77,7 @@ module Node : sig
 
   val to_string : t -> string
 
-  val dot_of_node : t -> (Id.t -> string) -> Buffer.t -> int option -> unit
+  val dot_of_node : t -> (Id.t -> string) -> Buffer.t -> string option -> unit
 
   val dot_of_edge : t -> t -> Buffer.t -> unit
 end
@@ -122,7 +122,7 @@ sig
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool
-  val weight_of : t -> Node.t -> int option
+  val weight_of : t -> Node.t -> string option
   val succs_of : t -> Node.t -> NodeSet.t
   val remove_clause : edge -> t -> t
 end

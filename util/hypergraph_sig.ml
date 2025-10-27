@@ -82,7 +82,7 @@ module Node = struct
   let dot_of_node node int_to_string b weight =
     let w_string = match weight with
       | None -> ""
-      | Some w -> "("^string_of_int w^")" in
+      | Some w -> "(" ^ w ^ ")" in
     match node with
     | Simple id ->
       let vname = int_to_string id in
@@ -328,7 +328,7 @@ module type FullyDynamicHornClauses = sig
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool
-  val weight_of : t -> Node.t -> int option
+  val weight_of : t -> Node.t -> string option
   val succs_of : t -> Node.t -> NodeSet.t
   val remove_clause : edge -> t -> t
 end
