@@ -65,7 +65,6 @@ module ParametricHypergraph  = struct
     let previous_mvbdu = 
       ReachabilityStatus.get node t.reachability_status in 
     let or_mvbdu = mvbdu_or t previous_mvbdu mvbdu in
-    (* let () = print_mvbdu or_mvbdu in *)
     let () = ReachabilityStatus.add node or_mvbdu t.reachability_status
     in t 
 
@@ -186,8 +185,7 @@ module ParametricHypergraph  = struct
     let t = add_hyperedge t x_set x y in
     let new_mvbdu = reachability_mvbdu_of y t in
     if Edges_intbdu.equal old_mvbdu new_mvbdu then
-      (print_endline "No closure";
-       t)
+      t
     else closure y t 
 
   let add_clauses cls hg =
@@ -195,7 +193,6 @@ module ParametricHypergraph  = struct
 
   let weight_of t node =  
     let mvbdu = reachability_mvbdu_of node t in
-    (* let () = print_mvbdu mvbdu in *)
     let formula = Edges_intbdu.mvbdu_to_formula ~cartesian_decomposition:false mvbdu in
     let formula = Logical_formulae.simplify formula in
     let _, string_formula = Logical_formulae.convert_p (fun x _ -> (), string_of_int x)  () formula in
@@ -217,7 +214,7 @@ module ParametricHypergraph  = struct
     if NodeSet.mem pred predecessors then 
       let new_set = NodeSet.remove pred predecessors in
       let () = 
-        AdjacencyList.add node new_set t.adjacency_list in
+        AdjacencyList.add node new_set t.preds in
       t
     else
       t
@@ -225,9 +222,7 @@ module ParametricHypergraph  = struct
   let remove_hyperedge tail_set tail head hg =
     let hg = remove_successor tail ~succ:head hg in
     let hg = remove_predecessor head ~pred:tail hg in
-    let () = print_endline ("tail: "^Node.to_string tail ^"; head: "^Node.to_string head) in
     if Node.is_compound tail && NodeSet.is_empty (succs_of hg tail) then (*TODO what if true is removed?*)
-      let () = print_endline "Removing compound node" in
       let hg = 
         IdSet.fold (fun i ->
             remove_successor (Simple i) ~succ:tail
