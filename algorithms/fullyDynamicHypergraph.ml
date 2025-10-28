@@ -44,6 +44,8 @@ module Hypergraph = struct
       | None -> None 
     let add ~prio elt q = add elt prio q
 
+    let decrease_key ~prio elt q = 
+      push elt prio q
   end
 
   module NodeMap = MutableNodeMap(NodeData)
@@ -63,10 +65,10 @@ module Hypergraph = struct
 
   let add_compound_node node _set hg = 
     if NodeMap.mem node hg then hg else
-      if Node.is_compound node then 
-        NodeData.make_node_data ~weight:(Some 0) () |> set_node_data hg node
-      else
-        NodeData.make_node_data () |> set_node_data hg node
+    if Node.is_compound node then 
+      NodeData.make_node_data ~weight:(Some 0) () |> set_node_data hg node
+    else
+      NodeData.make_node_data () |> set_node_data hg node
 
   let remove_compound_node hg node = 
     match node with 
@@ -315,24 +317,23 @@ module Hypergraph = struct
       match PQ.remove_min_opt s with
       | None -> hg
       | Some (_w, v, s') ->
-        let hg = recalculate_weight hg v in
+        let hg, _new_weight = recalculate_weight hg v in
         let succs = succs_of hg v in
         let (hg, s') =
-          NodeSet.fold (fun e (acc_hg, acc_s) ->
-              let acc_hg = recalculate_weight acc_hg e in
+          List.fold_left (fun (acc_hg, acc_s) e ->
+              let acc_hg, weight_e = recalculate_weight acc_hg e in
               if Node.is_simple e then 
-                (acc_hg, PQ.decrease_key ~prio:(weight_of hg e) e acc_s)
+                (acc_hg, PQ.decrease_key ~prio:weight_e e acc_s)
               else
                 (* composite node: update also the head of the edge *)
-                NodeSet.fold (fun v' (acc_hg, acc_s) ->
-                    let acc_hg = recalculate_weight acc_hg v' in
+                List.fold_left (fun (acc_hg, acc_s) v' ->
+                    let acc_hg, rank_v' = recalculate_weight acc_hg v' in
                     (* update priority of v' in S *)
-                    let rank_v' = weight_of hg v' in
                     let acc_s = PQ.decrease_key ~prio:rank_v' v' acc_s
                     in
                     acc_hg, acc_s
-                  ) (succs_of acc_hg e) (acc_hg, acc_s)
-            ) succs (hg, s')
+                  ) (acc_hg, acc_s) (succs_of acc_hg e)
+            ) (hg, s') succs
         in
         process_s hg s'
     in
