@@ -91,8 +91,9 @@ let test_add2 size pre_steps =
     simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
   (* edge with source the set of all x_i and with goal node y*)
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
+  let tests, reachable_vars =(last_test,reachable_vars @ [name_goal_var])::tests, reachable_vars @ [name_goal_var] in
   let tests = add_simple_edges_from_true tests pre_steps_vars reachable_vars  in
-  name, nr_nodes, List.rev ((last_test, reachable_vars @ [name_goal_var]) :: tests)
+  name, nr_nodes, List.rev tests
 
 let test_remove size pre_steps =
   let nr_nodes = size + pre_steps + 1 in 
