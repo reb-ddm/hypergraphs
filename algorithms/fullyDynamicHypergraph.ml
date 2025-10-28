@@ -85,12 +85,15 @@ module Hypergraph = struct
     (get_node_data hg node).NodeData.min_succs
 
   let succs_of hg node =
+    (* let () = print_endline ("succs_of "^Node.to_string node) in *)
     (get_node_data hg node).NodeData.succs
 
   let preds_of hg node =
+    (* let () = print_endline ("preds_of "^Node.to_string node) in *)
     (get_node_data hg node).NodeData.preds
 
   let update_min_pred node min_pred w hg =
+    (* let () = print_endline ("update_min_pred "^Node.to_string node) in *)
     if Node.is_compound node then 
       get_node_data hg node |> NodeData.update_weight w |> 
       set_node_data hg node 
@@ -102,6 +105,7 @@ module Hypergraph = struct
       get_node_data hg min_pred |> NodeData.add_min_succ node |> set_node_data hg min_pred
 
   let remove_min_pred node hg = 
+    (* let () = print_endline ("remove_min_pred "^Node.to_string node) in *)
     if Node.is_compound node then 
       get_node_data hg node |> NodeData.update_weight None |> set_node_data hg node 
     else 
@@ -114,9 +118,11 @@ module Hypergraph = struct
         get_node_data hg min_pred |> NodeData.remove_min_succ node |> set_node_data hg min_pred
 
   let update_weight node w hg = 
+    (* let () = print_endline ("update_weight "^Node.to_string node) in *)
     get_node_data hg node |> NodeData.update_weight w |>
     set_node_data hg node
   let remove_weight node hg = 
+    (* let () = print_endline ("remove_weight "^Node.to_string node) in *)
     get_node_data hg node |> NodeData.update_weight None |>
     set_node_data hg node
   let is_reachable node hg = get_node_data hg node |> NodeData.is_reachable
@@ -265,7 +271,10 @@ module Hypergraph = struct
   (*invariant for the priority queue pq: it only contains simple edges *)
   let scan_successors_after_removal hg initial_pq =
     (* select phase *)
-    let rec update_successors_after_removal pq c_set hg =
+    let add_to_pq elt prio pq visited = 
+      PQ.add ~prio:prio elt pq, NodeSet.add elt visited
+    in
+    let rec update_successors_after_removal pq c_set visited hg =
       match PQ.remove_min_opt pq with
       | None -> (hg, c_set)
       | Some (w_y, y, pq) ->
@@ -276,29 +285,36 @@ module Hypergraph = struct
         match equivalent with 
         | None ->
           (* add successors to priority queue if no such edge has been found *)
-          let pq, hg, successors = NodeSet.fold (fun v (acc_pq,hg, succs) ->
+          let pq, hg, successors, visited = NodeSet.fold (fun v (acc_pq,hg, succs, visited) ->
+              if NodeSet.mem v visited then 
+                acc_pq,hg, succs, visited
+              else
               if Node.is_simple v then
                 (* if not (PQ.mem v acc_pq) then  *)
                 let w_v = weight_of hg v in
-                PQ.add ~prio:w_v v acc_pq, hg, succs
+                let acc_pq, visited = add_to_pq v w_v acc_pq visited in
+                acc_pq, hg, succs, visited
                 (* else acc_pq *)
               else
-                pq, remove_weight v hg, NodeSet.union succs (min_succs_of hg v)
-            ) (min_succs_of hg y) (pq,hg, NodeSet.empty ())
+                pq, remove_weight v hg, NodeSet.union succs (min_succs_of hg v), visited
+            ) (min_succs_of hg y) (pq,hg, NodeSet.empty (), visited)
           in
-          let pq = NodeSet.fold (fun v' acc_pq ->
-              PQ.add ~prio:(weight_of hg v') v' acc_pq (*TODO if there is a loop maybe some things are added multiple times to the priority queue*)
-            ) successors pq in
+          let pq, visited = NodeSet.fold (fun v' (acc_pq, visited) ->
+            if NodeSet.mem v' visited then 
+                acc_pq, visited
+              else
+            add_to_pq v' (weight_of hg v') acc_pq visited 
+            ) successors (pq, visited) in
           (* set weight to infinite if no such edge has been found *)
           hg |> remove_min_pred y
-          |> update_successors_after_removal pq (y::c_set)
+          |> update_successors_after_removal pq (y::c_set) visited
         | Some edge ->
           (* else set the edge as the new predecessor in the minimal path *)
           hg |> update_min_pred y edge (weight_of_successor hg edge)
-          |> update_successors_after_removal pq c_set
+          |> update_successors_after_removal pq c_set visited
     in
     let (hg_after_reset, c_set) = 
-      update_successors_after_removal initial_pq [] hg
+      update_successors_after_removal initial_pq [] (NodeSet.empty ()) hg
     in
     (* propagate phase *)
     (* build the priority queue of nodes we need to process *)
