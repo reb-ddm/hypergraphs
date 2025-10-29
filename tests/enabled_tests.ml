@@ -84,7 +84,16 @@ let t7 = "long_chain_v2_", 8, [
     ("remove 1", []);
   ]
 
-let _simple_tests = [t1; t2; t3; t4; t5; t6; t7]
+let t8 = "remove2_of_size_2_with_2_steps", 4, [
+    ("add a1:=",["a1"]);
+    ("add x0:=a1",["a1";"x0"]);
+    ("add x1:=a1", ["a1";"x0";"x1"]);
+    ("add y:=x0,x1", ["a1";"x0";"x1";"y"]);
+    ("remove 1", []);
+    ("add a1:=",["a1";"x0";"x1";"y"])
+  ]
+
+let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8]
 let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                            test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
                            test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;

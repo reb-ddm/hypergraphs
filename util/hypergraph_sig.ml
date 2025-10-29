@@ -55,6 +55,7 @@ module Node = struct
 
   let is_simple = function Simple _ -> true | Compound _ -> false
   let is_compound = function Simple _ -> false | Compound _ -> true
+  let is_true = function Simple _ -> false | Compound i when i = 0 -> true | Compound _ -> false
 
   let compare a b =
     match a, b with

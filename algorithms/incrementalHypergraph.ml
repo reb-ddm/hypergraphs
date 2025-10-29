@@ -129,7 +129,7 @@ module IncrementalHypergraph  = struct
 
   let remove_hyperedge tail_set tail head hg =
     let hg = remove_successor tail ~succ:head hg in
-    if Node.is_compound tail then
+    if Node.is_compound tail && not (Node.is_true tail) then
       if NodeSet.is_empty (succs_of hg tail) then
         let hg = 
           IdSet.fold (fun i ->

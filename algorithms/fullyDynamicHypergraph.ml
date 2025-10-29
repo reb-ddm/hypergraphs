@@ -92,7 +92,8 @@ module Hypergraph = struct
     (get_node_data hg node).NodeData.preds
 
   let update_min_pred node min_pred w hg =
-    (* let () = print_endline ("update_min_pred "^Node.to_string node) in *)
+    let old_min_pred = min_pred_of hg node in 
+    if Option.compare Node.compare min_pred old_min_pred = 0 then hg else
     if Node.is_compound node then 
       get_node_data hg node |> NodeData.update_weight w |> 
       set_node_data hg node 
@@ -101,10 +102,16 @@ module Hypergraph = struct
                NodeData.update_min_pred min_pred |>
                set_node_data hg node
       in
-      match min_pred with 
+      let hg = match min_pred with 
+        | None -> hg
+        | Some min_pred ->
+          get_node_data hg min_pred |> NodeData.add_min_succ node |> set_node_data hg min_pred
+      in if Node.is_compound node then hg else
+      match old_min_pred with
       | None -> hg
-      | Some min_pred ->
-        get_node_data hg min_pred |> NodeData.add_min_succ node |> set_node_data hg min_pred
+      | Some old_min_pred -> 
+        get_node_data hg old_min_pred |> NodeData.remove_min_succ node |> set_node_data hg old_min_pred
+
 
   let remove_min_pred node hg = 
     (* let () = print_endline ("remove_min_pred "^Node.to_string node) in *)
@@ -260,7 +267,7 @@ module Hypergraph = struct
 
   let remove_hyperedge hg tail_set tail head =
     let hg = remove_simple_edge tail head hg in
-    if Node.is_compound tail && (succs_of hg tail) = [] then
+    if Node.is_compound tail && (succs_of hg tail) = [] && not (Node.is_true tail) then
       remove_compound_node hg tail
       |> IdSet.fold (fun i ->
           remove_successor (Simple i) ~succ:tail

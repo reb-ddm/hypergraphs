@@ -66,6 +66,7 @@ module Node : sig
 
   val is_simple : t -> bool
   val is_compound : t -> bool
+  val is_true : t -> bool
 
   val simple_node_of_id : Id.t -> t
   val compound_node_of_intset : 

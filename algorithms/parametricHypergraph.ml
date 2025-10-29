@@ -229,7 +229,7 @@ module ParametricHypergraph  = struct
   let remove_hyperedge tail_set tail head hg =
     let hg = remove_successor tail ~succ:head hg in
     let hg = remove_predecessor head ~pred:tail hg in
-    if Node.is_compound tail && NodeSet.is_empty (succs_of hg tail) then (*TODO what if true is removed?*)
+    if Node.is_compound tail && NodeSet.is_empty (succs_of hg tail) && not (Node.is_true tail) then
       let hg = 
         IdSet.fold (fun i ->
             remove_successor (Simple i) ~succ:tail
