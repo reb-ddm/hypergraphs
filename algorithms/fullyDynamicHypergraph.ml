@@ -24,7 +24,7 @@ module Hypergraph = struct
     let add_successor succ nd = {nd with succs = succ::nd.succs}
     let add_predecessor pred nd = {nd with preds = pred::nd.preds}
     let remove_successor succ nd = {nd with succs = List.filter (fun s -> Node.compare s succ != 0) nd.succs}
-    let remove_predecessor pred nd = {nd with preds = List.filter (fun p -> Node.compare p pred != 0) nd.succs}
+    let remove_predecessor pred nd = {nd with preds = List.filter (fun p -> Node.compare p pred != 0) nd.preds}
     let remove_min_succ succ nd = {nd with min_succs = NodeSet.remove succ nd.min_succs}
 
   end
@@ -89,7 +89,6 @@ module Hypergraph = struct
     (get_node_data hg node).NodeData.succs
 
   let preds_of hg node =
-    (* let () = print_endline ("preds_of "^Node.to_string node) in *)
     (get_node_data hg node).NodeData.preds
 
   let update_min_pred node min_pred w hg =
@@ -188,7 +187,7 @@ module Hypergraph = struct
         List.fold_left (fun (weight, min_pred) q1 ->
             let w = weight_of_successor hg q1 in
             let min = opt_min weight w in
-            if Option.equal (Int.equal) min w then (w, Some q1) else (w, min_pred)
+            if Option.equal (Int.equal) min w then (w, min_pred) else (w, Some q1)
           ) (None, None) preds
     in
     update_min_pred q2 min_pred weight hg, weight
@@ -391,7 +390,14 @@ module Hypergraph = struct
   let succs_of a b = 
     NodeSet.of_seq (List.to_seq (succs_of a b))
 
-  let weight_of a b = Option.map string_of_int (weight_of a b)
+  let weight_of a b = 
+    let min_pred = Option.map Node.to_string (min_pred_of a b) in
+    let w = Option.map string_of_int (weight_of a b) in 
+    match w, min_pred with 
+    | None, None -> None
+    | None, Some m -> Some (m^"?")
+    | Some w, None -> Some w
+    | Some w, Some m -> Some (w^";"^m)
 end
 
 
