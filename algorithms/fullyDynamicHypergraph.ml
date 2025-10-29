@@ -99,10 +99,13 @@ module Hypergraph = struct
       set_node_data hg node 
     else 
       let hg = get_node_data hg node |> NodeData.update_weight w |>
-               NodeData.update_min_pred (Some min_pred) |>
+               NodeData.update_min_pred min_pred |>
                set_node_data hg node
       in
-      get_node_data hg min_pred |> NodeData.add_min_succ node |> set_node_data hg min_pred
+      match min_pred with 
+      | None -> hg
+      | Some min_pred ->
+        get_node_data hg min_pred |> NodeData.add_min_succ node |> set_node_data hg min_pred
 
   let remove_min_pred node hg = 
     (* let () = print_endline ("remove_min_pred "^Node.to_string node) in *)
@@ -117,10 +120,6 @@ module Hypergraph = struct
                  NodeData.update_weight None |> NodeData.update_min_pred None |> set_node_data hg node in
         get_node_data hg min_pred |> NodeData.remove_min_succ node |> set_node_data hg min_pred
 
-  let update_weight node w hg = 
-    (* let () = print_endline ("update_weight "^Node.to_string node) in *)
-    get_node_data hg node |> NodeData.update_weight w |>
-    set_node_data hg node
   let remove_weight node hg = 
     (* let () = print_endline ("remove_weight "^Node.to_string node) in *)
     get_node_data hg node |> NodeData.update_weight None |>
@@ -173,25 +172,26 @@ module Hypergraph = struct
         opt_min w_q2 w1_successor
     in
     if Option.compare Int.compare new_w w_q2 != 0 then
-      let hg = update_min_pred q2 q1 new_w hg in
+      let hg = update_min_pred q2 (Some q1) new_w hg in
       (hg, true, new_w)
     else (hg, false, new_w)
 
   let recalculate_weight hg q2 =
     let preds = preds_of hg q2 in
-    let weight = 
+    let weight, min_pred = 
       if Node.is_compound q2 then
         List.fold_left (fun weight q1 ->
             let w = weight_of_successor hg q1 in
             opt_max weight w
-          ) (Some 0) preds
+          ) (Some 0) preds, None
       else 
-        List.fold_left (fun weight q1 ->
+        List.fold_left (fun (weight, min_pred) q1 ->
             let w = weight_of_successor hg q1 in
-            opt_min weight w
-          ) None preds
+            let min = opt_min weight w in
+            if Option.equal (Int.equal) min w then (w, Some q1) else (w, min_pred)
+          ) (None, None) preds
     in
-    update_weight q2 weight hg, weight
+    update_min_pred q2 min_pred weight hg, weight
 
 
   (* recalculate weight for q2 after the weight of q1 has decreased *)
@@ -229,7 +229,7 @@ module Hypergraph = struct
         if Node.is_simple tail then hg else 
           (* add nodes from the simple edges to the compound edge "tail" *)
           IdSet.fold (
-            fun i acc_hg -> let hg,_,_ = add_simple_edge (Simple i) tail acc_hg in hg
+            fun i hg -> let hg,_,_ = add_simple_edge (Simple i) tail hg in hg
           ) tail_set (add_compound_node tail tail_set hg)
       in
       let hg,b,_ = add_simple_edge tail head hg in hg, b
@@ -241,9 +241,9 @@ module Hypergraph = struct
     | Some (_, cur, worklist) ->
       let succs = succs_of hg cur in
       let (hg, new_worklist) =
-        List.fold_left (fun (acc_hg, acc_wl) succ ->
-            let (acc_hg, changed, new_w) = recalculate_weight_decrease succ cur acc_hg in
-            if changed then (acc_hg, PQ.add ~prio:new_w succ acc_wl) else (acc_hg, acc_wl)
+        List.fold_left (fun (hg, wl) succ ->
+            let (hg, changed, new_w) = recalculate_weight_decrease succ cur hg in
+            if changed then (hg, PQ.add ~prio:new_w succ wl) else (hg, wl)
           ) (hg, worklist) succs
       in
       propagate hg new_worklist
@@ -269,7 +269,7 @@ module Hypergraph = struct
     else hg
 
   (*invariant for the priority queue pq: it only contains simple edges *)
-  let scan_successors_after_removal hg initial_pq =
+  let scan_successors_after_removal hg initial_pq initial_visited =
     (* select phase *)
     let add_to_pq elt prio pq visited = 
       PQ.add ~prio:prio elt pq, NodeSet.add elt visited
@@ -284,37 +284,39 @@ module Hypergraph = struct
         in
         match equivalent with 
         | None ->
+          let () = print_endline ("No equivalent for "^Node.to_string y) in
           (* add successors to priority queue if no such edge has been found *)
-          let pq, hg, successors, visited = NodeSet.fold (fun v (acc_pq,hg, succs, visited) ->
+          let pq, hg, successors, visited = NodeSet.fold (fun v (pq,hg, succs, visited) ->
               if NodeSet.mem v visited then 
-                acc_pq,hg, succs, visited
+                pq,hg, succs, visited
               else
               if Node.is_simple v then
-                (* if not (PQ.mem v acc_pq) then  *)
+                (* if not (PQ.mem v pq) then  *)
                 let w_v = weight_of hg v in
-                let acc_pq, visited = add_to_pq v w_v acc_pq visited in
-                acc_pq, hg, succs, visited
-                (* else acc_pq *)
+                let pq, visited = add_to_pq v w_v pq visited in
+                pq, hg, succs, visited
+                (* else pq *)
               else
-                pq, remove_weight v hg, NodeSet.union succs (min_succs_of hg v), visited
+                pq, remove_weight v hg, NodeSet.union succs (min_succs_of hg v), NodeSet.add v visited
             ) (min_succs_of hg y) (pq,hg, NodeSet.empty (), visited)
           in
-          let pq, visited = NodeSet.fold (fun v' (acc_pq, visited) ->
-            if NodeSet.mem v' visited then 
-                acc_pq, visited
+          let pq, visited = NodeSet.fold (fun v' (pq, visited) ->
+              if NodeSet.mem v' visited then 
+                pq, visited
               else
-            add_to_pq v' (weight_of hg v') acc_pq visited 
+                add_to_pq v' (weight_of hg v') pq visited 
             ) successors (pq, visited) in
           (* set weight to infinite if no such edge has been found *)
           hg |> remove_min_pred y
           |> update_successors_after_removal pq (y::c_set) visited
         | Some edge ->
+          let () = print_endline ("Found equivalent for "^Node.to_string y^": "^Node.to_string edge) in
           (* else set the edge as the new predecessor in the minimal path *)
-          hg |> update_min_pred y edge (weight_of_successor hg edge)
+          hg |> update_min_pred y (Some edge) (weight_of_successor hg edge)
           |> update_successors_after_removal pq c_set visited
     in
     let (hg_after_reset, c_set) = 
-      update_successors_after_removal initial_pq [] (NodeSet.empty ()) hg
+      update_successors_after_removal initial_pq [] initial_visited hg
     in
     (* propagate phase *)
     (* build the priority queue of nodes we need to process *)
@@ -322,6 +324,7 @@ module Hypergraph = struct
       List.fold_left (fun pq_s z ->
           (* compute minimal weight among preds *)
           let preds = preds_of hg_after_reset z in
+          let () = print_endline ("preds of "^Node.to_string z^": "^String.concat ", " (List.map Node.to_string preds)) in
           let rank =
             List.fold_left (fun i p -> opt_min (weight_of_successor hg_after_reset p) i) None preds
           in
@@ -332,26 +335,29 @@ module Hypergraph = struct
     let rec process_s hg s =
       match PQ.remove_min_opt s with
       | None -> hg
-      | Some (_w, v, s') ->
-        let hg, _new_weight = recalculate_weight hg v in
-        let succs = succs_of hg v in
-        let (hg, s') =
-          List.fold_left (fun (acc_hg, acc_s) e ->
-              let acc_hg, weight_e = recalculate_weight acc_hg e in
-              if Node.is_simple e then 
-                (acc_hg, PQ.decrease_key ~prio:weight_e e acc_s)
-              else
-                (* composite node: update also the head of the edge *)
-                List.fold_left (fun (acc_hg, acc_s) v' ->
-                    let acc_hg, rank_v' = recalculate_weight acc_hg v' in
-                    (* update priority of v' in S *)
-                    let acc_s = PQ.decrease_key ~prio:rank_v' v' acc_s
-                    in
-                    acc_hg, acc_s
-                  ) (acc_hg, acc_s) (succs_of acc_hg e)
-            ) (hg, s') succs
-        in
-        process_s hg s'
+      | Some (w, v, s') ->
+        match w with 
+        | None -> hg
+        | Some _ ->
+          let hg, _new_weight = recalculate_weight hg v in
+          let succs = succs_of hg v in
+          let (hg, s') =
+            List.fold_left (fun (hg, s) e ->
+                let hg, weight_e = recalculate_weight hg e in
+                if Node.is_simple e then 
+                  (hg, PQ.decrease_key ~prio:weight_e e s)
+                else
+                  (* composite node: update also the head of the edge *)
+                  List.fold_left (fun (hg, s) v' ->
+                      let hg, rank_v' = recalculate_weight hg v' in
+                      (* update priority of v' in S *)
+                      let s = PQ.decrease_key ~prio:rank_v' v' s
+                      in
+                      hg, s
+                    ) (hg, s) (succs_of hg e)
+              ) (hg, s') succs
+          in
+          process_s hg s'
     in
     process_s hg_after_reset pq_s
 
@@ -379,7 +385,7 @@ module Hypergraph = struct
         let w_y = weight_of hg y in
         let pq0 = PQ.add ~prio:w_y y PQ.empty
         in
-        scan_successors_after_removal hg pq0
+        scan_successors_after_removal hg pq0 (NodeSet.singleton y)
       | Some _ | None -> hg
 
   let succs_of a b = 
