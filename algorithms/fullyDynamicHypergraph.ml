@@ -82,14 +82,22 @@ module Hypergraph = struct
     (get_node_data hg node).NodeData.min_pred
 
   let min_succs_of hg node =
-    (get_node_data hg node).NodeData.min_succs
+    let min_succs =
+      (get_node_data hg node).NodeData.min_succs
+    in 
+    let _ = print_endline ("min_succs of "^Node.to_string node^": "^String.concat "," (List.map Node.to_string (List.of_seq (NodeSet.to_seq min_succs)))) in
+    min_succs
 
   let succs_of hg node =
     (* let () = print_endline ("succs_of "^Node.to_string node) in *)
     (get_node_data hg node).NodeData.succs
 
   let preds_of hg node =
+    let pred = 
     (get_node_data hg node).NodeData.preds
+     in
+     let _ = print_endline ("preds_of of "^Node.to_string node^": "^String.concat "," (List.map Node.to_string ( pred))) in
+    pred
 
   let update_min_pred node min_pred w hg =
     let old_min_pred = min_pred_of hg node in 
@@ -188,6 +196,7 @@ module Hypergraph = struct
       if Node.is_compound q2 then
         List.fold_left (fun weight q1 ->
             let w = weight_of_successor hg q1 in
+                let _ = print_endline ("weight of "^Node.to_string q1^": "^Option.fold ~none:"None" ~some:string_of_int weight) in
             opt_max weight w
           ) (Some 0) preds, None
       else 
@@ -197,6 +206,7 @@ module Hypergraph = struct
             if Option.equal (Int.equal) min w then (w, min_pred) else (w, Some q1)
           ) (None, None) preds
     in
+    let _ = print_endline ("weight: "^Option.fold ~none:"None" ~some:string_of_int weight) in
     update_min_pred q2 min_pred weight hg, weight
 
 
@@ -248,6 +258,7 @@ module Hypergraph = struct
       let succs = succs_of hg cur in
       let (hg, new_worklist) =
         List.fold_left (fun (hg, wl) succ ->
+          let () = print_endline ("Recalculate weight "^Node.to_string succ) in
             let (hg, changed, new_w) = recalculate_weight_decrease succ cur hg in
             if changed then (hg, PQ.add ~prio:new_w succ wl) else (hg, wl)
           ) (hg, worklist) succs
