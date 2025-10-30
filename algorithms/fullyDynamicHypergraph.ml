@@ -214,7 +214,18 @@ module Hypergraph = struct
   let recalculate_weight_decrease q2 q1 hg = 
     if Node.is_compound q2 then
       let w_q2 = weight_of hg q2 in
-      let hg, w = recalculate_weight hg q2
+      let hg, w = 
+        let rec find_new_weight weight preds = 
+          match preds with
+          | [] -> weight
+          | q1::preds ->
+            let w = weight_of_successor hg q1 in
+            let w = opt_max weight w in 
+            if Option.equal Int.equal w_q2 w then w_q2
+            else find_new_weight w preds
+        in
+        let weight = find_new_weight (Some 0) (preds_of hg q2) in
+        update_min_pred q2 None weight hg, weight
       in hg, weight_of hg q2 <> w_q2, w
     else
       (* Q2 is a simple node *)
