@@ -47,7 +47,6 @@ module ParametricHypergraph  = struct
     }
 
   let is_reachable node t = 
-    (* let () = print_endline ("is_reachable "^Node.to_string node) in *)
     let mvbdu = ReachabilityStatus.get node t.reachability_status in 
     let mvbdu_false = Edges_intbdu.mvbdu_false () in
     not (Edges_intbdu.equal mvbdu mvbdu_false)
@@ -63,7 +62,6 @@ module ParametricHypergraph  = struct
     Edges_intbdu.mvbdu_and or_mvbdu t.restriction_bdu
 
   let or_reachability node mvbdu t = 
-    (* let () = print_endline ("or_reachability "^Node.to_string node) in *)
     let previous_mvbdu = 
       ReachabilityStatus.get node t.reachability_status in 
     let or_mvbdu = mvbdu_or t previous_mvbdu mvbdu in
@@ -76,11 +74,9 @@ module ParametricHypergraph  = struct
     t, Edges_intbdu.mvbdu_project_abstract_away mvbdu vars
 
   let succs_of t node =
-    (* let () = print_endline ("succs_of "^Node.to_string node) in *)
     AdjacencyList.get node t.adjacency_list
 
   let preds_of t node =
-    (* let () = print_endline ("preds_of "^Node.to_string node) in *)
     AdjacencyList.get node t.preds
 
   let reachability_mvbdu_of node t =
@@ -146,7 +142,6 @@ module ParametricHypergraph  = struct
   let remove_compound_node t (head, tail) = 
     let () = AdjacencyList.remove tail t.adjacency_list in
     let () = ReachabilityStatus.remove tail t.reachability_status in 
-    (* let () = print_endline ("abstract_away_edge restriction_bdu") in *)
     let t, restriction_bdu = abstract_away_edge t.restriction_bdu (head, tail) t in
     {t with restriction_bdu;}
 
@@ -244,7 +239,6 @@ module ParametricHypergraph  = struct
     let reachability_status = 
       ReachabilityStatus.map (fun _ mvbdu ->
           let mvbdu = mvbdu_and p_false_mvbdu mvbdu in
-          (* let () = print_endline ("abstract_away_edge "^Node.to_string node) in *)
           let _, mvbdu = abstract_away_edge mvbdu edge t in mvbdu
         ) t.reachability_status
     in 

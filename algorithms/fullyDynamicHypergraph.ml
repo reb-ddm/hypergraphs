@@ -82,21 +82,13 @@ module Hypergraph = struct
     (get_node_data hg node).NodeData.min_pred
 
   let min_succs_of hg node =
-    let min_succs =
-      (get_node_data hg node).NodeData.min_succs
-    in 
-    let _ = print_endline ("min_succs of "^Node.to_string node^": "^String.concat "," (List.map Node.to_string (List.of_seq (NodeSet.to_seq min_succs)))) in
-    min_succs
+    (get_node_data hg node).NodeData.min_succs
 
   let succs_of hg node =
-    (* let () = print_endline ("succs_of "^Node.to_string node) in *)
     (get_node_data hg node).NodeData.succs
 
   let preds_of hg node =
-    let pred = 
-      (get_node_data hg node).NodeData.preds
-    in
-    pred
+    (get_node_data hg node).NodeData.preds
 
   let update_min_pred node min_pred w hg =
     let old_min_pred = min_pred_of hg node in 
@@ -121,7 +113,6 @@ module Hypergraph = struct
 
 
   let remove_min_pred node hg = 
-    (* let () = print_endline ("remove_min_pred "^Node.to_string node) in *)
     if Node.is_compound node then 
       get_node_data hg node |> NodeData.update_weight None |> set_node_data hg node 
     else 
@@ -134,7 +125,6 @@ module Hypergraph = struct
         get_node_data hg min_pred |> NodeData.remove_min_succ node |> set_node_data hg min_pred
 
   let remove_weight node hg = 
-    (* let () = print_endline ("remove_weight "^Node.to_string node) in *)
     get_node_data hg node |> NodeData.update_weight None |>
     set_node_data hg node
   let is_reachable node hg = get_node_data hg node |> NodeData.is_reachable
@@ -316,7 +306,6 @@ module Hypergraph = struct
         in
         match equivalent with 
         | None ->
-          let () = print_endline ("No equivalent for "^Node.to_string y) in
           (* add successors to priority queue if no such edge has been found *)
           let pq, hg, successors, visited = NodeSet.fold (fun v (pq,hg, succs, visited) ->
               if NodeSet.mem v visited then 
@@ -342,7 +331,6 @@ module Hypergraph = struct
           hg |> remove_min_pred y
           |> update_successors_after_removal pq (y::c_set) visited
         | Some edge ->
-          let () = print_endline ("Found equivalent for "^Node.to_string y^": "^Node.to_string edge) in
           (* else set the edge as the new predecessor in the minimal path *)
           hg |> update_min_pred y (Some edge) (weight_of_successor hg edge)
           |> update_successors_after_removal pq c_set visited
@@ -356,7 +344,6 @@ module Hypergraph = struct
       List.fold_left (fun pq_s z ->
           (* compute minimal weight among preds *)
           let preds = preds_of hg_after_reset z in
-          let () = print_endline ("preds of "^Node.to_string z^": "^String.concat ", " (List.map Node.to_string preds)) in
           let rank =
             List.fold_left (fun i p -> opt_min (weight_of_successor hg_after_reset p) i) None preds
           in
