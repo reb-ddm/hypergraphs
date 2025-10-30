@@ -265,13 +265,16 @@ module Hypergraph = struct
   let rec propagate hg worklist =
     match PQ.remove_min_opt worklist with
     | None -> hg
-    | Some (_, cur, worklist) ->
+    | Some (w, cur, worklist) ->
+      match w with 
+        | None -> hg
+        | Some _ ->
       let succs = succs_of hg cur in
       let (hg, new_worklist) =
         List.fold_left (fun (hg, wl) succ ->
           let () = print_endline ("Recalculate weight "^Node.to_string succ) in
             let (hg, changed, new_w) = recalculate_weight_decrease succ cur hg in
-            if changed then (hg, PQ.add ~prio:new_w succ wl) else (hg, wl)
+            if changed then (hg, PQ.decrease_key ~prio:new_w succ wl) else (hg, wl)
           ) (hg, worklist) succs
       in
       propagate hg new_worklist
@@ -360,7 +363,7 @@ module Hypergraph = struct
         ) PQ.empty c_set
     in
     (* while S has nodes with rank < infinite, extract min and update the weights *)
-    let rec process_s hg s =
+    (* let rec process_s hg s =
       match PQ.remove_min_opt s with
       | None -> hg
       | Some (w, v, s') ->
@@ -386,8 +389,9 @@ module Hypergraph = struct
               ) (hg, s') succs
           in
           process_s hg s'
-    in
-    process_s hg_after_reset pq_s
+    in 
+    process_s hg_after_reset pq_s *)
+    propagate hg_after_reset pq_s
 
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) hg =
