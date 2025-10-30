@@ -26,7 +26,12 @@ module Hypergraph = struct
     let remove_successor succ nd = {nd with succs = List.filter (fun s -> Node.compare s succ != 0) nd.succs}
     let remove_predecessor pred nd = {nd with preds = List.filter (fun p -> Node.compare p pred != 0) nd.preds}
     let remove_min_succ succ nd = {nd with min_succs = NodeSet.remove succ nd.min_succs}
-
+    let to_string x =
+      "\t weight: " ^ Option.fold ~none:"None" ~some:string_of_int x.weight ^
+      "\n\t min_pred: " ^ Option.fold ~none:"None" ~some:Node.to_string x.min_pred ^
+      "\n\t min_succs: " ^ String.concat "," (List.map Node.to_string (List.of_seq (NodeSet.to_seq x.min_succs))) ^
+      "\n\t succs: " ^ String.concat "," (List.map Node.to_string x.succs) ^
+      "\n\t preds: " ^ String.concat "," (List.map Node.to_string x.preds)
   end
 
   module PsqPriorityQueue(E: OrderedAndPrintable) = struct
@@ -70,11 +75,6 @@ module Hypergraph = struct
     else
       NodeData.make_node_data () |> set_node_data hg node
 
-  let remove_compound_node hg node = 
-    match node with 
-    | Node.Simple _ -> hg
-    | Node.Compound _ -> let () = NodeMap.remove node hg in hg
-
   let weight_of hg node =
     (get_node_data hg node).NodeData.weight
 
@@ -94,14 +94,12 @@ module Hypergraph = struct
 
   let preds_of hg node =
     let pred = 
-    (get_node_data hg node).NodeData.preds
-     in
-     let _ = print_endline ("preds_of of "^Node.to_string node^": "^String.concat "," (List.map Node.to_string ( pred))) in
+      (get_node_data hg node).NodeData.preds
+    in
     pred
 
   let update_min_pred node min_pred w hg =
     let old_min_pred = min_pred_of hg node in 
-    if Option.compare Node.compare min_pred old_min_pred = 0 then hg else
     if Node.is_compound node then 
       get_node_data hg node |> NodeData.update_weight w |> 
       set_node_data hg node 
@@ -110,15 +108,16 @@ module Hypergraph = struct
                NodeData.update_min_pred min_pred |>
                set_node_data hg node
       in
-      let hg = match min_pred with 
-        | None -> hg
-        | Some min_pred ->
-          get_node_data hg min_pred |> NodeData.add_min_succ node |> set_node_data hg min_pred
-      in if Node.is_compound node then hg else
-      match old_min_pred with
-      | None -> hg
-      | Some old_min_pred -> 
-        get_node_data hg old_min_pred |> NodeData.remove_min_succ node |> set_node_data hg old_min_pred
+      if Option.compare Node.compare min_pred old_min_pred = 0 then hg else 
+        let hg = match min_pred with 
+          | None -> hg
+          | Some min_pred ->
+            get_node_data hg min_pred |> NodeData.add_min_succ node |> set_node_data hg min_pred
+        in if Node.is_compound node then hg else
+          match old_min_pred with
+          | None -> hg
+          | Some old_min_pred -> 
+            get_node_data hg old_min_pred |> NodeData.remove_min_succ node |> set_node_data hg old_min_pred
 
 
   let remove_min_pred node hg = 
@@ -146,6 +145,25 @@ module Hypergraph = struct
       else x)
     |>
     set_node_data hg node
+
+  let remove_min_succ min_pred node hg = 
+    get_node_data hg min_pred |> NodeData.remove_min_succ node |> set_node_data hg min_pred
+
+  let remove_compound_node hg node = 
+    match node with 
+    | Node.Simple _ -> 
+      let min_pred = min_pred_of hg node in
+      begin match min_pred with 
+        | None -> hg
+        | Some min_pred -> remove_min_succ min_pred node hg
+      end
+    | Node.Compound _ -> 
+      let hg = List.fold_left (fun hg pred ->
+          remove_min_succ pred node hg
+        ) hg
+          (preds_of hg node) 
+      in
+      let () = NodeMap.remove node hg in hg
 
   let add_predecessor node ~pred:pred hg = 
     get_node_data hg node |> NodeData.add_predecessor pred |>
@@ -196,17 +214,15 @@ module Hypergraph = struct
       if Node.is_compound q2 then
         List.fold_left (fun weight q1 ->
             let w = weight_of_successor hg q1 in
-                let _ = print_endline ("weight of "^Node.to_string q1^": "^Option.fold ~none:"None" ~some:string_of_int weight) in
             opt_max weight w
           ) (Some 0) preds, None
       else 
         List.fold_left (fun (weight, min_pred) q1 ->
             let w = weight_of_successor hg q1 in
             let min = opt_min weight w in
-            if Option.equal (Int.equal) min w then (w, min_pred) else (w, Some q1)
+            if Option.equal (Int.equal) min weight then (w, min_pred) else (w, Some q1)
           ) (None, None) preds
     in
-    let _ = print_endline ("weight: "^Option.fold ~none:"None" ~some:string_of_int weight) in
     update_min_pred q2 min_pred weight hg, weight
 
 
@@ -258,7 +274,6 @@ module Hypergraph = struct
       let succs = succs_of hg cur in
       let (hg, new_worklist) =
         List.fold_left (fun (hg, wl) succ ->
-          let () = print_endline ("Recalculate weight "^Node.to_string succ) in
             let (hg, changed, new_w) = recalculate_weight_decrease succ cur hg in
             if changed then (hg, PQ.add ~prio:new_w succ wl) else (hg, wl)
           ) (hg, worklist) succs
@@ -409,13 +424,7 @@ module Hypergraph = struct
     NodeSet.of_seq (List.to_seq (succs_of a b))
 
   let weight_of a b = 
-    let min_pred = Option.map Node.to_string (min_pred_of a b) in
-    let w = Option.map string_of_int (weight_of a b) in 
-    match w, min_pred with 
-    | None, None -> None
-    | None, Some m -> Some (m^"?")
-    | Some w, None -> Some w
-    | Some w, Some m -> Some (w^";"^m)
+    get_node_data a b |> NodeData.to_string |> Option.some
 end
 
 
