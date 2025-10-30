@@ -119,6 +119,7 @@ module ParametricHypergraph  = struct
     let reach_and_edge = mvbdu_and (reachability_mvbdu_of node t) new_mvbdu_node2 in
     or_reachability head reach_and_edge t 
 
+  (* todo utilise the predecessors instead of set. Just use this function after having set the predecessors.*)
   let recalculate_mvbdu_compound_node node1 set fold to_node t = 
     let reach = fold (fun node reach ->
         let node = to_node node in
@@ -172,19 +173,33 @@ module ParametricHypergraph  = struct
       in 
       t |> add_simple_edge tail head 
 
-  let rec closure node t =
-    NodeSet.fold (fun succ t ->
-        let old_mvbdu = reachability_mvbdu_of succ t in
-        let t = if Node.is_compound succ then 
-            (*look at all the predecessors*)
-            recalculate_mvbdu_compound_node succ (preds_of t succ) NodeSet.fold (fun x -> x) t 
-          else recalculate_mvbdu_simple_edge (node, succ) t
-        in
-        let new_mvbdu = reachability_mvbdu_of succ t in
-        if Edges_intbdu.equal old_mvbdu new_mvbdu then
-          t else
-          closure succ t
-      ) (succs_of t node) t
+  module EdgeSet = Set.Make(Edge)
+  (*BFS*)
+  let closure node t =
+    let get_edge_set node t = 
+      NodeSet.fold (fun succ edges -> 
+          let edge = if Node.is_compound succ then (Node.Compound 0, succ) else
+              (node, succ) in 
+          EdgeSet.add edge edges) (succs_of t node) (EdgeSet.empty) in
+    let rec process nodes t = 
+      if EdgeSet.is_empty nodes then t 
+      else
+        let pred, node = EdgeSet.choose nodes in
+        let nodes = EdgeSet.remove (pred, node) nodes in
+        let t, nodes =
+          let old_mvbdu = reachability_mvbdu_of node t in
+          let t = if Node.is_compound node then 
+              (*look at all the predecessors*)
+              recalculate_mvbdu_compound_node node (preds_of t node) NodeSet.fold (fun x -> x) t
+            else recalculate_mvbdu_simple_edge (pred, node) t
+          in
+          let new_mvbdu = reachability_mvbdu_of node t in
+          if Edges_intbdu.equal old_mvbdu new_mvbdu then
+            t, nodes else
+            t, EdgeSet.union (get_edge_set node t) nodes
+        in process nodes t
+    in 
+    process (get_edge_set node t) t
 
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) t =
