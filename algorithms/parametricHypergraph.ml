@@ -119,24 +119,22 @@ module ParametricHypergraph  = struct
     let reach_and_edge = mvbdu_and (reachability_mvbdu_of node t) new_mvbdu_node2 in
     or_reachability head reach_and_edge t 
 
-  (* todo utilise the predecessors instead of set. Just use this function after having set the predecessors.*)
-  let recalculate_mvbdu_compound_node node1 set fold to_node t = 
-    let reach = fold (fun node reach ->
-        let node = to_node node in
+  let recalculate_mvbdu_compound_node node1 t = 
+    let reach = NodeSet.fold (fun node reach ->
         let status = 
           reachability_mvbdu_of node t
         in mvbdu_and reach status
-      ) set (Edges_intbdu.mvbdu_true ()) in
+      ) (preds_of t node1) (Edges_intbdu.mvbdu_true ()) in
     let () = 
       ReachabilityStatus.add node1 reach t.reachability_status in
     t
 
-  let add_new_edge_reachabilities node set head fold to_node t =
+  let add_new_edge_reachabilities node head t =
     let t =
       if Node.is_simple node || ReachabilityStatus.mem node t.reachability_status then 
         t
       else
-        recalculate_mvbdu_compound_node node set fold to_node t
+        recalculate_mvbdu_compound_node node t
     in
     let t = recalculate_mvbdu_simple_edge (node, head) t in 
     let t, id = get_int_of_edge (node, head) t in  
@@ -171,7 +169,8 @@ module ParametricHypergraph  = struct
           in set_predecessors tail node_set t
         else t
       in 
-      t |> add_simple_edge tail head 
+      t |> add_new_edge_reachabilities tail head
+      |> add_simple_edge tail head 
 
   module EdgeSet = Set.Make(Edge)
   (*BFS*)
@@ -190,7 +189,7 @@ module ParametricHypergraph  = struct
           let old_mvbdu = reachability_mvbdu_of node t in
           let t = if Node.is_compound node then 
               (*look at all the predecessors*)
-              recalculate_mvbdu_compound_node node (preds_of t node) NodeSet.fold (fun x -> x) t
+              recalculate_mvbdu_compound_node node t
             else recalculate_mvbdu_simple_edge (pred, node) t
           in
           let new_mvbdu = reachability_mvbdu_of node t in
