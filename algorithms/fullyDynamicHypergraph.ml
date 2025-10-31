@@ -220,7 +220,18 @@ module Hypergraph = struct
   let recalculate_weight_decrease q2 q1 hg = 
     if Node.is_compound q2 then
       let w_q2 = weight_of hg q2 in
-      let hg, w = recalculate_weight hg q2
+      let hg, w = 
+        let rec find_new_weight weight preds = 
+          match preds with
+          | [] -> weight
+          | q1::preds ->
+            let w = weight_of_successor hg q1 in
+            let w = opt_max weight w in 
+            if Option.equal Int.equal w_q2 w then w_q2
+            else find_new_weight w preds
+        in
+        let weight = find_new_weight (Some 0) (preds_of hg q2) in
+        update_min_pred q2 None weight hg, weight
       in hg, weight_of hg q2 <> w_q2, w
     else
       (* Q2 is a simple node *)
@@ -260,12 +271,15 @@ module Hypergraph = struct
   let rec propagate hg worklist =
     match PQ.remove_min_opt worklist with
     | None -> hg
-    | Some (_, cur, worklist) ->
+    | Some (w, cur, worklist) ->
+      match w with 
+        | None -> hg
+        | Some _ ->
       let succs = succs_of hg cur in
       let (hg, new_worklist) =
         List.fold_left (fun (hg, wl) succ ->
             let (hg, changed, new_w) = recalculate_weight_decrease succ cur hg in
-            if changed then (hg, PQ.add ~prio:new_w succ wl) else (hg, wl)
+            if changed then (hg, PQ.decrease_key ~prio:new_w succ wl) else (hg, wl)
           ) (hg, worklist) succs
       in
       propagate hg new_worklist
@@ -351,7 +365,7 @@ module Hypergraph = struct
         ) PQ.empty c_set
     in
     (* while S has nodes with rank < infinite, extract min and update the weights *)
-    let rec process_s hg s =
+    (* let rec process_s hg s =
       match PQ.remove_min_opt s with
       | None -> hg
       | Some (w, v, s') ->
@@ -377,8 +391,9 @@ module Hypergraph = struct
               ) (hg, s') succs
           in
           process_s hg s'
-    in
-    process_s hg_after_reset pq_s
+    in 
+    process_s hg_after_reset pq_s *)
+    propagate hg_after_reset pq_s
 
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) hg =

@@ -171,3 +171,26 @@ let test_remove3 size steps =
         "add "^name_goal_var2 ^ ":=" ^ name_goal_var, reachable_vars2
     ) in
   name, nr_nodes, List.rev (tests) @ remove_tests
+
+let test_remove4 size pre_steps =
+  let nr_nodes = size + pre_steps + 1 in
+  let nr_digits_size = String.length (string_of_int size) in
+  let nr_digits_pre_steps = String.length (string_of_int pre_steps) in
+  let name_pre_steps_var = "a" in
+  let name_vars = "x" in
+  let name_goal_var = "y" in
+  let name = 
+    "generated_test_remove4_of_size_" ^ string_of_int size ^ 
+    "_with_" ^ string_of_int pre_steps ^ "_preceding_nodes" in
+  let pre_steps_vars, (tests, reachable_vars, last_var) = 
+    chain_of_nodes_from_true pre_steps name_pre_steps_var nr_digits_pre_steps in
+  let vars, (tests, reachable_vars) = 
+    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
+  (* edge with source the set of all x_i and with goal node y*)
+  let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
+  let tests, reachable_vars =(last_test,reachable_vars @ [name_goal_var])::tests, reachable_vars @ [name_goal_var] in
+  let tests = List.rev (add_simple_edges_from_true [] pre_steps_vars reachable_vars) @ tests in
+  let tests = List.init (pre_steps - 1) (fun _ -> 
+      ("remove " ^string_of_int (pre_steps + size + 2), reachable_vars)
+    ) @ tests in
+  name, nr_nodes, List.rev tests
