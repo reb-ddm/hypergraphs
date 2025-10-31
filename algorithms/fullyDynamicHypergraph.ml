@@ -365,7 +365,7 @@ module Hypergraph = struct
         ) PQ.empty c_set
     in
     (* while S has nodes with rank < infinite, extract min and update the weights *)
-    (* let rec process_s hg s =
+    let rec process_s hg s =
       match PQ.remove_min_opt s with
       | None -> hg
       | Some (w, v, s') ->
@@ -392,8 +392,8 @@ module Hypergraph = struct
           in
           process_s hg s'
     in 
-    process_s hg_after_reset pq_s *)
-    propagate hg_after_reset pq_s
+    process_s hg_after_reset pq_s
+    (* propagate hg_after_reset pq_s *)
 
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) hg =

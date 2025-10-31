@@ -155,7 +155,6 @@ module ParametricHypergraph  = struct
       (*reflexive edges are not allowed*)
       t
     else 
-      let t = add_new_edge_reachabilities tail tail_set head IdSet.fold (fun x -> Simple x) t in
       let t = if Node.is_compound tail then  
           (* add nodes from the simple edges to the compound edge "tail" *)
           let t, node_set = IdSet.fold (
