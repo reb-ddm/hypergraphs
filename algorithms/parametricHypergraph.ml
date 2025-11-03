@@ -138,7 +138,7 @@ module ParametricHypergraph  = struct
     let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
     {t with restriction_bdu}
 
-  let remove_compound_node t (head, tail) = 
+  let remove_compound_node t (tail, head) = 
     let () = AdjacencyList.remove tail t.adjacency_list in
     let () = ReachabilityStatus.remove tail t.reachability_status in 
     let t, restriction_bdu = abstract_away_edge t.restriction_bdu (head, tail) t in
@@ -148,23 +148,12 @@ module ParametricHypergraph  = struct
   let add_simple_edge q1 q2 hg =
     hg 
     |> add_successor q1 ~succ:q2
-    |> add_predecessor q2 ~pred:q1 
+    |> add_predecessor q2 ~pred:q1
 
-  let add_hyperedge t tail_set tail head =
-    if Node.is_reflexive_edge tail_set head then 
-      (*reflexive edges are not allowed*)
-      t
-    else 
-      let t = if Node.is_compound tail then  
-          (* add nodes from the simple edges to the compound edge "tail" *)
-          let t, node_set = IdSet.fold (
-              fun i (t, preds) -> add_successor (Simple i) ~succ:tail t, NodeSet.add (Simple i) preds
-            ) tail_set (t, NodeSet.empty ()) 
-          in set_predecessors tail node_set t
-        else t
-      in 
-      t |> add_new_edge_reachabilities tail head
-      |> add_simple_edge tail head 
+  let add_hyperedge tail_set tail head t =
+    let add_simple_edge2 tail head t =
+t |> fun t -> add_simple_edge tail head t |> add_new_edge_reachabilities tail head in
+    Hypergraphs.add_hyperedge (fun _ _ t -> t) add_simple_edge add_simple_edge2 (fun a -> a) tail_set tail head t
 
   module EdgeSet = Set.Make(Edge)
   (*BFS*)
@@ -197,14 +186,14 @@ module ParametricHypergraph  = struct
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) t =
     let old_mvbdu = reachability_mvbdu_of y t in
-    let t = add_hyperedge t x_set x y in
+    let t = add_hyperedge x_set x y t in
     let new_mvbdu = reachability_mvbdu_of y t in
     if Edges_intbdu.equal old_mvbdu new_mvbdu then
       t
     else closure y t 
 
-  let add_clauses cls hg =
-    List.fold_left (fun acc c -> add_clause c acc) hg cls
+  let add_clauses =
+    Hypergraphs.add_clauses add_clause
 
   let weight_of t node =  
     let mvbdu = reachability_mvbdu_of node t in
@@ -234,17 +223,12 @@ module ParametricHypergraph  = struct
     else
       t
 
-  let remove_hyperedge tail_set tail head hg =
-    let hg = remove_successor tail ~succ:head hg in
-    let hg = remove_predecessor head ~pred:tail hg in
-    if Node.is_compound tail && NodeSet.is_empty (succs_of hg tail) && not (Node.is_true tail) then
-      let hg = 
-        IdSet.fold (fun i ->
-            remove_successor (Simple i) ~succ:tail
-          ) tail_set hg
-      in
-      remove_compound_node hg (head, tail)
-    else hg
+  let remove_simple_edge tail head hg = 
+    hg |> remove_successor tail ~succ:head
+    |> remove_predecessor head ~pred:tail
+
+  let remove_hyperedge =
+    Hypergraphs.remove_hyperedge remove_simple_edge NodeSet.is_empty succs_of remove_successor remove_compound_node
 
   let remove_edge_for_all_nodes edge t =
     let t, p = get_int_of_edge edge t in

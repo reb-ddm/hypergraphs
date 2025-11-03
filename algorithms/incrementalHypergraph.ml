@@ -63,7 +63,7 @@ module IncrementalHypergraph  = struct
         t
     | Node.Simple _ -> t
 
-  let remove_compound_node t node = 
+  let remove_compound_node t (node, _) = 
     match node with 
     | Node.Simple _ -> t
     | Node.Compound _ -> 
@@ -76,21 +76,10 @@ module IncrementalHypergraph  = struct
 
   let add_simple_edge q1 q2 hg =
     hg 
-    |> add_successor q1 ~succ:q2 
+    |> add_successor q1 ~succ:q2
 
-  let add_hyperedge t tail_set tail head =
-    if Node.is_reflexive_edge tail_set head then 
-      (*reflexive edges are not allowed*)
-      t
-    else 
-      let t = 
-        if Node.is_simple tail then t else 
-          (* add nodes from the simple edges to the compound edge "tail" *)
-          IdSet.fold (
-            fun i acc_hg -> add_simple_edge (Simple i) tail acc_hg
-          ) tail_set (add_compound_node tail tail_set t)
-      in
-      add_simple_edge tail head t
+  let add_hyperedge =
+    Hypergraphs.add_hyperedge add_compound_node add_simple_edge add_simple_edge (fun x -> x)
 
   let rec closure node t =
     if is_reachable node t then
@@ -106,16 +95,16 @@ module IncrementalHypergraph  = struct
 
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) t =
-    let t = add_hyperedge t x_set x y in
+    let t = add_hyperedge x_set x y t in
     if is_reachable x t then 
       closure y t 
     else t
 
-  let add_clauses cls hg =
-    List.fold_left (fun acc c -> add_clause c acc) hg cls
+  let add_clauses =
+    Hypergraphs.add_clauses add_clause
 
   let weight_of t node =  
-    Some (string_of_int (ReachabilityStatus.get node t.reachability_status))
+    ReachabilityStatus.get node t.reachability_status |> string_of_int |> Option.some
 
   let remove_successor node ~succ:succ t = 
     let successors = succs_of t node in 
@@ -127,19 +116,11 @@ module IncrementalHypergraph  = struct
     else
       t
 
-  let remove_hyperedge tail_set tail head hg =
-    let hg = remove_successor tail ~succ:head hg in
-    if Node.is_compound tail && not (Node.is_true tail) then
-      if NodeSet.is_empty (succs_of hg tail) then
-        let hg = 
-          IdSet.fold (fun i ->
-              remove_successor (Simple i) ~succ:tail
-            ) tail_set hg
-        in
-        remove_compound_node hg tail
-      else hg
-    else
-      hg
+  let remove_simple_edge tail head hg = 
+    remove_successor tail ~succ:head hg
+
+  let remove_hyperedge =
+    Hypergraphs.remove_hyperedge remove_simple_edge NodeSet.is_empty succs_of remove_successor remove_compound_node 
 
   let remove_all_weights t =
     let reachability_status = ReachabilityStatus.map (fun node _ -> 

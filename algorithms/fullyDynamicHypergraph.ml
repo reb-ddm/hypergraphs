@@ -68,7 +68,7 @@ module Hypergraph = struct
 
   let set_node_data hg node nd = NodeMap.add node nd hg; hg
 
-  let add_compound_node node _set hg = 
+  let add_compound_node node _ hg = 
     if NodeMap.mem node hg then hg else
     if Node.is_compound node then 
       NodeData.make_node_data ~weight:(Some 0) () |> set_node_data hg node
@@ -139,7 +139,7 @@ module Hypergraph = struct
   let remove_min_succ min_pred node hg = 
     get_node_data hg min_pred |> NodeData.remove_min_succ node |> set_node_data hg min_pred
 
-  let remove_compound_node hg node = 
+  let remove_compound_node hg (node, _) = 
     match node with 
     | Node.Simple _ -> 
       let min_pred = min_pred_of hg node in
@@ -248,41 +248,30 @@ module Hypergraph = struct
       in hg, weight_of hg q2 <> w_q2, w
 
   let add_simple_edge q1 q2 hg =
-    hg 
-    |> add_successor q1 ~succ:q2 
-    |> add_predecessor q2 ~pred:q1 
-    |> update_weight_for_new_edge q2 q1
+    let hg,b,_ = hg 
+                 |> add_successor q1 ~succ:q2 
+                 |> add_predecessor q2 ~pred:q1 
+                 |> update_weight_for_new_edge q2 q1
+    in hg, b
 
-  let add_hyperedge hg tail_set tail head =
-    if Node.is_reflexive_edge tail_set head then 
-      (*reflexive edges are not allowed*)
-      (hg, false) 
-    else 
-      let hg = 
-        if Node.is_simple tail then hg else 
-          (* add nodes from the simple edges to the compound edge "tail" *)
-          IdSet.fold (
-            fun i hg -> let hg,_,_ = add_simple_edge (Simple i) tail hg in hg
-          ) tail_set (add_compound_node tail tail_set hg)
-      in
-      let hg,b,_ = add_simple_edge tail head hg in hg, b
-
+  let add_hyperedge =
+    Hypergraphs.add_hyperedge add_compound_node (fun q1 q2 hg -> fst (add_simple_edge q1 q2 hg)) add_simple_edge (fun a -> a, false)
 
   let rec propagate hg worklist =
     match PQ.remove_min_opt worklist with
     | None -> hg
     | Some (w, cur, worklist) ->
       match w with 
-        | None -> hg
-        | Some _ ->
-      let succs = succs_of hg cur in
-      let (hg, new_worklist) =
-        List.fold_left (fun (hg, wl) succ ->
-            let (hg, changed, new_w) = recalculate_weight_decrease succ cur hg in
-            if changed then (hg, PQ.decrease_key ~prio:new_w succ wl) else (hg, wl)
-          ) (hg, worklist) succs
-      in
-      propagate hg new_worklist
+      | None -> hg
+      | Some _ ->
+        let succs = succs_of hg cur in
+        let (hg, new_worklist) =
+          List.fold_left (fun (hg, wl) succ ->
+              let (hg, changed, new_w) = recalculate_weight_decrease succ cur hg in
+              if changed then (hg, PQ.decrease_key ~prio:new_w succ wl) else (hg, wl)
+            ) (hg, worklist) succs
+        in
+        propagate hg new_worklist
 
   let closure hg start_node =
     let w = weight_of hg start_node in
@@ -295,14 +284,9 @@ module Hypergraph = struct
     |> remove_successor q1 ~succ:q2 
     |> remove_predecessor q2 ~pred:q1 
 
-  let remove_hyperedge hg tail_set tail head =
-    let hg = remove_simple_edge tail head hg in
-    if Node.is_compound tail && (succs_of hg tail) = [] && not (Node.is_true tail) then
-      remove_compound_node hg tail
-      |> IdSet.fold (fun i ->
-          remove_successor (Simple i) ~succ:tail
-        ) tail_set
-    else hg
+
+  let remove_hyperedge =
+    Hypergraphs.remove_hyperedge remove_simple_edge (fun list -> list = []) succs_of remove_successor remove_compound_node 
 
   (*invariant for the priority queue pq: it only contains simple edges *)
   let scan_successors_after_removal hg initial_pq initial_visited =
@@ -393,17 +377,17 @@ module Hypergraph = struct
           process_s hg s'
     in 
     process_s hg_after_reset pq_s
-    (* propagate hg_after_reset pq_s *)
+  (* propagate hg_after_reset pq_s *)
 
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) hg =
-    let (hg, changed) = add_hyperedge hg x_set x y in
+    let (hg, changed) = add_hyperedge x_set x y hg in
     if changed then 
       closure hg y
     else hg
 
-  let add_clauses cls hg =
-    List.fold_left (fun acc c -> add_clause c acc) hg cls
+  let add_clauses =
+    Hypergraphs.add_clauses add_clause
 
   (* remove a hyperedge x -> y from the graph *)    
   let remove_clause (y, x, x_set) hg =
@@ -411,7 +395,7 @@ module Hypergraph = struct
       (*reflexive edges are not allowed*)
       hg 
     else
-      let hg = remove_hyperedge hg x_set x y in
+      let hg = remove_hyperedge x_set x y hg in
       match min_pred_of hg y with
       | Some pred when Node.compare pred x = 0 ->
         (* If the removed edge was the predecessor of y in the minimal path from true to y,
