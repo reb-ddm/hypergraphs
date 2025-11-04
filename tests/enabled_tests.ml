@@ -1,19 +1,19 @@
 open GenerateTests
 
-let t1 = "very_simple_add", 3, [
+let t1 = "very_simple_add", None, 3, [
     ("add a:=b,c", []);
     ("add b:=", ["b"]);
     ("add c:=", ["a";"b";"c"]);
   ]
 
-let t2 = "very_simple_remove",2, [
+let t2 = "very_simple_remove", None,2, [
     ("add a:=", ["a"]);
     ("add b:=", ["a";"b"]);
     ("remove 1", ["b"]);
     ("remove 1", []);
   ]
 
-let t3 = "simple_loop", 6, [
+let t3 = "simple_loop", None, 6, [
     ("add x1:=", ["x1"]);
     ("add x2:=", ["x1";"x2"]);
     ("add x3:=", ["x1";"x2";"x3"]);
@@ -24,7 +24,7 @@ let t3 = "simple_loop", 6, [
     ("remove 5", ["x1";"x2";"x3";"x4"]);
   ]
 
-let t4 = "simple_loop_wrong_order", 6, [
+let t4 = "simple_loop_wrong_order", None, 6, [
     ("add x5:=x1,x2", []);
     ("add x1:=", ["x1"]);
     ("add x6:=x3,x4,x5", ["x1"]);
@@ -36,14 +36,14 @@ let t4 = "simple_loop_wrong_order", 6, [
     ("add x6:=x4", ["x1";"x2";"x3";"x4";"x5";"x6"]);
   ]
 
-let t5 = "reflexive_edge", 3, [
+let t5 = "reflexive_edge", None, 3, [
     ("add a:=a", []);
     ("remove 1", []);
     ("add a:=f,a,w", []);
     ("remove 1", []);
   ]
 
-let t6 = "long_chain", 7, [
+let t6 = "long_chain", None, 7, [
     ("add a:=", ["a"]);
     ("add b:=a", ["a";"b"]);
     ("add d:=a,b", ["a";"b";"d"]);
@@ -64,7 +64,7 @@ let t6 = "long_chain", 7, [
     ("remove 1", []);
   ]
 
-let t7 = "long_chain_v2_", 8, [
+let t7 = "long_chain_v2_", None, 8, [
     ("add a:=", ["a"]);
     ("add d:=a,b", ["a"]);
     ("add c2:=c", ["a"]);
@@ -84,7 +84,7 @@ let t7 = "long_chain_v2_", 8, [
     ("remove 1", []);
   ]
 
-let t8 = "remove2_of_size_2_with_2_steps", 4, [
+let t8 = "remove2_of_size_2_with_2_steps", None, 4, [
     ("add a1:=",["a1"]);
     ("add x0:=a1",["a1";"x0"]);
     ("add x1:=a1", ["a1";"x0";"x1"]);

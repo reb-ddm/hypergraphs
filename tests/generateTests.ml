@@ -73,7 +73,7 @@ let test_add size pre_steps =
   in
   let tests, reachable_vars = next_layer name_vars size tests reachable_vars in
   let tests = add_simple_edges_from_true tests pre_steps_vars reachable_vars  in
-  name, nr_nodes, List.rev tests
+  name, Some (size, pre_steps), nr_nodes, List.rev tests
 
 let test_add2 size pre_steps =
   let nr_nodes = size + pre_steps + 1 in
@@ -93,7 +93,7 @@ let test_add2 size pre_steps =
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let tests, reachable_vars =(last_test,reachable_vars @ [name_goal_var])::tests, reachable_vars @ [name_goal_var] in
   let tests = add_simple_edges_from_true tests pre_steps_vars reachable_vars  in
-  name, nr_nodes, List.rev tests
+  name, Some (size, pre_steps), nr_nodes, List.rev tests
 
 let test_remove size pre_steps =
   let nr_nodes = size + pre_steps + 1 in 
@@ -113,7 +113,7 @@ let test_remove size pre_steps =
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let tests = List.rev ((last_test, reachable_vars @ [name_goal_var]) :: tests) in
   let remove_tests = remove_simple_edges_starting_from_a_node pre_steps_vars in
-  name, nr_nodes, tests @ remove_tests
+  name, Some (size, pre_steps), nr_nodes, tests @ remove_tests
 
 
 let test_remove2 size steps =
@@ -140,7 +140,7 @@ let test_remove2 size steps =
       else
         "add "^name_pre_steps_var^":=", reachable_vars
     ) in
-  name, nr_nodes, List.rev (tests) @ remove_tests
+  name, Some (size, steps), nr_nodes, List.rev (tests) @ remove_tests
 
 
 let test_remove3 size steps =
@@ -170,7 +170,7 @@ let test_remove3 size steps =
       else
         "add "^name_goal_var2 ^ ":=" ^ name_goal_var, reachable_vars2
     ) in
-  name, nr_nodes, List.rev (tests) @ remove_tests
+  name, Some (size, steps), nr_nodes, List.rev (tests) @ remove_tests
 
 let test_remove4 size pre_steps =
   let nr_nodes = size + pre_steps + 1 in
@@ -193,4 +193,4 @@ let test_remove4 size pre_steps =
   let tests = List.init (pre_steps - 1) (fun _ -> 
       ("remove " ^string_of_int (pre_steps + size + 2), reachable_vars)
     ) @ tests in
-  name, nr_nodes, List.rev tests
+  name, Some (size, pre_steps), nr_nodes, List.rev tests

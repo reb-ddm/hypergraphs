@@ -1,2 +1,2 @@
 
-val run_tests : (string * int * (string * string list) list) list -> unit
+val run_tests : Hypergraph_sig.test_suite list -> unit
