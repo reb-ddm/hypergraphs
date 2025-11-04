@@ -26,23 +26,14 @@ module IntConversion(ConversionMap : Map.S) = struct
 
   let bindings t = ConversionMap.bindings t.val_to_int
 
+  (*returns true if it is a new binding*)
   let val_to_int cti node =
     match ConversionMap.find_opt node cti.val_to_int with
-    | Some i -> cti, i
+    | Some i -> cti, i, false
     | None -> 
       let next_int = cti.next_compound_int in
       let val_to_int = ConversionMap.add node next_int cti.val_to_int
-      in {val_to_int; next_compound_int = next_int + 1}, next_int
-
-  let remove_node cti node =
-    match ConversionMap.find_opt node cti.val_to_int with
-    | Some i -> 
-      let next_compound_int = 
-        if i = cti.next_compound_int - 1 then i 
-        else cti.next_compound_int in (*TODO fill blanks?*)
-      let val_to_int = ConversionMap.remove node cti.val_to_int in
-      {val_to_int; next_compound_int}
-    | None -> cti
+      in {val_to_int; next_compound_int = next_int + 1}, next_int, true
 end
 
 module IdSetMap = Map.Make(IdSet)
@@ -66,7 +57,7 @@ module Node = struct
 
   let simple_node_of_id id = Simple id
   let compound_node_of_intset s cti = 
-    let cti, i = CompoundIntConversion.val_to_int cti s in
+    let cti, i, _ = CompoundIntConversion.val_to_int cti s in
     cti, Compound i
 
   let is_reflexive_edge tail_set head =
@@ -333,3 +324,5 @@ module type FullyDynamicHornClauses = sig
   val succs_of : t -> Node.t -> NodeSet.t
   val remove_clause : edge -> t -> t
 end
+
+type test_suite = string * (int * int) option * int * (string * string list) list

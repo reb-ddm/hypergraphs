@@ -53,8 +53,7 @@ end
 module CompoundIntConversion : sig
   type t
   val empty : t
-  val val_to_int : t  -> IdSet.t -> t * int 
-  val remove_node : t -> IdSet.t -> t
+  val val_to_int : t  -> IdSet.t -> t * int * bool
   val bindings : t -> (IdSet.t * int) list
 end
 
@@ -90,8 +89,7 @@ end
 module EdgeIntConversion : sig
   type t
   val empty : t
-  val val_to_int : t  -> Edge.t -> t * int 
-  val remove_node : t -> Edge.t -> t
+  val val_to_int : t  -> Edge.t -> t * int * bool
   val bindings : t -> (Edge.t * int) list
 end
 
@@ -127,3 +125,5 @@ sig
   val succs_of : t -> Node.t -> NodeSet.t
   val remove_clause : edge -> t -> t
 end
+
+type test_suite = string * (int * int) option * int * (string * string list) list
