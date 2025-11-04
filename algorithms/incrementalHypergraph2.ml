@@ -34,7 +34,7 @@ module IncrementalHypergraph2  = struct
   let increment_reachability t node = 
     let previous_i = 
       ReachabilityStatus.get node t.reachability_status in 
-    let () = ReachabilityStatus.add node (previous_i - 1) t.reachability_status in t
+    let () = ReachabilityStatus.add node (previous_i + 1) t.reachability_status in t
 
   let succs_of t node =
     AdjacencyList.get node t.succs
@@ -153,17 +153,20 @@ module IncrementalHypergraph2  = struct
     (* select phase *)
     let rec update_successors_after_removal y c_set hg =
       (* visit successors if y is reachable *)
+      let was_reachable = is_reachable y hg in
       let hg, c_set = 
         if Node.is_compound y then 
           increment_reachability hg y, c_set else
-        if is_reachable y hg then 
+        if was_reachable then 
           increment_reachability hg y, y::c_set
           (*c_set contains only simple nodes*)
         else 
           hg, c_set in
-      let hg, c_set = NodeSet.fold (fun v (hg, c_set) ->
-          update_successors_after_removal v c_set hg
-        ) (succs_of hg y) (hg, c_set)
+      let hg, c_set = if was_reachable then
+          NodeSet.fold (fun v (hg, c_set) ->
+              update_successors_after_removal v c_set hg
+            ) (succs_of hg y) (hg, c_set)
+        else hg, c_set
       in
       hg, c_set in
     let (hg_after_reset, c_set) = 
@@ -171,23 +174,21 @@ module IncrementalHypergraph2  = struct
     in
     (* propagate phase *)
     (* build the set of nodes we need to process *)
-    let nodeset, hg =
-      List.fold_left (fun (nodeset, hg) z ->
-          (* if there is a reachable predecessor, then the node is still reachable. *)
+    List.fold_left (fun hg z ->
+        (* if there is a reachable predecessor, then the node is still reachable. *)
+        if not (is_reachable z hg) then 
           let preds = preds_of hg_after_reset z in
           let found =
             NodeSet.exists (fun p -> is_reachable p hg) preds
           in
           if found then
-            NodeSet.add z nodeset, decrement_reachability hg y
+            closure z hg
           else 
-            nodeset, hg
-        ) (NodeSet.empty (), hg) c_set
-    in
-    (* while S has nodes with rank < infinite, extract a node and update the weights *)
-    NodeSet.fold (fun z hg ->
-        closure z hg (*TODO check*)
-      ) nodeset hg 
+            hg
+        else hg
+      ) hg c_set
+
+
 
   (* remove a hyperedge x -> y from the graph *)    
   let remove_clause (y, x, x_set) hg =

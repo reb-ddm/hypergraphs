@@ -46,6 +46,21 @@
    Incremental_analysis_util)))
 
 (executable
+ (name HornClausesTestsIncr2)
+ (libraries incremental_analysis_tests incremental_analysis_util)
+ (modules HornClausesTestsIncr2)
+ (public_name HornClausesTestsIncr2)
+ (package kappa-binaries)
+ (flags
+  (:standard
+   -w
+   @a-40-42
+   -open
+   Incremental_analysis_tests
+   -open
+   Incremental_analysis_util)))
+
+(executable
  (name HornClausesTestsMST)
  (libraries incremental_analysis_tests incremental_analysis_util)
  (modules HornClausesTestsMST)
