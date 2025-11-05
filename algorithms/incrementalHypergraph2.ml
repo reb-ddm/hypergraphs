@@ -199,6 +199,8 @@ module IncrementalHypergraph2  = struct
       let hg = remove_hyperedge x_set x y hg in
       scan_successors_after_removal hg y
 
+  let open_chapter _ t = t
+
 end
 
 include IncrementalHypergraph2

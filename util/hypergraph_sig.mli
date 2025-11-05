@@ -109,6 +109,7 @@ sig
   val weight_of : t -> Node.t -> string option
   val succs_of : t -> Node.t -> NodeSet.t
   val remove_clause : edge -> t -> t
+  val open_chapter : edge list -> t -> t
 end
 
 type test_suite = string * (int * int) option * int * (string * string list) list

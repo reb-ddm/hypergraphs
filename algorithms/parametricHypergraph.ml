@@ -19,18 +19,22 @@ module ParametricHypergraph = struct
       let empty = mvbdu_false
     end)
 
+  module EdgeSet = Set.Make(Edge)
+
   type t = {
     adjacency_list : AdjacencyList.t; 
     reachability_status : ReachabilityStatus.t;
     restriction_bdu : Edges_intbdu.mvbdu;
     preds : AdjacencyList.t; (* incoming edges *)
     edge_to_int : EdgeIntConversion.t;
-    current_parameter_valuation: bool Res.Array.t
+    current_parameter_valuation: bool Res.Array.t;
+    is_parametrized : Edge.t -> bool;
+    parametrized_edges : EdgeSet.t
   }
 
   exception OutOfBounds
 
-  let _print_mvbdu mvbdu =
+  let print_mvbdu mvbdu =
     let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
     Edges_intbdu.print parameters mvbdu
 
@@ -48,6 +52,8 @@ module ParametricHypergraph = struct
       preds = AdjacencyList.empty nr_vars;
       edge_to_int = EdgeIntConversion.empty;
       current_parameter_valuation = Res.Array.empty ();
+      is_parametrized = (fun _ -> true);
+      parametrized_edges = EdgeSet.empty;
     }
 
   let mvbdu_and = Edges_intbdu.mvbdu_and
@@ -123,12 +129,18 @@ module ParametricHypergraph = struct
         raise OutOfBounds
     in t
 
-  let recalculate_mvbdu_simple_edge (node, head) t =
-    let t, id, _ = get_int_of_edge (node, head) t in  
-    let association_list = [(id, 1)] in
-    let new_mvbdu_node2 = Edges_intbdu.mvbdu_of_association_list association_list in
-    let reach_and_edge = mvbdu_and (reachability_mvbdu_of node t) new_mvbdu_node2 in
-    or_reachability head reach_and_edge t 
+  let recalculate_mvbdu_simple_edge (node, head) t add_parameter =
+    let current_node_mvbdu = reachability_mvbdu_of node t in
+    let t, reach = 
+      if add_parameter then 
+        let t, id, _ = get_int_of_edge (node, head) t in  
+        let association_list = [(id, 1)] in
+        let new_mvbdu_node2 = Edges_intbdu.mvbdu_of_association_list association_list in
+        t, mvbdu_and current_node_mvbdu new_mvbdu_node2 
+      else
+        t, current_node_mvbdu
+    in
+    or_reachability head reach t
 
   let recalculate_mvbdu_compound_node node1 t = 
     let reach = NodeSet.fold (fun node reach ->
@@ -147,7 +159,8 @@ module ParametricHypergraph = struct
       else
         recalculate_mvbdu_compound_node node t
     in
-    let t = recalculate_mvbdu_simple_edge (node, head) t in 
+    let t = recalculate_mvbdu_simple_edge (node, head) t true in
+    (* we assume that all new added edges are parametrized *)
     let t, id, _ = get_int_of_edge (node, head) t in 
     let t = add_parameter_valuation id true t in
     let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in 
@@ -165,7 +178,6 @@ module ParametricHypergraph = struct
       t |> add_simple_edge tail head |> add_new_edge_reachabilities tail head in
     Hypergraphs.add_hyperedge (fun _ _ t -> t) add_simple_edge add_simple_edge2 (fun a -> a) tail_set tail head t
 
-  module EdgeSet = Set.Make(Edge)
   (*BFS*)
   let closure node t =
     let get_edge_set node t = 
@@ -183,11 +195,14 @@ module ParametricHypergraph = struct
           let t = if Node.is_compound node then 
               (*look at all the predecessors*)
               recalculate_mvbdu_compound_node node t
-            else recalculate_mvbdu_simple_edge (pred, node) t
+            else 
+              let add_parameter = t.is_parametrized (pred, node) in
+              recalculate_mvbdu_simple_edge (pred, node) t add_parameter
           in
           let new_mvbdu = reachability_mvbdu_of node t in
           if Edges_intbdu.equal old_mvbdu new_mvbdu then
-            t, nodes else
+            t, nodes 
+          else
             t, EdgeSet.union (get_edge_set node t) nodes
         in process nodes t
     in 
@@ -226,6 +241,8 @@ module ParametricHypergraph = struct
       let hg, id, _ = get_int_of_edge (x, y) hg in
       hg 
       |> add_parameter_valuation id false
+
+  let open_chapter _ t = t
 
 end
 

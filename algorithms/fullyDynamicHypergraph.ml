@@ -411,6 +411,8 @@ module Hypergraph = struct
 
   let weight_of a b = 
     get_node_data a b |> NodeData.to_string |> Option.some
+
+  let open_chapter _ t = t
 end
 
 

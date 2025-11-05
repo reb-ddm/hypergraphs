@@ -142,6 +142,8 @@ module IncrementalHypergraph  = struct
       |> remove_all_weights (*set all nodes to unreachable (except the node "true")*)
       |> closure hg.true_node
 
+  let open_chapter _ t = t
+
 end
 
 include IncrementalHypergraph
