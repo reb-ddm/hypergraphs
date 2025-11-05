@@ -5,17 +5,17 @@ open Incremental_analysis_algorithms
 open Hypergraph_sig
 
 let help_message =
-  "Available commands:
-  - quit
-  - help
-  - add <horn clause>
-  - remove <horn clause>
-  - print
-  - reachable
-  - dot 
-
-  Horn clause syntax:
-    <head> := <body>
+  "Available commands:\n\
+   - quit\n\
+   - help\n\
+   - add <horn clause>\n\
+   - remove <horn clause>\n\
+   - print\n\
+   - reachable\n\
+   - dot\n\
+   \n\
+   Horn clause syntax:\n\
+   <head> := <body>\n\
   "
 
 let init_loop n (module HypergraphAlg : FullyDynamicHornClauses) =
@@ -78,9 +78,11 @@ let rec ask_nr_variables s =
 let rec ask_module s =
   print_endline s;
   match String.trim (read_line ()) with 
-  | "incremental" -> (module IncrementalHypergraph : FullyDynamicHornClauses)
-  | "mst" -> (module FullyDynamicHypergraph : FullyDynamicHornClauses)
-  | "parametric" -> (module ParametricHypergraph : FullyDynamicHornClauses)
+  | "incremental" | "i" -> (module IncrementalHypergraph : FullyDynamicHornClauses)
+  | "incremental2" | "i2" -> (module IncrementalHypergraph2 : FullyDynamicHornClauses)
+  | "mst" | "m" -> (module FullyDynamicHypergraph : FullyDynamicHornClauses)
+  | "parametric" | "p" -> (module ParametricHypergraph : FullyDynamicHornClauses)
+  | "semiparametric"| "s" -> (module SemiParametricHypergraph : FullyDynamicHornClauses)
   | _ -> ask_module "Please enter 'incremental' or 'mst' or 'parametric'. "
 
 let start_agent () =

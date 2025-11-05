@@ -31,55 +31,10 @@
   (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))
 
 (executable
- (name HornClausesTestsIncremental)
+ (name HornClausesRunTests)
  (libraries incremental_analysis_tests incremental_analysis_util)
- (modules HornClausesTestsIncremental)
- (public_name HornClausesTestsIncremental)
- (package kappa-binaries)
- (flags
-  (:standard
-   -w
-   @a-40-42
-   -open
-   Incremental_analysis_tests
-   -open
-   Incremental_analysis_util)))
-
-(executable
- (name HornClausesTestsIncr2)
- (libraries incremental_analysis_tests incremental_analysis_util)
- (modules HornClausesTestsIncr2)
- (public_name HornClausesTestsIncr2)
- (package kappa-binaries)
- (flags
-  (:standard
-   -w
-   @a-40-42
-   -open
-   Incremental_analysis_tests
-   -open
-   Incremental_analysis_util)))
-
-(executable
- (name HornClausesTestsMST)
- (libraries incremental_analysis_tests incremental_analysis_util)
- (modules HornClausesTestsMST)
- (public_name HornClausesTestsMST)
- (package kappa-binaries)
- (flags
-  (:standard
-   -w
-   @a-40-42
-   -open
-   Incremental_analysis_tests
-   -open
-   Incremental_analysis_util)))
-
-(executable
- (name HornClausesTestsParametric)
- (libraries incremental_analysis_tests incremental_analysis_util)
- (modules HornClausesTestsParametric)
- (public_name HornClausesTestsParametric)
+ (modules HornClausesRunTests InteractiveAgent)
+ (public_name HornClausesRunTests)
  (package kappa-binaries)
  (flags
   (:standard
