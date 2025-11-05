@@ -121,59 +121,6 @@ module type HasEmpty = sig
   val empty : unit -> t
 end
 
-(**
-   Priority queue 
-   None represents the value infinity.
-   Source = https://lewinb.net/posts/22_priorityqueue_ocaml/
-*)
-module PriorityQueue (Elt : OrderedAndPrintable) = struct
-  module EltWithPrio = struct
-    type t = int option * Elt.t
-    let compare (a,e1) (b,e2) = 
-      match a, b with 
-      | None, None -> 0
-      | None, _ -> 1
-      | _, None -> -1
-      | Some x, Some y -> 
-        let c = Int.compare x y in
-        if c = 0 then Elt.compare e1 e2 else c
-  end
-  module IntOptionSet = Set.Make(EltWithPrio)
-  module EltSet = Set.Make(Elt)
-
-  type t = IntOptionSet.t * EltSet.t
-  let empty () = IntOptionSet.empty, EltSet.empty
-  let is_empty (_prio_set, set) = EltSet.is_empty set
-  let mem elt (_prio_set, set) = EltSet.mem elt set
-  let add ~prio elt (prio_set, set) = 
-    if mem elt (prio_set, set) then (prio_set, set) else
-      IntOptionSet.add (prio, elt) prio_set, EltSet.add elt set
-
-  let remove_min_opt (prio_set, set) =
-    match IntOptionSet.min_elt_opt prio_set with
-    | None -> None
-    | Some (prio, elt) ->
-      Some (prio, elt, (IntOptionSet.remove (prio, elt) prio_set, EltSet.remove elt set))
-
-
-  let decrease_key elt ~prio:new_prio (q, set) = (* TODO this is not very efficient *)
-    match IntOptionSet.find_first_opt (fun (_, q_elt) -> Elt.compare q_elt elt = 0) q with
-    | None -> q, set
-    | Some old_elt ->
-      let q = IntOptionSet.remove old_elt q in
-      add ~prio:new_prio elt (q, set)
-
-  let print_all_elements (q, _set) = 
-    let () = IntOptionSet.iter (fun (i,n) -> 
-        let node_string = Elt.to_string n in
-        Option.iter print_int i;
-        print_string ";";
-        print_string node_string;
-        print_string ","
-      ) q in print_newline ()
-end
-
-
 module StringMap = Map.Make(String)
 module IntMap = Map.Make(Int)
 exception ExceededNrOfVars

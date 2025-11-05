@@ -23,21 +23,6 @@ module type HasEmpty = sig
   val empty : unit -> t
 end
 
-module PriorityQueue :
-  functor (Elt : OrderedAndPrintable) ->
-  sig
-    type t
-    val empty : unit -> t
-    val is_empty : t -> bool
-    val mem : Elt.t -> t -> bool
-    val add : prio:int option -> Elt.t -> t -> t
-    val remove_min_opt :
-      t -> (int option * Elt.t * t) option
-    val decrease_key :
-      Elt.t -> prio:int option -> t -> t
-    val print_all_elements : t -> unit
-  end
-
 module Vars :
 sig
   type t
