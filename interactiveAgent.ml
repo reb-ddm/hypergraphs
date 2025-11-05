@@ -75,18 +75,29 @@ let rec ask_nr_variables s =
   | Some n -> n
   | None -> ask_nr_variables "Please enter a number. Input the number of variables: "
 
-let rec ask_module s =
-  print_endline s;
-  match String.trim (read_line ()) with 
-  | "incremental" | "i" -> (module IncrementalHypergraph : FullyDynamicHornClauses)
-  | "incremental2" | "i2" -> (module IncrementalHypergraph2 : FullyDynamicHornClauses)
-  | "mst" | "m" -> (module FullyDynamicHypergraph : FullyDynamicHornClauses)
-  | "parametric" | "p" -> (module ParametricHypergraph : FullyDynamicHornClauses)
-  | "semiparametric"| "s" -> (module SemiParametricHypergraph : FullyDynamicHornClauses)
-  | _ -> ask_module "Please enter 'incremental' or 'mst' or 'parametric'. "
+let list_of_modules = ["incremental"; "incremental2"; "mst"; "parametric"; "semiparametric"]
+
+let ask_module () =
+  let rec ask_module s = 
+    print_endline s;
+    match String.trim (read_line ()) with 
+    | "incremental" | "i" -> 
+      (module IncrementalHypergraph : FullyDynamicHornClauses)
+    | "incremental2" | "i2" -> 
+      (module IncrementalHypergraph2 : FullyDynamicHornClauses)
+    | "mst" | "m" -> 
+      (module FullyDynamicHypergraph : FullyDynamicHornClauses)
+    | "parametric" | "p" -> 
+      (module ParametricHypergraph : FullyDynamicHornClauses)
+    | "semiparametric"| "s" -> 
+      (module SemiParametricHypergraph : FullyDynamicHornClauses)
+    | _ -> ask_module 
+             ("Please enter '" ^String.concat "' or '" list_of_modules ^"'. ")
+  in ask_module 
+    ("Input the algorithm version: (" ^String.concat "/" list_of_modules ^")")
 
 let start_agent () =
   let n = ask_nr_variables "Input the number of variables: " in
-  let module HypergraphAlg = (val (ask_module "Input the algorithm version: (incremental/mst/parametric)")) in
+  let module HypergraphAlg = (val (ask_module ())) in
   print_endline "Please input a horn clause.";
   init_loop n (module HypergraphAlg)
