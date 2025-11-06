@@ -24,7 +24,10 @@ module HornClauseHandler :
     val reachable_vars : t -> string list
     val reachable_vars_string : t -> string
     val to_dot : t -> string
-    val parse_clause : string -> t -> t * int * clause * bool
+    type parse_output =  
+        Add of clause | Remove of clause * int | OpenChapter of clause list
+    val parse_clause : string -> t -> t * parse_output
     val to_string : t -> string
     val remove_clause : t -> int * Hypergraph_sig.IdSet.t -> int -> t
+    val open_chapter : t -> clause list -> t
   end

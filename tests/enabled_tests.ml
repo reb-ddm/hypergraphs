@@ -93,7 +93,20 @@ let t8 = "remove2_of_size_2_with_2_steps", None, 4, [
     ("add a1:=",["a1";"x0";"x1";"y"])
   ]
 
-let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8]
+let t9 = "chapters_small_test", None, 7, [
+    ("add a1:=", ["a1"]);
+    ("add a2:=", ["a1"; "a2"]);
+    ("add a3:=", ["a1"; "a2"; "a3"]);
+    ("add a4:=", ["a1"; "a2"; "a3"; "a4"]);
+    ("add a5:=a1,a2,a3,a4", ["a1"; "a2"; "a3"; "a4"; "a5"]);
+    ("open 1-3,5", ["a1"; "a2"; "a3"; "a4"; "a5"]);
+    ("remove 5", ["a1"; "a2"; "a3"; "a4"]);
+    ("remove 3", ["a1"; "a2"; "a4"]);
+    ("remove 2", ["a1"; "a4"]);
+    ("remove 1", ["a4"]);
+  ]
+
+let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9]
 let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                            test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
                            test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;

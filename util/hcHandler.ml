@@ -84,20 +84,20 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     Buffer.add_string b "}\n";
     Buffer.contents b
 
-  (**
-     returns (index, clause, bool)
-     It returns true if the clause needs to be added and false if it needs to be removed.
-  *)
+  type parse_output = 
+      Add of clause | Remove of clause * int | OpenChapter of clause list
+
   let parse_clause s hc =
     let is_alpha_or_digit = function 'a' .. 'z' | 'A' .. 'Z'| '0' .. '9' -> true | _ -> false in
     let is_valid_var_name s = 
       String.length s > 0 && String.for_all is_alpha_or_digit s in
     let s = String.trim s in
+    (* ---- ADD ---- *)
     if String.starts_with ~prefix:"add" s then 
       let s = String.sub s 3 (String.length s - 3) in
-      let index, (head, body) = 
+      let (head, body) = 
         match String.split_on_char ':' s with
-        | [lhs] -> if is_valid_var_name lhs then -1, (lhs, []) 
+        | [lhs] -> if is_valid_var_name lhs then (lhs, []) 
           else raise (InvalidVarName lhs)
         | [lhs; rest] ->
           let rest =
@@ -119,7 +119,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
           in
           let () = List.iter (fun v -> if not (is_valid_var_name v) then 
                                  raise (InvalidVarName v)) rhs in
-          -1, (String.trim lhs, rhs)
+          (String.trim lhs, rhs)
         | _ ->
           raise (InvalidCharachter ":")
       in
@@ -130,7 +130,8 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
             (acc_hc, IdSet.add id acc_ids)
           ) (hc, IdSet.empty ()) body
       in
-      hc, index, (head_id, body_set), true
+      hc, Add (head_id, body_set)
+      (* ---- REMOVE ---- *)
     else if String.starts_with ~prefix:"remove" s then 
       let s = String.trim (String.sub s 6 (String.length s - 6)) in
       let n = try int_of_string s 
@@ -138,7 +139,38 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
       in
       let hc_list = hc.horn_clauses_rev in
       let index_in_list = List.length hc_list - n in
-      hc, index_in_list, List.nth hc_list index_in_list, false
+      hc, Remove (List.nth hc_list index_in_list, index_in_list)
+      (* ---- OPEN ---- *)
+    else if String.starts_with ~prefix:"open" s then 
+      let s = String.trim (String.sub s 4 (String.length s - 4)) in
+      let parts = String.split_on_char ',' s |> List.map String.trim in
+      let indices =
+        List.concat_map (fun p ->
+            match String.split_on_char '-' p |> List.map String.trim with
+            | [a] ->
+              begin match int_of_string_opt a with
+                | None -> raise (InvalidCharachter ("Invalid index: " ^ p))
+                | Some i -> [i]
+              end
+            | [a; b] ->
+              let a, b = int_of_string a, int_of_string b in
+              if a > b then raise (InvalidCharachter ("Invalid range: " ^ p))
+              else List.init (b - a + 1) (fun i -> a + i)
+            | _ -> raise (InvalidCharachter ("Invalid range syntax: " ^ p))
+          ) parts
+      in
+      let hc_list = hc.horn_clauses_rev in
+      let len = List.length hc_list in
+      let selected_clauses =
+        indices
+        |> List.map (fun n ->
+            if n <= 0 || n > len then
+              raise (InvalidCharachter ("Index " ^ string_of_int n ^ " out of bounds"))
+            else
+              List.nth hc_list (len - n)
+          )
+      in
+      hc, OpenChapter selected_clauses
     else raise (InvalidCommand s)
 
   let to_string hc =
@@ -163,5 +195,15 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
      horn_clauses_rev;       
      horn_clause_handler = 
        HC.remove_clause clause hc.horn_clause_handler }
+
+  let open_chapter hc clause_list = 
+    let clauses, hc = 
+      List.fold_left (fun (clauses, hc) clause -> 
+          let cl, hc = clause_to_edge clause hc 
+          in cl :: clauses, hc) 
+        ([], hc) clause_list in
+    {hc with       
+     horn_clause_handler = 
+       HC.open_chapter clauses hc.horn_clause_handler }
 
 end

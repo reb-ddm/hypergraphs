@@ -44,11 +44,14 @@ let init_loop n (module HypergraphAlg : FullyDynamicHornClauses) =
         print_endline output;
         loop hc
       | input ->
-        let hc, index, clause, must_be_added = HypergraphHCH.parse_clause input hc in
-        let hc = if must_be_added then
+        let hc, parse_output = HypergraphHCH.parse_clause input hc in
+        let hc = match parse_output with
+          | Add clause ->
             HypergraphHCH.add_clause clause hc
-          else
+          | Remove (clause, index) ->
             HypergraphHCH.remove_clause hc clause index 
+          | OpenChapter clauses -> 
+            HypergraphHCH.open_chapter hc clauses
         in
         print_endline "done";
         loop hc
