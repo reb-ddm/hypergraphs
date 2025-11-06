@@ -26,6 +26,25 @@ module SemiParametricHypergraph = struct
       let () = print_endline "ERROR: Can't remove an edge that is not contained in the current chapter!" in
       t
 
+
+  let is_reachable node t = 
+    let mvbdu = ReachabilityStatus.get node t.reachability_status in 
+    let valuation_list = 
+      EdgeSet.fold 
+        (fun edge valuations -> 
+           let _, i, _ = get_int_of_edge edge t in
+           (i, 
+            if Res.Array.get t.current_parameter_valuation i then 1 
+            else 0)
+           ::valuations) (*TODO maybe we need to reverse the list*)
+        t.parametrized_edges []
+    in
+    let valuation_list = Edges_intbdu.build_association_list valuation_list in
+    let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
+    let mvbdu_inter = mvbdu_and mvbdu mvbdu_valuation in
+    let mvbdu_false = Edges_intbdu.mvbdu_false () in
+    not (Edges_intbdu.equal mvbdu_inter mvbdu_false)
+
   let add_clauses =
     Hypergraphs.add_clauses add_clause
 
@@ -46,18 +65,14 @@ module SemiParametricHypergraph = struct
     {t with reachability_status}
 
   let open_chapter edge_list t = 
+    (*TODO like this you keep all the removed edges in your data structure*)
     (* build new parametrized set from edge_list *)
-    let t = {t with 
-             current_parameter_valuation = Res.Array.empty ();
-             edge_to_int = EdgeIntConversion.empty } 
-    in
     let parametrized_edges, restriction_bdu, t =
       List.fold_left 
-        (fun (edges, restriction_bdu, t) (tail, head, _) ->
+        (fun (edges, restriction_bdu, t) (head, tail, _) ->
            let edge = tail, head in 
            let edges = EdgeSet.add edge edges in
            let t, id, _ = get_int_of_edge edge t in
-           let t = add_parameter_valuation id true t in
            let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in 
            let restriction_bdu = mvbdu_and range_mvbdu restriction_bdu in
            edges, restriction_bdu, t ) 
