@@ -1,5 +1,3 @@
-open Hypergraph_sig
-
 module SemiParametricHypergraph = struct
   include ParametricHypergraph
 
@@ -11,7 +9,7 @@ module SemiParametricHypergraph = struct
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) t =
     let t, id, is_new = get_int_of_edge (x, y) t in
-    if is_new then 
+    if is_new || not (t.is_parametrized (x,y)) then 
       let t = add_parametrized_edge (x, y) t in
       let old_mvbdu = reachability_mvbdu_of y t in
       let t = add_hyperedge x_set x y t in
@@ -20,12 +18,7 @@ module SemiParametricHypergraph = struct
         t
       else closure y t 
     else 
-    if t.is_parametrized (x,y) then 
       add_parameter_valuation id true t
-    else 
-      let () = print_endline "ERROR: Can't remove an edge that is not contained in the current chapter!" in
-      t
-
 
   let is_reachable node t = 
     let mvbdu = ReachabilityStatus.get node t.reachability_status in 
@@ -39,6 +32,7 @@ module SemiParametricHypergraph = struct
            ::valuations) (*TODO maybe we need to reverse the list*)
         t.parametrized_edges []
     in
+    let valuation_list = List.rev valuation_list in
     let valuation_list = Edges_intbdu.build_association_list valuation_list in
     let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
     let mvbdu_inter = mvbdu_and mvbdu mvbdu_valuation in
@@ -54,7 +48,10 @@ module SemiParametricHypergraph = struct
     Edges_intbdu.mvbdu_project_abstract_away mvbdu_inter parameters
 
   let remove_parameters_for_all_nodes valuation_list parameters t =
-    let valuation_list = Edges_intbdu.build_association_list valuation_list in (*TODO we probably need to reverse the lists*)
+    let valuation_list = List.rev valuation_list in
+    let parameters = List.rev parameters in 
+    let valuation_list = Edges_intbdu.build_association_list valuation_list in
+    (*TODO we probably need to reverse the lists*)
     let vars = Edges_intbdu.build_variables_list parameters in
     let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
     let reachability_status = 

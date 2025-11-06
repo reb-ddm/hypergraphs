@@ -94,7 +94,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     let s = String.trim s in
     (* ---- ADD ---- *)
     if String.starts_with ~prefix:"add" s then 
-      let s = String.sub s 3 (String.length s - 3) in
+      let s = String.trim (String.sub s 3 (String.length s - 3)) in
       let (head, body) = 
         match String.split_on_char ':' s with
         | [lhs] -> if is_valid_var_name lhs then (lhs, []) 
@@ -143,34 +143,43 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
       (* ---- OPEN ---- *)
     else if String.starts_with ~prefix:"open" s then 
       let s = String.trim (String.sub s 4 (String.length s - 4)) in
-      let parts = String.split_on_char ',' s |> List.map String.trim in
-      let indices =
-        List.concat_map (fun p ->
-            match String.split_on_char '-' p |> List.map String.trim with
-            | [a] ->
-              begin match int_of_string_opt a with
-                | None -> raise (InvalidCharachter ("Invalid index: " ^ p))
-                | Some i -> [i]
-              end
-            | [a; b] ->
-              let a, b = int_of_string a, int_of_string b in
-              if a > b then raise (InvalidCharachter ("Invalid range: " ^ p))
-              else List.init (b - a + 1) (fun i -> a + i)
-            | _ -> raise (InvalidCharachter ("Invalid range syntax: " ^ p))
-          ) parts
-      in
-      let hc_list = hc.horn_clauses_rev in
-      let len = List.length hc_list in
-      let selected_clauses =
-        indices
-        |> List.map (fun n ->
-            if n <= 0 || n > len then
-              raise (InvalidCharachter ("Index " ^ string_of_int n ^ " out of bounds"))
-            else
-              List.nth hc_list (len - n)
-          )
-      in
-      hc, OpenChapter selected_clauses
+      (* "open ()" -> empty list *)
+      if s = "()" || s = "" then
+        hc, OpenChapter []
+      else
+        let s =
+          if String.length s >= 2 && s.[0] = '(' && s.[String.length s - 1] = ')' then
+            String.sub s 1 (String.length s - 2) |> String.trim
+          else s
+        in
+        let parts = String.split_on_char ',' s |> List.map String.trim in
+        let indices =
+          List.concat_map (fun p ->
+              match String.split_on_char '-' p |> List.map String.trim with
+              | [a] ->
+                begin match int_of_string_opt a with
+                  | None -> raise (InvalidCharachter ("Invalid index: " ^ p))
+                  | Some i -> [i]
+                end
+              | [a; b] ->
+                let a, b = int_of_string a, int_of_string b in
+                if a > b then raise (InvalidCharachter ("Invalid range: " ^ p))
+                else List.init (b - a + 1) (fun i -> a + i)
+              | _ -> raise (InvalidCharachter ("Invalid range syntax: " ^ p))
+            ) parts
+        in
+        let hc_list = hc.horn_clauses_rev in
+        let len = List.length hc_list in
+        let selected_clauses =
+          indices
+          |> List.map (fun n ->
+              if n <= 0 || n > len then
+                raise (InvalidCharachter ("Index " ^ string_of_int n ^ " out of bounds"))
+              else
+                List.nth hc_list (len - n)
+            )
+        in
+        hc, OpenChapter selected_clauses
     else raise (InvalidCommand s)
 
   let to_string hc =

@@ -241,7 +241,7 @@ module ParametricHypergraph = struct
       hg 
     else
       let hg, id, is_new = get_int_of_edge (x, y) hg in
-      if is_new then raise UnknownEdge else
+      if is_new then raise UnknownEdge else (*TODO check if this edge is parametrized for the semi-parametric version*)
       hg 
       |> add_parameter_valuation id false
 

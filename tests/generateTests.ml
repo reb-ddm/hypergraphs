@@ -130,9 +130,10 @@ let test_remove2 size steps =
   let vars, (tests, reachable_vars) = 
     simple_edges_starting_from_a_node name_pre_steps_var size name_vars nr_digits_size reachable_vars tests in
   (* edge with source the set of all x_i and with goal node y*)
+  let open_chapter = "open 1", reachable_vars in
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let reachable_vars = reachable_vars @ [name_goal_var] in
-  let tests = (last_test, reachable_vars) :: tests in
+  let tests = (last_test, reachable_vars) :: open_chapter :: tests in
   let remove_tests = List.init steps (fun i -> 
       if (i mod 2) = 0 then 
         let index = if i = 0 then 1 else (2 + size) in
@@ -141,7 +142,6 @@ let test_remove2 size steps =
         "add "^name_pre_steps_var^":=", reachable_vars
     ) in
   name, Some (size, steps), nr_nodes, List.rev (tests) @ remove_tests
-
 
 let test_remove3 size steps =
   let nr_nodes = size + 3 in
