@@ -1,6 +1,8 @@
 open Hypergraph_sig
 open Kappa_mvbdu.Mvbdu_wrapper
 
+exception UnknownEdge
+
 module Edges_bdu :
   Mvbdu
   with type key = Id.t
@@ -238,7 +240,8 @@ module ParametricHypergraph = struct
       (*reflexive edges are not allowed*)
       hg 
     else
-      let hg, id, _ = get_int_of_edge (x, y) hg in
+      let hg, id, is_new = get_int_of_edge (x, y) hg in
+      if is_new then raise UnknownEdge else
       hg 
       |> add_parameter_valuation id false
 
