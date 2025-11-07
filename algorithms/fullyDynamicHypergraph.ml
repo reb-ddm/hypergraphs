@@ -413,6 +413,8 @@ module Hypergraph = struct
     get_node_data a b |> NodeData.to_string |> Option.some
 
   let open_chapter _ t = t
+  let close_chapter t = t
+
 end
 
 

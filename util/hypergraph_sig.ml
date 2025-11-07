@@ -271,6 +271,7 @@ module type FullyDynamicHornClauses = sig
   val succs_of : t -> Node.t -> NodeSet.t
   val remove_clause : edge -> t -> t
   val open_chapter : edge list -> t -> t
+  val close_chapter : t -> t
 end
 
 type test_suite = string * (int * int) option * int * (string * string list) list

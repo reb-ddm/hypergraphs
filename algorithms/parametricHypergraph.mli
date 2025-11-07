@@ -48,6 +48,7 @@ type t = {
   current_parameter_valuation : bool Res.Array.t;
   is_parametrized : Edge.t -> bool;
   parametrized_edges : EdgeSet.t;
+  add_parameter_for_new_edges : bool;
 }
 exception OutOfBounds
 val print_mvbdu : Edges_intbdu.mvbdu -> unit
@@ -90,5 +91,5 @@ val weight_of : t -> Node.t -> string option
 val remove_clause :
   Node.t * Node.t * IdSet.t ->
   t -> t
-val open_chapter : 'a -> 'b -> 'b
-
+val open_chapter : edge list -> t -> t
+val close_chapter : t -> t

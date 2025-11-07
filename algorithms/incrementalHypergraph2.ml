@@ -200,6 +200,7 @@ module IncrementalHypergraph2  = struct
       scan_successors_after_removal hg y
 
   let open_chapter _ t = t
+  let close_chapter t = t
 
 end
 

@@ -31,7 +31,8 @@ module ParametricHypergraph = struct
     edge_to_int : EdgeIntConversion.t;
     current_parameter_valuation: bool Res.Array.t;
     is_parametrized : Edge.t -> bool;
-    parametrized_edges : EdgeSet.t
+    parametrized_edges : EdgeSet.t;
+    add_parameter_for_new_edges : bool;
   }
 
   exception OutOfBounds
@@ -56,6 +57,7 @@ module ParametricHypergraph = struct
       current_parameter_valuation = Res.Array.empty ();
       is_parametrized = (fun _ -> true);
       parametrized_edges = EdgeSet.empty;
+      add_parameter_for_new_edges = true;
     }
 
   let mvbdu_and = Edges_intbdu.mvbdu_and
@@ -161,13 +163,16 @@ module ParametricHypergraph = struct
       else
         recalculate_mvbdu_compound_node node t
     in
-    let t = recalculate_mvbdu_simple_edge (node, head) t true in
-    (* we assume that all new added edges are parametrized *)
-    let t, id, _ = get_int_of_edge (node, head) t in 
-    let t = add_parameter_valuation id true t in
-    let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in 
-    let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
-    {t with restriction_bdu}
+    (* new added edges are parametrized if t.add_param is true *)
+    let add_parameter = t.add_parameter_for_new_edges in
+    let t = recalculate_mvbdu_simple_edge (node, head) t add_parameter in
+    if add_parameter then 
+      let t, id, _ = get_int_of_edge (node, head) t in 
+      let t = add_parameter_valuation id true t in
+      let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in 
+      let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
+      {t with restriction_bdu}
+    else t
 
   (* ---------- Add edges ---------- *)
   let add_simple_edge q1 q2 hg =
@@ -241,11 +246,12 @@ module ParametricHypergraph = struct
       hg 
     else
       let hg, id, is_new = get_int_of_edge (x, y) hg in
-      if is_new then raise UnknownEdge else (*TODO check if this edge is parametrized for the semi-parametric version*)
-      hg 
-      |> add_parameter_valuation id false
+      if is_new || not (hg.is_parametrized (x,y)) then raise UnknownEdge else
+        hg 
+        |> add_parameter_valuation id false
 
   let open_chapter _ t = t
+  let close_chapter t = t
 
 end
 

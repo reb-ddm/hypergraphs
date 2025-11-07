@@ -143,6 +143,7 @@ module IncrementalHypergraph  = struct
       |> closure hg.true_node
 
   let open_chapter _ t = t
+  let close_chapter t = t
 
 end
 

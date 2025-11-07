@@ -1,3 +1,5 @@
+open Hypergraph_sig
+
 module SemiParametricHypergraph = struct
   include ParametricHypergraph
 
@@ -61,6 +63,22 @@ module SemiParametricHypergraph = struct
     in
     {t with reachability_status}
 
+  let close_chapter t =  
+    let reachability_status = 
+      ReachabilityStatus.map (fun node _ ->
+          if is_reachable node t then
+            Edges_intbdu.mvbdu_true ()
+          else
+            Edges_intbdu.mvbdu_false ()
+        ) t.reachability_status in
+    {t with reachability_status; 
+            parametrized_edges = EdgeSet.empty; 
+            restriction_bdu = Edges_intbdu.mvbdu_true (); 
+            is_parametrized = (fun _ -> false);
+            current_parameter_valuation = Res.Array.empty ();
+            edge_to_int = EdgeIntConversion.empty;
+            add_parameter_for_new_edges = false}
+
   let open_chapter edge_list t = 
     (*TODO like this you keep all the removed edges in your data structure*)
     (* build new parametrized set from edge_list *)
@@ -90,7 +108,7 @@ module SemiParametricHypergraph = struct
         to_unparam ([],[]) 
     in
     let t = remove_parameters_for_all_nodes valuation_list vars t in
-    EdgeSet.fold
+    let t = EdgeSet.fold
       (fun (tail, head) t ->
          let old_mvbdu = reachability_mvbdu_of head t in
          let t = recalculate_mvbdu_simple_edge (tail, head) t true in
@@ -100,7 +118,8 @@ module SemiParametricHypergraph = struct
          else closure head t 
       )
       to_param
-      t 
+      t
+        in {t with add_parameter_for_new_edges = true} 
 end
 
 include SemiParametricHypergraph
