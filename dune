@@ -1,3 +1,12 @@
+(library
+ (name incremental_analysis_interactive_agent)
+ (libraries res incremental_analysis_util incremental_analysis_algorithms)
+ (modules InteractiveAgent)
+ (flags
+  (:standard -w @a-40-42 -open Incremental_analysis_util))
+ (preprocess
+  (pps ppx_deriving.ord)))
+
 (executable
  (name HornClauses)
  (libraries
@@ -7,8 +16,9 @@
   kappa_staticanalyses
   kappa_kasa_frontend
   incremental_analysis_algorithms
-  incremental_analysis_util)
- (modules HornClauses InteractiveAgent)
+  incremental_analysis_util
+  incremental_analysis_interactive_agent)
+ (modules HornClauses)
  (public_name HornClauses)
  (package kappa-binaries)
  (flags
@@ -26,14 +36,19 @@
    -open
    Incremental_analysis_util
    -open
-   Incremental_analysis_algorithms))
+   Incremental_analysis_algorithms
+   -open
+   Incremental_analysis_interactive_agent))
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))
 
 (executable
  (name HornClausesRunTests)
- (libraries incremental_analysis_tests incremental_analysis_util)
- (modules HornClausesRunTests InteractiveAgent)
+ (libraries
+  incremental_analysis_tests
+  incremental_analysis_util
+  incremental_analysis_interactive_agent)
+ (modules HornClausesRunTests)
  (public_name HornClausesRunTests)
  (package kappa-binaries)
  (flags
@@ -43,4 +58,6 @@
    -open
    Incremental_analysis_tests
    -open
-   Incremental_analysis_util)))
+   Incremental_analysis_util
+   -open
+   Incremental_analysis_interactive_agent)))
