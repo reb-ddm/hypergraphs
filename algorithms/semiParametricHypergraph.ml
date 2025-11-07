@@ -12,7 +12,10 @@ module SemiParametricHypergraph = struct
   let add_clause (y, x, x_set) t =
     let t, id, is_new = get_int_of_edge (x, y) t in
     if is_new || not (t.is_parametrized (x,y)) then 
-      let t = add_parametrized_edge (x, y) t in
+      let t = 
+        if t.add_parameter_for_new_edges then 
+          add_parametrized_edge (x, y) t
+        else t in
       let old_mvbdu = reachability_mvbdu_of y t in
       let t = add_hyperedge x_set x y t in
       let new_mvbdu = reachability_mvbdu_of y t in
@@ -109,17 +112,19 @@ module SemiParametricHypergraph = struct
     in
     let t = remove_parameters_for_all_nodes valuation_list vars t in
     let t = EdgeSet.fold
-      (fun (tail, head) t ->
-         let old_mvbdu = reachability_mvbdu_of head t in
-         let t = recalculate_mvbdu_simple_edge (tail, head) t true in
-         let new_mvbdu = reachability_mvbdu_of head t in
-         if Edges_intbdu.equal old_mvbdu new_mvbdu then
-           t
-         else closure head t 
-      )
-      to_param
-      t
-        in {t with add_parameter_for_new_edges = true} 
+        (fun (tail, head) t ->
+           let old_mvbdu = reachability_mvbdu_of head t in
+           let t, id, _ = get_int_of_edge (tail, head) t in
+           let t = add_parameter_valuation id true t in
+           let t = recalculate_mvbdu_simple_edge (tail, head) t true in
+           let new_mvbdu = reachability_mvbdu_of head t in
+           if Edges_intbdu.equal old_mvbdu new_mvbdu then
+             t
+           else closure head t 
+        )
+        to_param
+        t
+    in {t with add_parameter_for_new_edges = true} 
 end
 
 include SemiParametricHypergraph

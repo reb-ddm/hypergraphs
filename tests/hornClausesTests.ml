@@ -45,6 +45,8 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
         HypergraphHCH.remove_clause hc clause index, Some false
       | OpenChapter clauses -> 
         HypergraphHCH.open_chapter hc clauses, None
+      | CloseChapter ->
+        HypergraphHCH.close_chapter hc, None
     in 
     let actual_output = HypergraphHCH.reachable_vars hc in
     let t2 = Sys.time() in
@@ -131,7 +133,5 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
     print_table "ADDING" (fun add _ _ -> add);
     print_table "REMOVING" (fun _ rem _ -> rem);
-    print_table "OPEN CHAPTER" (fun _ _ op -> op)
+    print_table "OPEN/CLOSE CHAPTER" (fun _ _ op -> op)
 end
-
-

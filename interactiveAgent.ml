@@ -52,6 +52,8 @@ let init_loop n (module HypergraphAlg : FullyDynamicHornClauses) =
             HypergraphHCH.remove_clause hc clause index 
           | OpenChapter clauses -> 
             HypergraphHCH.open_chapter hc clauses
+          | CloseChapter ->
+            HypergraphHCH.close_chapter hc
         in
         print_endline "done";
         loop hc

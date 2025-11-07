@@ -85,7 +85,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     Buffer.contents b
 
   type parse_output = 
-      Add of clause | Remove of clause * int | OpenChapter of clause list
+      Add of clause | Remove of clause * int | OpenChapter of clause list | CloseChapter
 
   let parse_clause s hc =
     let is_alpha_or_digit = function 'a' .. 'z' | 'A' .. 'Z'| '0' .. '9' -> true | _ -> false in
@@ -180,6 +180,9 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
             )
         in
         hc, OpenChapter selected_clauses
+        (* ---- CLOSE ---- *)
+    else if String.equal "close" s then 
+      hc, CloseChapter
     else raise (InvalidCommand s)
 
   let to_string hc =
@@ -214,5 +217,9 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     {hc with       
      horn_clause_handler = 
        HC.open_chapter clauses hc.horn_clause_handler }
+  let close_chapter hc =
+    {hc with       
+     horn_clause_handler = 
+       HC.close_chapter hc.horn_clause_handler }
 
 end
