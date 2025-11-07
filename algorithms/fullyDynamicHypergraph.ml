@@ -237,7 +237,7 @@ module Hypergraph = struct
       (* Q2 is a simple node *)
       update_weight_for_new_edge q2 q1 hg
 
-  (* recalculate weight for q2 after the weight of q1 has increased *)
+  (* recalculate weight for q2 after the weight of q1 has increased. TODO use this in the closure for remove *)
   let _recalculate_weight_increase q2 q1 hg = 
     if Node.is_compound q2 then
       update_weight_for_new_edge q2 q1 hg

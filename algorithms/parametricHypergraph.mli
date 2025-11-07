@@ -60,7 +60,6 @@ val mvbdu_and : Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu
 val mvbdu_or : t -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu
 val mvbdu_equal : t -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu -> bool
 val get_int_of_edge : Edge.t -> t -> t * int * bool
-val or_reachability : Node.t -> Edges_intbdu.mvbdu -> t -> t
 val preds_of : t -> Node.t -> NodeSet.t
 val reachability_mvbdu_of : Node.t -> t -> Edges_intbdu.mvbdu
 val set_successors :
@@ -72,9 +71,6 @@ val set_predecessors :
 val add_predecessor :
   Node.t -> pred:Node.t -> t -> t
 val add_parameter_valuation : int -> bool -> t -> t
-val recalculate_mvbdu_simple_edge :
-  Node.t * Node.t -> t -> bool -> t
-val recalculate_mvbdu_compound_node : Node.t -> t -> t
 val add_new_edge_reachabilities :
   Node.t -> Node.t -> t -> t
 val add_simple_edge :
