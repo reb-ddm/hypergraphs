@@ -23,17 +23,19 @@ module ParametricHypergraph = struct
 
   module EdgeSet = Set.Make(Edge)
 
-  type t = {
-    adjacency_list : AdjacencyList.t; 
+  type parametric_hypergraph = {
+    adjacency_list : AdjacencyList.t;
     reachability_status : ReachabilityStatus.t;
     restriction_bdu : Edges_intbdu.mvbdu;
     preds : AdjacencyList.t; (* incoming edges *)
     edge_to_int : EdgeIntConversion.t;
-    current_parameter_valuation: bool Res.Array.t;
+    current_parameter_valuation : bool Res.Array.t;
     is_parametrized : Edge.t -> bool;
     parametrized_edges : EdgeSet.t;
     add_parameter_for_new_edges : bool;
   }
+
+  type t = parametric_hypergraph
 
   exception OutOfBounds
 

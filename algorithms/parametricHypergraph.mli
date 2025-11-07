@@ -38,8 +38,10 @@ sig
     (Node.t -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu) ->
     t -> t
 end
+
 module EdgeSet : Set.S with type elt = Edge.t
-type t = {
+
+type parametric_hypergraph = {
   adjacency_list : AdjacencyList.t;
   reachability_status : ReachabilityStatus.t;
   restriction_bdu : Edges_intbdu.mvbdu;
@@ -50,15 +52,14 @@ type t = {
   parametrized_edges : EdgeSet.t;
   add_parameter_for_new_edges : bool;
 }
+
+include (FullyDynamicHornClauses with type t = parametric_hypergraph)
 exception OutOfBounds
 val print_mvbdu : Edges_intbdu.mvbdu -> unit
-val init : nr_vars:int -> Node.t -> t
 val mvbdu_and : Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu
 val mvbdu_or : t -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu
-val is_reachable : Node.t -> t -> bool
 val get_int_of_edge : Edge.t -> t -> t * int * bool
 val or_reachability : Node.t -> Edges_intbdu.mvbdu -> t -> t
-val succs_of : t -> Node.t -> NodeSet.t
 val preds_of : t -> Node.t -> NodeSet.t
 val reachability_mvbdu_of : Node.t -> t -> Edges_intbdu.mvbdu
 val set_successors :
@@ -81,15 +82,3 @@ val add_hyperedge :
   IdSet.t ->
   Node.t -> Node.t -> t -> t
 val closure : Node.t -> t -> t
-val add_clause :
-  Node.t * Node.t * IdSet.t ->
-  t -> t
-val add_clauses :
-  (Node.t * Node.t * IdSet.t)
-    list -> t -> t
-val weight_of : t -> Node.t -> string option
-val remove_clause :
-  Node.t * Node.t * IdSet.t ->
-  t -> t
-val open_chapter : edge list -> t -> t
-val close_chapter : t -> t
