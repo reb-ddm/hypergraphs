@@ -58,6 +58,7 @@ exception OutOfBounds
 val print_mvbdu : Edges_intbdu.mvbdu -> unit
 val mvbdu_and : Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu
 val mvbdu_or : t -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu
+val mvbdu_equal : t -> Edges_intbdu.mvbdu -> Edges_intbdu.mvbdu -> bool
 val get_int_of_edge : Edge.t -> t -> t * int * bool
 val or_reachability : Node.t -> Edges_intbdu.mvbdu -> t -> t
 val preds_of : t -> Node.t -> NodeSet.t

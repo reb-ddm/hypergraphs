@@ -183,6 +183,16 @@ module Vars = struct
     IntMap.find id vars.int_name_to_var
 end
 
+let add_element_to_res_array ar ~length ~index ~elt ~empty = 
+  let rec add_element length =
+    if length = index then 
+      Res.Array.add_one ar elt
+    else 
+      let _ = Res.Array.add_one ar empty in
+      add_element (length + 1)
+  in 
+  add_element length
+
 module MutableNodeMap (Elt: HasEmpty) = struct
   (*TODO remember and reuse empty index?*)
   type t = {
@@ -208,19 +218,13 @@ module MutableNodeMap (Elt: HasEmpty) = struct
       else false
 
   let add node elt map = 
-    let rec add_element_to_array ar length index elt = 
-      if length = index then 
-        Res.Array.add_one ar (Some elt)
-      else 
-        let _ = Res.Array.add_one ar None in
-        add_element_to_array ar (length + 1) index elt in
     match node with 
     | Node.Simple i -> 
       Array.set map.simple_nodes_map i elt
     | Node.Compound i ->
       let n = Res.Array.length map.compound_nodes_map in
       if i >= n then 
-        add_element_to_array map.compound_nodes_map n i elt 
+        add_element_to_res_array map.compound_nodes_map ~length:n ~index:i ~elt:(Some elt) ~empty:None  
       else
         Res.Array.set map.compound_nodes_map i (Some elt) 
 

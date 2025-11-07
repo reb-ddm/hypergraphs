@@ -85,6 +85,9 @@ module NodeSet : sig
 end with type elt = Node.t
 module NodeMap : Map.S with type key = Node.t
 
+val add_element_to_res_array : 'a Res.Array.t -> length:int -> index:int ->
+                               elt:'a -> empty:'a -> unit
+
 module MutableNodeMap :
   functor (Elt: HasEmpty) -> sig
     type t

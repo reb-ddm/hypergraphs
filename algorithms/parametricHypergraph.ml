@@ -68,6 +68,11 @@ module ParametricHypergraph = struct
     let or_mvbdu = Edges_intbdu.mvbdu_or mvbdu1 mvbdu2 in
     Edges_intbdu.mvbdu_and or_mvbdu t.restriction_bdu
 
+  let mvbdu_equal t mvbdu1 mvbdu2 =
+    let mvbdu1 = mvbdu_and mvbdu1 t.restriction_bdu in
+    let mvbdu2 = mvbdu_and mvbdu2 t.restriction_bdu in
+    Edges_intbdu.equal mvbdu1 mvbdu2
+
   let is_reachable node t = 
     let mvbdu = ReachabilityStatus.get node t.reachability_status in 
     let valuation_list = 
@@ -77,7 +82,7 @@ module ParametricHypergraph = struct
     let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
     let mvbdu_inter = mvbdu_and mvbdu mvbdu_valuation in
     let mvbdu_false = Edges_intbdu.mvbdu_false () in
-    not (Edges_intbdu.equal mvbdu_inter mvbdu_false)
+    not (mvbdu_equal t mvbdu_inter mvbdu_false)
 
   let get_int_of_edge edge t = 
     let edge_to_int, i, is_new = EdgeIntConversion.val_to_int t.edge_to_int edge in
@@ -125,14 +130,13 @@ module ParametricHypergraph = struct
       let new_set = NodeSet.add pred predecessors in
       set_predecessors node new_set t
 
-  let add_parameter_valuation id bool t = 
+  let add_parameter_valuation index bool t = 
     let () =
-      if id < Res.Array.length t.current_parameter_valuation then 
-        Res.Array.set t.current_parameter_valuation id bool 
-      else if id = Res.Array.length t.current_parameter_valuation then 
-        Res.Array.add_one t.current_parameter_valuation bool
-      else 
-        raise OutOfBounds
+      let length = Res.Array.length t.current_parameter_valuation in
+      if index < length then 
+        Res.Array.set t.current_parameter_valuation index bool 
+      else
+        add_element_to_res_array t.current_parameter_valuation ~length ~index ~elt:bool ~empty:false
     in t
 
   let recalculate_mvbdu_simple_edge (node, head) t add_parameter =
@@ -209,7 +213,7 @@ module ParametricHypergraph = struct
               recalculate_mvbdu_simple_edge (pred, node) t add_parameter
           in
           let new_mvbdu = reachability_mvbdu_of node t in
-          if Edges_intbdu.equal old_mvbdu new_mvbdu then
+          if mvbdu_equal t old_mvbdu new_mvbdu then
             t, nodes 
           else
             t, EdgeSet.union (get_edge_set node t) nodes
@@ -224,7 +228,7 @@ module ParametricHypergraph = struct
       let old_mvbdu = reachability_mvbdu_of y t in
       let t = add_hyperedge x_set x y t in
       let new_mvbdu = reachability_mvbdu_of y t in
-      if Edges_intbdu.equal old_mvbdu new_mvbdu then
+      if mvbdu_equal t old_mvbdu new_mvbdu then
         t
       else closure y t 
     else 
