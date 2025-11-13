@@ -85,15 +85,18 @@ let t7 = "long_chain_v2_", None, 8, [
   ]
 
 let t8 = "remove2_of_size_2_with_2_steps", None, 4, [
+    ("close",[]);
     ("add a1:=",["a1"]);
     ("add x0:=a1",["a1";"x0"]);
     ("add x1:=a1", ["a1";"x0";"x1"]);
     ("add y:=x0,x1", ["a1";"x0";"x1";"y"]);
+    ("open 1", ["a1";"x0";"x1";"y"]);
     ("remove 1", []);
     ("add a1:=",["a1";"x0";"x1";"y"])
   ]
 
 let t9 = "chapters_small_test", None, 7, [
+    ("close",[]);
     ("add a1:=", ["a1"]);
     ("add a2:=", ["a1"; "a2"]);
     ("add a3:=", ["a1"; "a2"; "a3"]);

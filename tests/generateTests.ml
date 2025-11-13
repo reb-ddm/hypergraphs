@@ -88,7 +88,7 @@ let test_add2 size pre_steps =
   let pre_steps_vars, (tests, reachable_vars, last_var) = 
     chain_of_nodes_from_true pre_steps name_pre_steps_var nr_digits_pre_steps in
   let vars, (tests, reachable_vars) = 
-    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
+    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars (tests @ ["close", []]) in
   (* edge with source the set of all x_i and with goal node y*)
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let tests, reachable_vars =(last_test,reachable_vars @ [name_goal_var])::tests, reachable_vars @ [name_goal_var] in
