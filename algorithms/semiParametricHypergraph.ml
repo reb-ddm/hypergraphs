@@ -85,8 +85,8 @@ module SemiParametricHypergraph = struct
   let and_reachability node mvbdu t = 
     let previous_mvbdu = 
       ReachabilityStatus.get node t.reachability_status in 
-    let or_mvbdu = mvbdu_and previous_mvbdu mvbdu in
-    let () = ReachabilityStatus.add node or_mvbdu t.reachability_status
+    let and_mvbdu = mvbdu_and previous_mvbdu mvbdu in
+    let () = ReachabilityStatus.add node and_mvbdu t.reachability_status
     in t
 
   let recalculate_mvbdu_compound_node_in_open (node, head) t =
@@ -107,18 +107,17 @@ module SemiParametricHypergraph = struct
           else
             t, status 
         in mvbdu_or t reach status
-      ) (preds_of t head) (Edges_intbdu.mvbdu_true ()) in
+      ) (preds_of t head) (Edges_intbdu.mvbdu_false ()) in
     let () = 
       ReachabilityStatus.add head reach t.reachability_status in
     t
-
 
   (*BFS*)
   let closure_for_adding_parameter node t =
     let get_edge_set node t = 
       NodeSet.fold (fun succ edges -> 
           let edge = if Node.is_compound succ then (node, succ) else
-              (Node.Compound 0, succ) in 
+              (Node.Compound 0, succ) in
           EdgeSet.add edge edges) (succs_of t node) (EdgeSet.empty) in
     let rec process nodes t = 
       if EdgeSet.is_empty nodes then t 
