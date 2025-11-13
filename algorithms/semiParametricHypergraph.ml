@@ -3,27 +3,13 @@ open Hypergraph_sig
 module SemiParametricHypergraph = struct
   include ParametricHypergraph
 
-  let add_parametrized_edge (x, y) t =
-    let parametrized_edges = EdgeSet.add (x, y) t.parametrized_edges in
-    let is_parametrized = (fun edge -> EdgeSet.mem edge parametrized_edges) in
-    { t with parametrized_edges; is_parametrized }
-
-  (* add an edge x -> y to the hypergraph *)
-  let add_clause (y, x, x_set) t =
-    let t, id, is_new = get_int_of_edge (x, y) t in
-    if is_new || not (t.is_parametrized (x,y)) then 
-      let t = 
-        if t.add_parameter_for_new_edges then 
-          add_parametrized_edge (x, y) t
-        else t in
-      let old_mvbdu = reachability_mvbdu_of y t in
-      let t = add_hyperedge x_set x y t in
-      let new_mvbdu = reachability_mvbdu_of y t in
-      if mvbdu_equal t old_mvbdu new_mvbdu then
-        t
-      else closure y t 
-    else 
-      add_parameter_valuation id true t
+  let init ~nr_vars true_node = 
+    let t = init ~nr_vars true_node in
+    {t with 
+     is_parametrized = (fun _ -> false);
+     add_parameter_for_new_edges = true;
+     is_semi_parametrized = true;
+    }
 
   let is_reachable node t = 
     let mvbdu = ReachabilityStatus.get node t.reachability_status in 

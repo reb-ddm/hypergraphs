@@ -51,6 +51,7 @@ type parametric_hypergraph = {
   is_parametrized : Edge.t -> bool;
   parametrized_edges : EdgeSet.t;
   add_parameter_for_new_edges : bool;
+  is_semi_parametrized : bool;
 }
 
 include (FullyDynamicHornClauses with type t = parametric_hypergraph)

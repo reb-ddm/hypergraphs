@@ -33,6 +33,7 @@ module ParametricHypergraph = struct
     is_parametrized : Edge.t -> bool;
     parametrized_edges : EdgeSet.t;
     add_parameter_for_new_edges : bool;
+    is_semi_parametrized : bool;
   }
 
   type t = parametric_hypergraph
@@ -60,6 +61,7 @@ module ParametricHypergraph = struct
       is_parametrized = (fun _ -> true);
       parametrized_edges = EdgeSet.empty;
       add_parameter_for_new_edges = true;
+      is_semi_parametrized = false;
     }
 
   let mvbdu_and = Edges_intbdu.mvbdu_and
@@ -162,6 +164,14 @@ module ParametricHypergraph = struct
       ReachabilityStatus.add node1 reach t.reachability_status in
     t
 
+  let add_parametrized_edge (x, y) t =
+    if t.is_semi_parametrized then
+      let parametrized_edges = EdgeSet.add (x, y) t.parametrized_edges in
+      let is_parametrized = (fun edge -> EdgeSet.mem edge parametrized_edges) in
+      { t with parametrized_edges; is_parametrized }
+    else 
+      t
+
   let add_new_edge_reachabilities node head t =
     let t =
       if Node.is_simple node || ReachabilityStatus.mem node t.reachability_status then 
@@ -173,6 +183,7 @@ module ParametricHypergraph = struct
     let add_parameter = t.add_parameter_for_new_edges in
     let t = recalculate_mvbdu_simple_edge (node, head) t add_parameter in
     if add_parameter then 
+      let t = add_parametrized_edge (node, head) t in
       let t, id, _ = get_int_of_edge (node, head) t in 
       let t = add_parameter_valuation id true t in
       let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in 
@@ -224,7 +235,7 @@ module ParametricHypergraph = struct
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) t =
     let t, id, is_new = get_int_of_edge (x, y) t in
-    if is_new then 
+    if is_new || not (t.is_parametrized (x,y)) then 
       let old_mvbdu = reachability_mvbdu_of y t in
       let t = add_hyperedge x_set x y t in
       let new_mvbdu = reachability_mvbdu_of y t in
