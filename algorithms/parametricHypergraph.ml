@@ -10,14 +10,87 @@ module Edges_bdu :
   with type mvbdu = Mvbdu.mvbdu =
   Mvbdu
 
-module Edges_intbdu = Internalize (Edges_bdu)
+module Edges_intbdu = struct
+  module Internal_mvbdu = Internalize (Edges_bdu)
+  include Internal_mvbdu
+
+  type t = Bool of bool | Mvbdu of mvbdu
+
+  let init () =
+    let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
+    if not (is_init ()) then 
+      init parameters
+
+  let print mvbdu =
+    match mvbdu with 
+    | Bool true -> print_endline "MVBDU_TRUE"
+    | Bool false -> print_endline "MVBDU_FALSE"
+    | Mvbdu mvbdu ->
+      let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
+      print parameters mvbdu
+
+  let mvbdu_normalize mvbdu restriction_bdu = 
+    let mvbdu = match restriction_bdu with 
+      | Bool _ -> mvbdu
+      | Mvbdu restriction_bdu -> mvbdu_and mvbdu restriction_bdu in
+    if equal mvbdu (mvbdu_true ()) then
+      Bool true
+    else if equal mvbdu (mvbdu_false ()) then 
+      Bool false
+    else 
+      Mvbdu mvbdu
+
+  let mvbdu_or mvbdu1 mvbdu2 ~restrict:restriction_bdu = 
+    match mvbdu1, mvbdu2 with 
+    | Bool b1, Bool b2 -> Bool (b1 || b2)
+    | Bool true, _ | _, Bool true -> Bool true
+    | Bool false, m | m, Bool false -> m
+    | Mvbdu mvbdu1, Mvbdu mvbdu2 -> 
+      let or_mvbdu = mvbdu_or mvbdu1 mvbdu2 in
+      let result = match restriction_bdu with
+        | Bool _ -> or_mvbdu
+        | Mvbdu restriction_bdu -> mvbdu_and or_mvbdu restriction_bdu in
+      if equal result (mvbdu_true ()) then
+        Bool true
+      else
+        Mvbdu result
+
+  let mvbdu_and mvbdu1 mvbdu2 = 
+    match mvbdu1, mvbdu2 with 
+    | Bool b1, Bool b2 -> Bool (b1 && b2)
+    | Bool false, _ | _, Bool false -> Bool false
+    | Bool true, m | m, Bool true -> m
+    | Mvbdu m1, Mvbdu m2 -> 
+      let result = mvbdu_and m1 m2 in
+      if equal result (mvbdu_false ()) then
+        Bool false
+      else
+        Mvbdu result
+
+  let mvbdu_equal mvbdu1 mvbdu2 ~restrict:restriction_bdu =
+    let mvbdu1 = mvbdu_and mvbdu1 restriction_bdu in
+    let mvbdu2 = mvbdu_and mvbdu2 restriction_bdu in
+    match mvbdu1, mvbdu2 with 
+    | Bool b1, Bool b2 -> b1 = b2
+    | Bool _, Mvbdu _ | Mvbdu _, Bool _ -> false
+    | Mvbdu mvbdu1, Mvbdu mvbdu2 ->
+      equal mvbdu1 mvbdu2
+
+  let mvbdu_true () = Bool true
+  let mvbdu_false () = Bool false
+
+  let mvbdu_to_formula mvbdu = 
+    match mvbdu with
+    | Bool false -> Logical_formulae.False
+    | Bool true -> Logical_formulae.True
+    | Mvbdu mvbdu -> mvbdu_to_formula ~cartesian_decomposition:false mvbdu
+end
 
 module ParametricHypergraph = struct
 
   module AdjacencyList = MutableNodeMap(NodeSet)
   module ReachabilityStatus = MutableNodeMap(struct 
       include Edges_intbdu 
-      type t = mvbdu 
       let empty = mvbdu_false
     end)
 
@@ -26,7 +99,7 @@ module ParametricHypergraph = struct
   type parametric_hypergraph = {
     adjacency_list : AdjacencyList.t;
     reachability_status : ReachabilityStatus.t;
-    restriction_bdu : Edges_intbdu.mvbdu;
+    restriction_bdu : Edges_intbdu.t;
     preds : AdjacencyList.t; (* incoming edges *)
     edge_to_int : EdgeIntConversion.t;
     current_parameter_valuation : bool Res.Array.t;
@@ -40,15 +113,8 @@ module ParametricHypergraph = struct
 
   exception OutOfBounds
 
-  let print_mvbdu mvbdu =
-    let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
-    Edges_intbdu.print parameters mvbdu
-
   let init ~nr_vars true_node = 
-    let parameters = Remanent_parameters.get_parameters ~html_mode:false ~called_from:Remanent_parameters_sig.Internalised () in
-    let () = if not (Edges_intbdu.is_init ()) then 
-        Edges_intbdu.init parameters 
-    in
+    let () = Edges_intbdu.init () in
     let reachability_status = ReachabilityStatus.empty nr_vars in
     let () = ReachabilityStatus.add true_node (Edges_intbdu.mvbdu_true ()) reachability_status in
     {
@@ -64,16 +130,11 @@ module ParametricHypergraph = struct
       is_semi_parametrized = false;
     }
 
-  let mvbdu_and = Edges_intbdu.mvbdu_and
-
-  let mvbdu_or t mvbdu1 mvbdu2 = 
-    let or_mvbdu = Edges_intbdu.mvbdu_or mvbdu1 mvbdu2 in
-    Edges_intbdu.mvbdu_and or_mvbdu t.restriction_bdu
-
   let mvbdu_equal t mvbdu1 mvbdu2 =
-    let mvbdu1 = mvbdu_and mvbdu1 t.restriction_bdu in
-    let mvbdu2 = mvbdu_and mvbdu2 t.restriction_bdu in
-    Edges_intbdu.equal mvbdu1 mvbdu2
+    Edges_intbdu.mvbdu_equal mvbdu1 mvbdu2 ~restrict:t.restriction_bdu
+
+  let mvbdu_or t mvbdu1 mvbdu2 =
+    Edges_intbdu.mvbdu_or mvbdu1 mvbdu2 ~restrict:t.restriction_bdu
 
   let is_reachable node t = 
     let mvbdu = ReachabilityStatus.get node t.reachability_status in 
@@ -82,7 +143,8 @@ module ParametricHypergraph = struct
         (fun i -> (i, if Res.Array.get t.current_parameter_valuation i then 1 else 0)) in
     let valuation_list = Edges_intbdu.build_association_list valuation_list in
     let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
-    let mvbdu_inter = mvbdu_and mvbdu mvbdu_valuation in
+    let mvbdu_valuation = Edges_intbdu.mvbdu_normalize mvbdu_valuation t.restriction_bdu in
+    let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
     let mvbdu_false = Edges_intbdu.mvbdu_false () in
     not (mvbdu_equal t mvbdu_inter mvbdu_false)
 
@@ -148,7 +210,8 @@ module ParametricHypergraph = struct
         let t, id, _ = get_int_of_edge (node, head) t in  
         let association_list = [(id, 1)] in
         let new_mvbdu_node2 = Edges_intbdu.mvbdu_of_association_list association_list in
-        t, mvbdu_and current_node_mvbdu new_mvbdu_node2 
+        let new_mvbdu_node2 = Edges_intbdu.Mvbdu new_mvbdu_node2 in
+        t, Edges_intbdu.mvbdu_and current_node_mvbdu new_mvbdu_node2 
       else
         t, current_node_mvbdu
     in
@@ -158,7 +221,7 @@ module ParametricHypergraph = struct
     let reach = NodeSet.fold (fun node reach ->
         let status = 
           reachability_mvbdu_of node t
-        in mvbdu_and reach status
+        in Edges_intbdu.mvbdu_and reach status
       ) (preds_of t node1) (Edges_intbdu.mvbdu_true ()) in
     let () = 
       ReachabilityStatus.add node1 reach t.reachability_status in
@@ -187,7 +250,8 @@ module ParametricHypergraph = struct
       let t, id, _ = get_int_of_edge (node, head) t in 
       let t = add_parameter_valuation id true t in
       let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in 
-      let restriction_bdu = mvbdu_and range_mvbdu t.restriction_bdu in
+      let range_mvbdu = Edges_intbdu.Mvbdu range_mvbdu in
+      let restriction_bdu = Edges_intbdu.mvbdu_and range_mvbdu t.restriction_bdu in
       {t with restriction_bdu}
     else t
 
@@ -250,7 +314,7 @@ module ParametricHypergraph = struct
 
   let weight_of t node =  
     let mvbdu = reachability_mvbdu_of node t in
-    let formula = Edges_intbdu.mvbdu_to_formula ~cartesian_decomposition:false mvbdu in
+    let formula = Edges_intbdu.mvbdu_to_formula mvbdu in
     let formula = Logical_formulae.simplify formula in
     let _, string_formula = Logical_formulae.convert_p (fun x _ -> (), string_of_int x)  () formula in
     let string = Logical_formulae.print_formula "" (^) string_formula in

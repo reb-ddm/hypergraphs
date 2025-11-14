@@ -13,41 +13,49 @@ module SemiParametricHypergraph = struct
 
   let is_reachable node t = 
     let mvbdu = ReachabilityStatus.get node t.reachability_status in 
-    let valuation_list = 
-      EdgeSet.fold 
-        (fun edge valuations -> 
-           let _, i, _ = get_int_of_edge edge t in
-           (i, 
-            if Res.Array.get t.current_parameter_valuation i then 1 
-            else 0)
-           ::valuations) (*TODO maybe we need to reverse the list*)
-        t.parametrized_edges []
-    in
-    let valuation_list = List.rev valuation_list in
-    let valuation_list = Edges_intbdu.build_association_list valuation_list in
-    let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
-    let mvbdu_inter = mvbdu_and mvbdu mvbdu_valuation in
-    let mvbdu_false = Edges_intbdu.mvbdu_false () in
-    not (mvbdu_equal t mvbdu_inter mvbdu_false)
+    match mvbdu with 
+    | Edges_intbdu.Bool b -> b
+    | Edges_intbdu.Mvbdu _ ->
+      let valuation_list = 
+        EdgeSet.fold 
+          (fun edge valuations -> 
+             let _, i, _ = get_int_of_edge edge t in
+             (i, 
+              if Res.Array.get t.current_parameter_valuation i then 1 
+              else 0)
+             ::valuations) (*TODO maybe we need to reverse the list*)
+          t.parametrized_edges []
+      in
+      let valuation_list = List.rev valuation_list in
+      let valuation_list = Edges_intbdu.build_association_list valuation_list in
+      let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
+      let mvbdu_valuation = Edges_intbdu.mvbdu_normalize mvbdu_valuation t.restriction_bdu in
+      let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
+      let mvbdu_false = Edges_intbdu.mvbdu_false () in
+      not (mvbdu_equal t mvbdu_inter mvbdu_false)
 
   let add_clauses =
     Hypergraphs.add_clauses add_clause
 
 
-  let abstract_parameters mvbdu mvbdu_valuation parameters = 
-    let mvbdu_inter = mvbdu_and mvbdu mvbdu_valuation in
-    Edges_intbdu.mvbdu_project_abstract_away mvbdu_inter parameters
+  let abstract_parameters t mvbdu mvbdu_valuation parameters = 
+    let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
+    match mvbdu_inter with
+    | Bool _ -> mvbdu_inter 
+    | Mvbdu mvbdu_inter ->
+      let mvbdu = Edges_intbdu.mvbdu_project_abstract_away mvbdu_inter parameters in
+      Edges_intbdu.mvbdu_normalize mvbdu t.restriction_bdu
 
   let remove_parameters_for_all_nodes valuation_list parameters t =
     let valuation_list = List.rev valuation_list in
     let parameters = List.rev parameters in 
     let valuation_list = Edges_intbdu.build_association_list valuation_list in
-    (*TODO we probably need to reverse the lists*)
     let vars = Edges_intbdu.build_variables_list parameters in
     let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
+    let mvbdu_valuation = Edges_intbdu.mvbdu_normalize mvbdu_valuation t.restriction_bdu in
     let reachability_status = 
       ReachabilityStatus.map (fun _ mvbdu ->
-          abstract_parameters mvbdu mvbdu_valuation vars
+          abstract_parameters t mvbdu mvbdu_valuation vars
         ) t.reachability_status
     in
     {t with reachability_status}
@@ -71,7 +79,7 @@ module SemiParametricHypergraph = struct
   let and_reachability node mvbdu t = 
     let previous_mvbdu = 
       ReachabilityStatus.get node t.reachability_status in 
-    let and_mvbdu = mvbdu_and previous_mvbdu mvbdu in
+    let and_mvbdu = Edges_intbdu.mvbdu_and previous_mvbdu mvbdu in
     let () = ReachabilityStatus.add node and_mvbdu t.reachability_status
     in t
 
@@ -89,7 +97,8 @@ module SemiParametricHypergraph = struct
             let t, id, _ = get_int_of_edge (node, head) t in  
             let association_list = [(id, 1)] in
             let new_mvbdu_node2 = Edges_intbdu.mvbdu_of_association_list association_list in
-            t, mvbdu_and status new_mvbdu_node2 
+            let new_mvbdu_node2 = Edges_intbdu.Mvbdu new_mvbdu_node2 in
+            t, Edges_intbdu.mvbdu_and status new_mvbdu_node2 
           else
             t, status 
         in mvbdu_or t reach status
@@ -135,7 +144,8 @@ module SemiParametricHypergraph = struct
            let edges = EdgeSet.add edge edges in
            let t, id, _ = get_int_of_edge edge t in
            let range_mvbdu = Edges_intbdu.mvbdu_of_range_list ([id, (Some 0, Some 1)]) in 
-           let restriction_bdu = mvbdu_and range_mvbdu restriction_bdu in
+           let range_mvbdu = Edges_intbdu.Mvbdu range_mvbdu in
+           let restriction_bdu = Edges_intbdu.mvbdu_and range_mvbdu restriction_bdu in
            edges, restriction_bdu, t) 
         (EdgeSet.empty, Edges_intbdu.mvbdu_true (), t)
         edge_list
