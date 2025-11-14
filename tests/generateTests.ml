@@ -154,15 +154,17 @@ let test_remove3 size steps =
   let name = 
     "generated_test_remove3_of_size_" ^ string_of_int size ^ 
     "_with_" ^ string_of_int steps ^ "_steps" in
+  let close = "close", [] in
   let tests, reachable_vars = 
-    ["add "^name_pre_steps_var^":=", [name_pre_steps_var]], [name_pre_steps_var] in
+    ["add "^name_pre_steps_var^":=", [name_pre_steps_var]; close], [name_pre_steps_var] in
   let vars, (tests, reachable_vars) = 
     simple_edges_starting_from_a_node name_pre_steps_var size name_vars nr_digits_size reachable_vars tests in
   (* edge with source the set of all x_i and with goal node y*)
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
-  let last_test2 = "add " ^ name_goal_var2 ^ ":=" ^ name_goal_var in
   let reachable_vars = reachable_vars @ [name_goal_var] in
-  let tests = (last_test2, reachable_vars @ [name_goal_var2])::(last_test, reachable_vars) :: tests in
+  let open_test = "open ()", reachable_vars in
+  let last_test2 = "add " ^ name_goal_var2 ^ ":=" ^ name_goal_var in
+  let tests = (last_test2, reachable_vars @ [name_goal_var2])::open_test::(last_test, reachable_vars) :: tests in
   let reachable_vars2 = reachable_vars @ [name_goal_var2] in
   let remove_tests = List.init steps (fun i -> 
       if (i mod 2) = 0 then 
