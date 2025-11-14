@@ -185,14 +185,16 @@ let test_remove4 size pre_steps =
   let name = 
     "generated_test_remove4_of_size_" ^ string_of_int size ^ 
     "_with_" ^ string_of_int pre_steps ^ "_preceding_nodes" in
+  let close = "close", [] in
   let pre_steps_vars, (tests, reachable_vars, last_var) = 
     chain_of_nodes_from_true pre_steps name_pre_steps_var nr_digits_pre_steps in
   let vars, (tests, reachable_vars) = 
-    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars tests in
+    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars (tests@[close]) in
   (* edge with source the set of all x_i and with goal node y*)
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let tests, reachable_vars =(last_test,reachable_vars @ [name_goal_var])::tests, reachable_vars @ [name_goal_var] in
-  let tests = List.rev (add_simple_edges_from_true [] pre_steps_vars reachable_vars) @ tests in
+  let open_test = "open ()", reachable_vars in
+  let tests = List.rev (add_simple_edges_from_true [] pre_steps_vars reachable_vars) @ [open_test] @tests in
   let tests = List.init (pre_steps - 1) (fun _ -> 
       ("remove " ^string_of_int (pre_steps + size + 2), reachable_vars)
     ) @ tests in

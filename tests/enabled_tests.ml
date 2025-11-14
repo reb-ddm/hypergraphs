@@ -109,7 +109,16 @@ let t9 = "chapters_small_test", None, 7, [
     ("remove 1", ["a4"]);
   ]
 
-let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9]
+let t10 = "close_chapter_small_test", None, 2, [
+    ("add a:=b",[]);
+    ("add b:=", ["a"; "b"]);
+    ("remove 1", ["b"]);
+    ("close", ["b"]);
+    ("open 1", ["b"]);
+    ("remove 1", [])
+  ]
+
+let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10]
 let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                            test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
                            test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;
