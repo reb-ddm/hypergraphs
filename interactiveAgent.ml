@@ -9,7 +9,9 @@ let help_message =
    - quit\n\
    - help\n\
    - add <horn clause>\n\
-   - remove <horn clause>\n\
+   - remove <index of horn clause>\n\
+   - open <list of indexes, or ()>\n\
+   - close\n\
    - print\n\
    - reachable\n\
    - dot\n\

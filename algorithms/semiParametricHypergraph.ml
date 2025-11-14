@@ -37,7 +37,6 @@ module SemiParametricHypergraph = struct
   let add_clauses =
     Hypergraphs.add_clauses add_clause
 
-
   let abstract_parameters t mvbdu mvbdu_valuation parameters = 
     let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
     match mvbdu_inter with
@@ -60,6 +59,7 @@ module SemiParametricHypergraph = struct
     in
     {t with reachability_status}
 
+    (** All the parameters are removed from all edges, all the edges that are deactivated are removed from the graph. After this function was invoked, the next edges that are added will not be parametrized. If you want the new edges to be parametrized, call "open ()".*)
   let close_chapter t =  
     let reachability_status = 
       ReachabilityStatus.map (fun node _ ->
