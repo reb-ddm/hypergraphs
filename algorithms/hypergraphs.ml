@@ -25,5 +25,5 @@ let remove_hyperedge remove_simple_edge is_empty succs_of remove_successor remov
               remove_successor (Node.Simple i) ~succ:tail
             ) tail_set hg
         in
-        remove_compound_node hg (tail, head)
+        remove_compound_node hg tail
       else hg

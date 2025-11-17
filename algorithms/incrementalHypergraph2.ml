@@ -77,7 +77,7 @@ module IncrementalHypergraph2  = struct
         t
     | Node.Simple _ -> t
 
-  let remove_compound_node t (node, _) = 
+  let remove_compound_node t node = 
     match node with 
     | Node.Simple _ -> t
     | Node.Compound _ -> 

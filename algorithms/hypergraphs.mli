@@ -17,7 +17,7 @@ val remove_hyperedge :
   ('d -> bool) ->
   ('c -> Node.t -> 'd) ->
   (Node.t -> succ:Node.t -> 'c -> 'c) ->
-  ('c -> Node.t * 'a -> 'c) ->
+  ('c -> Node.t -> 'c) ->
   IdSet.t ->
   Node.t ->
   'a ->

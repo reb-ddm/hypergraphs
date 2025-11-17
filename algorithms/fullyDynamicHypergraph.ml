@@ -139,7 +139,7 @@ module Hypergraph = struct
   let remove_min_succ min_pred node hg = 
     get_node_data hg min_pred |> NodeData.remove_min_succ node |> set_node_data hg min_pred
 
-  let remove_compound_node hg (node, _) = 
+  let remove_compound_node hg node = 
     match node with 
     | Node.Simple _ -> 
       let min_pred = min_pred_of hg node in
