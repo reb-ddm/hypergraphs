@@ -1,6 +1,6 @@
 (library
  (name incremental_analysis_tests)
- (libraries yojson result lwt incremental_analysis_util kappa_kasa_frontend kappa_data_structures kappa_kasa_kastor_toolset incremental_analysis_algorithms psq)
+ (libraries yojson result lwt incremental_analysis_util kappa_kasa_frontend kappa_data_structures kappa_kasa_kastor_toolset incremental_analysis_algorithms psq lwt.unix gnuplot)
  (flags
   (:standard
    -w
