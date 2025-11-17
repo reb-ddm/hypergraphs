@@ -59,23 +59,6 @@ module SemiParametricHypergraph = struct
     in
     {t with reachability_status}
 
-    (** All the parameters are removed from all edges, all the edges that are deactivated are removed from the graph. After this function was invoked, the next edges that are added will not be parametrized. If you want the new edges to be parametrized, call "open ()".*)
-  let close_chapter t =  
-    let reachability_status = 
-      ReachabilityStatus.map (fun node _ ->
-          if is_reachable node t then
-            Edges_intbdu.mvbdu_true ()
-          else
-            Edges_intbdu.mvbdu_false ()
-        ) t.reachability_status in
-    {t with reachability_status; 
-            parametrized_edges = EdgeSet.empty; 
-            restriction_bdu = Edges_intbdu.mvbdu_true (); 
-            is_parametrized = (fun _ -> false);
-            current_parameter_valuation = Res.Array.empty ();
-            edge_to_int = EdgeIntConversion.empty;
-            add_parameter_for_new_edges = false}
-
   let and_reachability node mvbdu t = 
     let previous_mvbdu = 
       ReachabilityStatus.get node t.reachability_status in 
@@ -136,6 +119,71 @@ module SemiParametricHypergraph = struct
     in 
     process (get_edge_set node t) t
 
+  let remove_successor node ~succ t = 
+    let successors = succs_of t node in 
+    let new_set = NodeSet.remove succ successors in
+    set_successors node new_set t
+
+  let remove_predecessor node ~pred t = 
+    let predecessors = preds_of t node in 
+    let new_set = NodeSet.remove pred predecessors in
+    set_predecessors node new_set t
+
+  let remove_simple_edge q1 q2 hg =
+    hg 
+    |> remove_successor q1 ~succ:q2
+    |> remove_predecessor q2 ~pred:q1
+
+  let remove_compound_node t node =
+    match node with 
+    | Node.Simple _ -> t
+    | Node.Compound _ -> 
+      let () = AdjacencyList.remove node t.adjacency_list in
+      let () = AdjacencyList.remove node t.preds in
+      let () = ReachabilityStatus.remove node t.reachability_status in
+      t
+
+  let remove_hyperedge =
+    Hypergraphs.remove_hyperedge remove_simple_edge NodeSet.is_empty succs_of remove_successor remove_compound_node 
+
+  let remove_parameters t to_unparam = 
+    let valuation_list, vars, t = 
+      EdgeSet.fold
+        (fun (tail, head) (valuation_list, vars, t) -> 
+           let _, i, is_new = get_int_of_edge (tail, head) t in
+           if is_new then 
+             let () =
+               print_endline "????" in
+             (valuation_list, vars, t)(*this should never happen*)
+           else
+             let is_enabled = Res.Array.get t.current_parameter_valuation i in
+             let t = if not is_enabled then 
+                 (* this edge was removed so when closing the chapter, it needs to be permanently removed.*)
+                 let preds = NodeSet.fold 
+                     (fun x preds -> match x with 
+                        | Simple i -> IdSet.add i preds 
+                        | Compound _ -> preds) (preds_of t tail) (IdSet.empty ()) in
+                 remove_hyperedge preds tail head t
+               else t 
+             in
+             (i, if is_enabled then 
+                1
+              else 0)::valuation_list, i::vars, t) 
+        to_unparam ([],[],t) in
+    if valuation_list != [] then
+      remove_parameters_for_all_nodes valuation_list vars t 
+    else t
+
+  (** All the parameters are removed from all edges, all the edges that are deactivated are removed from the graph. After this function was invoked, the next edges that are added will not be parametrized. If you want the new edges to be parametrized, call "open ()".*)
+  let close_chapter t =  
+    let t = remove_parameters t t.parametrized_edges in
+    {t with parametrized_edges = EdgeSet.empty; 
+            restriction_bdu = Edges_intbdu.mvbdu_true (); 
+            is_parametrized = (fun _ -> false);
+            current_parameter_valuation = Res.Array.empty ();
+            edge_to_int = EdgeIntConversion.empty;
+            add_parameter_for_new_edges = false}
+
   let open_chapter edge_list t = 
     let parametrized_edges, restriction_bdu, t =
       List.fold_left 
@@ -154,18 +202,7 @@ module SemiParametricHypergraph = struct
     let to_param = EdgeSet.diff parametrized_edges t.parametrized_edges in
     let is_parametrized = (fun edge -> EdgeSet.mem edge parametrized_edges) in
     let t = { t with parametrized_edges; is_parametrized ; restriction_bdu; add_parameter_for_new_edges = true } in
-    let valuation_list, vars = 
-      EdgeSet.fold
-        (fun (tail, head) (valuation_list, vars) -> 
-           let _, i, is_new = get_int_of_edge (tail, head) t in
-           if is_new then (valuation_list, vars)(*this should never happen*)
-           else
-             (i, if Res.Array.get t.current_parameter_valuation i then 1 else 0)::valuation_list, i::vars) 
-        to_unparam ([],[]) 
-    in
-    let t = if valuation_list != [] then
-        remove_parameters_for_all_nodes valuation_list vars t 
-      else t
+    let t = remove_parameters t to_unparam
     in
     EdgeSet.fold
       (fun (tail, head) t ->
