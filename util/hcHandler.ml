@@ -50,12 +50,14 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
 
   let reachable_vars hc =
     Vars.get_vars_in_alphabetical_order hc.vars
-    |> List.fold_left (fun acc (name, id) ->
-        match HC.is_reachable (Node.simple_node_of_id id) hc.horn_clause_handler with
-        | false -> acc
-        | true -> name :: acc
-      ) []
+    |> List.filter_map (fun (name, id) ->
+        if HC.is_reachable (Node.simple_node_of_id id) hc.horn_clause_handler 
+        then Some name else None 
+      )
     |> List.rev
+  (* let r_vars = HC.reachable_vars (Vars.get_nr_vars hc.vars) hc.horn_clause_handler in
+     IdSet.fold (fun i vars -> Vars.int_to_var hc.vars i::vars) r_vars []
+     |> List.rev *)
 
   let reachable_vars_string hc =
     String.concat ", " (reachable_vars hc)

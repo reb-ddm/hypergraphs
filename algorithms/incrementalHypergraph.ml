@@ -38,6 +38,10 @@ module IncrementalHypergraph  = struct
   let succs_of t node =
     AdjacencyList.get node t.adjacency_list
 
+  let reachable_vars = 
+    let fold f a b = NodeSet.fold (fun a b -> f b a) b a in
+    Hypergraphs.reachable_vars succs_of is_reachable (Node.Compound 0) fold
+
   let add_successor node ~succ:succ t = 
     let successors = succs_of t node in 
     if NodeSet.mem succ successors then 

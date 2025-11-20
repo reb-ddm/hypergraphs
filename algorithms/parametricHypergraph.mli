@@ -99,4 +99,3 @@ val add_hyperedge :
   IdSet.t ->
   Node.t -> Node.t -> t -> t
 val closure : Node.t -> t -> t
-val name : string

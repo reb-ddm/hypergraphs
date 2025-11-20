@@ -36,6 +36,10 @@ module SemiParametricHypergraph = struct
       let mvbdu_false = Edges_intbdu.mvbdu_false () in
       not (mvbdu_equal t mvbdu_inter mvbdu_false)
 
+  let reachable_vars = 
+    let fold f a b = NodeSet.fold (fun a b -> f b a) b a in
+    Hypergraphs.reachable_vars succs_of is_reachable (Node.Compound 0) fold
+
   let add_clauses =
     Hypergraphs.add_clauses add_clause
 

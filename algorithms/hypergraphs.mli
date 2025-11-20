@@ -23,3 +23,11 @@ val remove_hyperedge :
   'a ->
   'b ->
   'c
+
+val reachable_vars : ('a -> Node.t -> 'b) ->
+  (Node.t -> 'a -> bool) ->
+  Node.t ->
+  ((IdSet.t -> Node.t -> IdSet.t) -> IdSet.t -> 'b -> IdSet.t) ->
+  int ->
+  'a ->
+  IdSet.t

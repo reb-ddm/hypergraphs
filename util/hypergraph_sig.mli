@@ -110,6 +110,7 @@ sig
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t
   val is_reachable : Node.t -> t -> bool
+  val reachable_vars : int -> t -> IdSet.t
   val weight_of : t -> Node.t -> string option
   val succs_of : t -> Node.t -> NodeSet.t
   val remove_clause : edge -> t -> t

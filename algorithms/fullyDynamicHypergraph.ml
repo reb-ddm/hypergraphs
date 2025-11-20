@@ -130,6 +130,9 @@ module Hypergraph = struct
     get_node_data hg node |> NodeData.update_weight None |>
     set_node_data hg node
   let is_reachable node hg = get_node_data hg node |> NodeData.is_reachable
+  let reachable_vars = 
+    Hypergraphs.reachable_vars succs_of is_reachable (Node.Compound 0) List.fold_left
+
   let add_successor node ~succ:succ hg = 
     get_node_data hg node |> NodeData.add_successor succ |>
     (fun x -> if Node.is_compound succ then 

@@ -32,8 +32,10 @@ let t4 = "simple_loop_wrong_order", None, 6, [
     ("add x3:=", ["x1"; "x3"]);
     ("add x4:=", ["x1"; "x3"; "x4"]);
     ("add x2:=", ["x1";"x2";"x3";"x4";"x5";"x6"]);
+    (* ("add x2:=", ["x5";"x1";"x2";"x6";"x3";"x4"]); *)
     ("remove 1", ["x1";"x2";"x3";"x4"]);
     ("add x6:=x4", ["x1";"x2";"x3";"x4";"x5";"x6"]);
+    (* ("add x6:=x4", ["x5";"x1";"x2";"x6";"x3";"x4"]); *)
   ]
 
 let t5 = "reflexive_edge", None, 3, [
@@ -53,6 +55,8 @@ let t6 = "long_chain", None, 7, [
     ("add f:=e", ["a";"b";"d";"e";"f"]);
     ("add c:=b", ["a";"b";"c";"c2";"d";"e";"f"]);
     ("add e:=a", ["a";"b";"c";"c2";"d";"e";"f"]);
+    (* ("add c:=b", ["a";"b";"d";"c2";"c";"e";"f"]);
+    ("add e:=a", ["a";"b";"d";"c2";"c";"e";"f"]); *)
     ("remove 2", ["a";"e";"f"]);
     ("remove 1", []);
     ("remove 1", []);
@@ -77,6 +81,12 @@ let t7 = "long_chain_v2_", None, 8, [
     ("remove 2", ["a";"b";"c";"c2";"d";"e";"f"]);
     ("add g:=a,b,c,d,e,f", ["a";"b";"c";"c2";"d";"e";"f";"g"]);
     ("remove 4", ["a";"b";"c";"c2";"d";"e";"f";"g"]);
+    (* ("add b:=a", ["a";"d";"b";"e";"f"]);
+    ("add c:=b", ["a";"d";"b";"c2";"c";"e";"f"]);
+    ("add e:=a", ["a";"d";"b";"c2";"c";"e";"f"]);
+    ("remove 2", ["a";"d";"b";"c2";"c";"e";"f"]);
+    ("add g:=a,b,c,d,e,f", ["a";"d";"b";"c2";"c";"e";"f";"g"]);
+    ("remove 4", ["a";"d";"b";"c2";"c";"e";"f";"g"]); *)
     ("remove 6", ["a";"b";"e";"f"]);
     ("remove 5", ["a";"e";"f"]);
     ("add g:=a,d,e,f", ["a";"e";"f"]);
