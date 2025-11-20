@@ -2,7 +2,6 @@
  (name incremental_analysis_util)
  (libraries res)
  (flags
-  (:standard
-   -w
-   @a-40-42))
-   (preprocess (pps ppx_deriving.ord)))
+  (:standard -w @a-40-42))
+ (preprocess
+  (pps ppx_deriving.ord)))
