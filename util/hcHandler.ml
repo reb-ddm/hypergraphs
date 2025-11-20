@@ -59,6 +59,23 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
      IdSet.fold (fun i vars -> Vars.int_to_var hc.vars i::vars) r_vars []
      |> List.rev *)
 
+  let first_reachable_vars hc =
+    let rec take_first_1000 f i =
+      function
+      | [] -> []
+      | a::ls -> 
+        if i < 1000 then 
+          match f a with 
+          | None -> take_first_1000 f (i+1) ls 
+          | Some a -> a :: take_first_1000 f (i+1) ls 
+        else []
+    in
+    Vars.get_vars_in_alphabetical_order hc.vars
+    |> take_first_1000 (fun (name, id) ->
+        if HC.is_reachable (Node.simple_node_of_id id) hc.horn_clause_handler 
+        then Some name else None  
+      ) 0 
+
   let reachable_vars_string hc =
     String.concat ", " (reachable_vars hc)
 

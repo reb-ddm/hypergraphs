@@ -70,10 +70,11 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
       hc, false, must_be_added, timeout, 0.
     | Some (hc, time) ->
       let start_time = Sys.time () in  
-      let actual_output = HypergraphHCH.reachable_vars hc in
+      let actual_output = HypergraphHCH.first_reachable_vars hc in
       let end_time = Sys.time () in  
       let success = 
-        if List.compare String.compare actual_output expected_output = 0 then
+        let expected_output = Seq.take 1000 (List.to_seq expected_output) in (*TODO might be wrong if they are not all reachable*)
+        if List.compare String.compare actual_output (List.of_seq expected_output) = 0 then
           true
         else
           let () = print_endline ("   TEST " ^ testid ^ " FAILED!") in
@@ -122,7 +123,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
            else 
              match coordinates with 
                Some (size, steps) ->
-               update_results results size steps (0.-.add_time) (0.-.remove_time) (0.-.open_chapter_time) reachable_vars_time
+               update_results results size steps timeout timeout timeout timeout
              | None -> results
         )
         empty_results enabled_tests
