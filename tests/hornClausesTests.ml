@@ -12,12 +12,13 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
   module IntMap = Map.Make(Int)
 
-  let timeout = 1.
+  let timeout = 20.
 
   type bench_result = {
     add_time : float;
     remove_time : float;
     open_chapter_time : float;
+    reachable_vars_time : float;
   }
 
   (* results: size -> steps -> bench_result *)
@@ -39,14 +40,14 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     in
     Lwt_main.run (with_timeout ())
 
-  let update_results results size steps add_time remove_time open_chapter_time =
+  let update_results results size steps add_time remove_time open_chapter_time reachable_vars_time =
     let step_map =
       match IntMap.find_opt size results with
       | Some sm -> sm
       | None -> IntMap.empty
     in
     let updated_step_map =
-      IntMap.add steps { add_time; remove_time ; open_chapter_time } step_map
+      IntMap.add steps { add_time; remove_time ; open_chapter_time ; reachable_vars_time } step_map
     in
     IntMap.add size updated_step_map results
 
@@ -66,9 +67,11 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     in 
     match hc_opt with 
     | None -> 
-      hc, false, must_be_added, timeout
+      hc, false, must_be_added, timeout, 0.
     | Some (hc, time) ->
+      let start_time = Sys.time () in  
       let actual_output = HypergraphHCH.reachable_vars hc in
+      let end_time = Sys.time () in  
       let success = 
         if List.compare String.compare actual_output expected_output = 0 then
           true
@@ -76,7 +79,8 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
           let () = print_endline ("   TEST " ^ testid ^ " FAILED!") in
           let _ = debug_print (String.concat "," actual_output) in
           false 
-      in hc, success, must_be_added, time
+      in let reachable_vars_time = end_time -. start_time
+      in hc, success, must_be_added, time, reachable_vars_time
 
   let run_tests title enabled_tests =
     let _ = print_endline title in 
@@ -87,12 +91,12 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
            (* infer number of steps from test_name, e.g. generated_test_remove2_of_size_10_with_2_steps *)
            print_endline ("Starting test "^test_name);
            let hc = HypergraphHCH.init ~nr_vars in
-           let _,_,success,add_time, remove_time, open_chapter_time = 
+           let _,_,success,add_time, remove_time, open_chapter_time, reachable_vars_time = 
              List.fold_left
-               (fun (hc,i,success, add_time, remove_time, open_chapter_time) test ->
+               (fun (hc,i,success, add_time, remove_time, open_chapter_time, reachable_vars_time) test ->
                   if success then
                     let testid = test_name ^ string_of_int i in
-                    let hc, success, is_add, test_time = run_test hc testid test in
+                    let hc, success, is_add, test_time, test_reachable_vars_time = run_test hc testid test in
                     let add_time, remove_time, open_chapter_time =
                       if is_add = Some true then 
                         add_time+. test_time, remove_time, open_chapter_time
@@ -103,22 +107,22 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
                     in
                     if add_time +. remove_time +. open_chapter_time > timeout then
                       let () = print_endline ("   TIMEOUT FOR TEST " ^ testid ^ "!") in
-                      hc, 0, false, add_time, remove_time, open_chapter_time
+                      hc, 0, false, add_time, remove_time, open_chapter_time, reachable_vars_time
                     else
-                      hc, i + 1, success, add_time, remove_time, open_chapter_time
+                      hc, i + 1, success, add_time, remove_time, open_chapter_time, reachable_vars_time +. test_reachable_vars_time
                   else
-                    hc,0,false, add_time, remove_time, open_chapter_time)
-               (hc, 0, true, 0., 0., 0.) commands
+                    hc,0,false, add_time, remove_time, open_chapter_time, reachable_vars_time)
+               (hc, 0, true, 0., 0., 0., 0.) commands
            in
            if success then
              match coordinates with 
                Some (size, steps) ->
-               update_results results size steps add_time remove_time open_chapter_time
+               update_results results size steps add_time remove_time open_chapter_time reachable_vars_time
              | None -> results
            else 
              match coordinates with 
                Some (size, steps) ->
-               update_results results size steps (0.-.add_time) (0.-.remove_time) (0.-.open_chapter_time)
+               update_results results size steps (0.-.add_time) (0.-.remove_time) (0.-.open_chapter_time) reachable_vars_time
              | None -> results
         )
         empty_results enabled_tests
@@ -149,8 +153,8 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
                   | Some sm -> (
                       match IntMap.find_opt step sm with
                       | None -> ""
-                      | Some { add_time; remove_time ; open_chapter_time } ->
-                        let t = selector add_time remove_time open_chapter_time in
+                      | Some result ->
+                        let t = selector result in
                         if 0. < t && t < 0.00005 then "0"
                         else if t < 1. then sprintf "%.2f" t
                         else sprintf "%.1f" t)
@@ -161,9 +165,10 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
         all_sizes
     in
 
-    print_table "ADDING" (fun add _ _ -> add);
-    print_table "REMOVING" (fun _ rem _ -> rem);
-    print_table "OPEN/CLOSE CHAPTER" (fun _ _ op -> op);
+    print_table "ADDING" (fun t -> t.add_time);
+    print_table "REMOVING" (fun t -> t.remove_time);
+    print_table "OPEN/CLOSE CHAPTER" (fun t -> t.open_chapter_time);
+    print_table "REACHABLE VARS" (fun t -> t.reachable_vars_time);
 
     (* PLOT WITH GNUPLOT *)
     let module Gp = Gnuplot in
@@ -185,12 +190,16 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
             | None -> acc) results []
       in
 
-      let add_series = Gp.Series.linespoints_xy ~title:"add_time" (extract_series (fun br -> br.add_time)) in
-      let remove_series = Gp.Series.linespoints_xy ~title:"remove_time" (extract_series (fun br -> br.remove_time)) in
-      let open_chapter_series = Gp.Series.linespoints_xy ~title:"open_chapter_time" (extract_series (fun br -> br.open_chapter_time)) in
+      let add_series = Gp.Series.linespoints_xy ~title:"add time" (extract_series (fun br -> br.add_time)) in
+      let remove_series = Gp.Series.linespoints_xy ~title:"remove time" (extract_series (fun br -> br.remove_time)) in
+      let open_chapter_series = Gp.Series.linespoints_xy ~title:"open chapter time" (extract_series (fun br -> br.open_chapter_time)) in
+      let reachable_vars_series = Gp.Series.linespoints_xy ~title:"reachable vars time" (extract_series (fun br -> br.reachable_vars_time)) in
+
 
       let gp = Gp.create () in
-      Gp.plot_many gp [add_series; remove_series; open_chapter_series];
+      Gp.plot_many gp 
+        ~output:(Gp.Output.create (`Png_cairo ("output/"^ title ^".png"))) 
+        [add_series; remove_series; open_chapter_series; reachable_vars_series];
       Gp.close gp
     in 
     plot_add_time_third_step ~results ~steps:all_steps
