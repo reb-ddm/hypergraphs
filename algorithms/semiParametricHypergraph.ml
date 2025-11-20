@@ -3,6 +3,8 @@ open Hypergraph_sig
 module SemiParametricHypergraph = struct
   include ParametricHypergraph
 
+  let name = "Semi-Parametric"
+
   let init ~nr_vars true_node = 
     let t = init ~nr_vars true_node in
     {t with 

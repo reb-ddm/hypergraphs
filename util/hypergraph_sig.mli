@@ -86,7 +86,7 @@ end with type elt = Node.t
 module NodeMap : Map.S with type key = Node.t
 
 val add_element_to_res_array : 'a Res.Array.t -> length:int -> index:int ->
-                               elt:'a -> empty:'a -> unit
+  elt:'a -> empty:'a -> unit
 
 module MutableNodeMap :
   functor (Elt: HasEmpty) -> sig
@@ -105,6 +105,7 @@ type edge = Node.t * Node.t * IdSet.t
 module type FullyDynamicHornClauses =
 sig
   type t
+  val name : string
   val init : nr_vars:int -> Node.t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t

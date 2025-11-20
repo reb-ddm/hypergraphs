@@ -267,6 +267,7 @@ type edge = Node.t * Node.t * IdSet.t
 
 module type FullyDynamicHornClauses = sig
   type t
+  val name : string
   val init : nr_vars:int -> Node.t -> t
   val add_clause : edge -> t -> t
   val add_clauses : edge list -> t -> t

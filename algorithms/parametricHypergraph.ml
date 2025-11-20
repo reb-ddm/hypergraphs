@@ -111,6 +111,8 @@ module ParametricHypergraph = struct
 
   type t = parametric_hypergraph
 
+  let name = "Parameteric"
+
   exception OutOfBounds
 
   let init ~nr_vars true_node = 

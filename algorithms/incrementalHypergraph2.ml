@@ -12,6 +12,8 @@ module IncrementalHypergraph2  = struct
     reachability_status : ReachabilityStatus.t;
   }
 
+  let name = "Incremental 2"
+
   let init ~nr_vars true_node = 
     let reachability_status = ReachabilityStatus.empty nr_vars in 
     let () = ReachabilityStatus.add true_node 0 reachability_status in

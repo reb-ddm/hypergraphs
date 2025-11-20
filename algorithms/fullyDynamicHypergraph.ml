@@ -58,6 +58,8 @@ module Hypergraph = struct
 
   module PQ = PsqPriorityQueue(Node)
 
+  let name = "MST"
+
   let init ~nr_vars true_node = 
     let true_node_data = NodeData.make_node_data ~weight:(Some 1) () in
     let node_map = NodeMap.empty nr_vars in
