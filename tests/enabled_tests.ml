@@ -177,7 +177,14 @@ let _generated_tests_for_graphs test_gen =
         | 0 -> 2000
         | _ -> 2000 in
       [test_gen 10 rep; test_gen 100 rep] @
-      List.init 7 (fun j -> test_gen (2*(j+1)*1000) rep)))
+      List.init 35 (fun j -> test_gen ((j+1)*5000) rep)))
+
+let _generated_tests_for_graphs_steps test_gen = 
+  List.concat (List.init 1 (fun i -> 
+      let rep = match i with
+        | 0 -> 10000
+        | _ -> 10000 in
+      List.init 39 (fun j -> test_gen rep (30*(j+1)))))
 
 let enabled_tests () = _generated_tests_for_graphs test_add2
 let debug = false
