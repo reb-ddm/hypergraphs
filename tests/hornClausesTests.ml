@@ -189,23 +189,36 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     (* PLOT WITH GNUPLOT *)
     let module Gp = Gnuplot in
 
-    let plot_add_time_third_step ~results ~steps =
-      (* pick the third step *)
+    let extract_series_step f =
       let step_to_plot =
-        match steps with
+        match all_steps with
         | fst :: _ -> fst
         | _ -> invalid_arg "Need at least one step"
       in
+      IntMap.fold (fun size step_map acc ->
+          match IntMap.find_opt step_to_plot step_map with
+          | Some br ->
+            (float_of_int size, f br) :: acc
+          | None -> acc) results []
 
-      (* build the data series *)
-      let extract_series f =
-        IntMap.fold (fun size step_map acc ->
-            match IntMap.find_opt step_to_plot step_map with
-            | Some br ->
-              (float_of_int size, f br) :: acc
-            | None -> acc) results []
+    in 
+
+    let extract_series_size f =
+      let size_to_plot =
+        match all_sizes with
+        | fst :: _ -> fst
+        | _ -> invalid_arg "Need at least one size"
       in
+      match IntMap.find_opt size_to_plot results with
+      | None -> []
+      | Some step_map ->
+        IntMap.fold (fun step br acc ->
+            (float_of_int step, f br) :: acc
+          ) step_map []
+    in
+    let _ = extract_series_size, extract_series_step in
 
+    let plot_size_time_first_step extract_series =
       let add_series = Gp.Series.linespoints_xy ~title:"add time" (extract_series (fun br -> br.add_time)) in
       let remove_series = Gp.Series.linespoints_xy ~title:"remove time" (extract_series (fun br -> br.remove_time)) in
       let open_chapter_series = Gp.Series.linespoints_xy ~title:"open chapter time" (extract_series (fun br -> br.open_chapter_time)) in
@@ -218,5 +231,5 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
         [add_series; remove_series; open_chapter_series; reachable_vars_series];
       Gp.close gp
     in 
-    plot_add_time_third_step ~results ~steps:all_steps
+    plot_size_time_first_step extract_series_size
 end
