@@ -178,8 +178,8 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
       (* pick the third step *)
       let step_to_plot =
         match steps with
-        | _ :: _ :: third :: _ -> third
-        | _ -> invalid_arg "Need at least three steps"
+        | fst :: _ -> fst
+        | _ -> invalid_arg "Need at least one step"
       in
 
       (* build the data series *)
