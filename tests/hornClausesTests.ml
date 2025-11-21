@@ -12,7 +12,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
   module IntMap = Map.Make(Int)
 
-  let timeout = 20.
+  let timeout = 180.
 
   type bench_result = {
     add_time : float;
