@@ -22,7 +22,7 @@ module HornClauseHandler :
       (Hypergraph_sig.Node.t * Hypergraph_sig.Node.t * IdSet.t) * t
     val add_clause : int * Hypergraph_sig.IdSet.t -> t -> t
     val reachable_vars : t -> string list
-    val first_reachable_vars : t -> string list (*returns only the first 1000 reachable vars*)
+    val first_reachable_vars : t -> string Seq.t (*returns only the first 1000 reachable vars*)
     val reachable_vars_string : t -> string
     val to_dot : t -> string
     type parse_output =  

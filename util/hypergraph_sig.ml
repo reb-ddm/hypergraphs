@@ -137,7 +137,15 @@ module Vars = struct
   }
 
   let get_nr_vars v = v.nr_vars
-  let get_vars_in_alphabetical_order v = StringMap.bindings v.var_name_to_int
+  let get_vars_in_alphabetical_order v = 
+    let rec aux v () =
+      match StringMap.min_binding_opt v with
+      | Some (s, b) -> 
+        let v = StringMap.remove s v in
+        Seq.Cons ((s,b), aux v)
+      | None -> Seq.Nil
+    in aux v.var_name_to_int
+
   let get_vars v = IntMap.bindings v.int_name_to_var
 
 

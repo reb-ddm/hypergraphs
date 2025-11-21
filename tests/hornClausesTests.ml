@@ -51,6 +51,21 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     in
     IntMap.add size updated_step_map results
 
+  let rec compare_list_first_n cmp xs ys n = 
+    if n = 0 then 0 else
+      match xs(), ys() with
+      | Seq.Nil, Seq.Nil ->
+        0
+      | Seq.Cons (x, xs), Seq.Cons (y, ys) ->
+        let c = cmp x y in
+        if c <> 0 then c else compare_list_first_n cmp xs ys (n-1)
+      | Seq.Nil, Seq.Cons (_, _) ->
+        print_endline "Lengths do not match";
+        0
+      | Seq.Cons (_, _), Seq.Nil ->
+        print_endline "Lengths do not match";
+        0
+
   let run_test hc testid (input, expected_output) = 
     let _ = debug_print input in
     let _ = debug_print (String.concat "," expected_output) in
@@ -73,12 +88,12 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
       let actual_output = HypergraphHCH.first_reachable_vars hc in
       let end_time = Sys.time () in  
       let success = 
-        let expected_output = Seq.take 1000 (List.to_seq expected_output) in (*TODO might be wrong if they are not all reachable*)
-        if List.compare String.compare actual_output (List.of_seq expected_output) = 0 then
+        let expected_output = Seq.take 1000 (List.to_seq expected_output) in
+        if compare_list_first_n String.compare actual_output expected_output 1000 = 0 then
           true
         else
           let () = print_endline ("   TEST " ^ testid ^ " FAILED!") in
-          let _ = debug_print (String.concat "," actual_output) in
+          let _ = debug_print (String.concat "," (List.of_seq actual_output)) in
           false 
       in let reachable_vars_time = end_time -. start_time
       in hc, success, must_be_added, time, reachable_vars_time

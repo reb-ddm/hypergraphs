@@ -28,7 +28,7 @@ sig
   type t
   val get_nr_vars : t -> int
   val get_vars : t -> (int * string) list
-  val get_vars_in_alphabetical_order : t -> (string * int) list
+  val get_vars_in_alphabetical_order : t -> (string * int) Seq.t
   val init : nr_vars:int -> t
   val add_var : t -> string -> int -> t
   val var_to_int : t -> string -> t * int * bool
