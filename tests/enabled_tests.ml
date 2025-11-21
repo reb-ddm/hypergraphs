@@ -128,7 +128,21 @@ let t10 = "close_chapter_small_test", None, 2, [
     ("remove 1", [])
   ]
 
-let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10]
+let t11 = "two_equal_edges", None, 3, [
+  "add a:=c", [];
+  "add c:=", ["a"; "c"];
+  "add c:=", ["a";"c"];
+  "add c:=", ["a";"c"];
+  "add c:=", ["a";"c"];
+  "add c:=", ["a";"c"];
+  "remove 2", ["a";"c"];
+  "remove 2", ["a";"c"];
+  "remove 2", ["a";"c"];
+  "remove 2", ["a";"c"];
+  "remove 2", [];
+]
+
+let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11]
 let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                            test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
                            test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;
