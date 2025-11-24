@@ -142,7 +142,7 @@ let t11 = "two_equal_edges", None, 3, [
     "remove 2", [];
   ]
 
-let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11]
+let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11], "simple tests"
 let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                            test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
                            test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;
@@ -172,8 +172,8 @@ let _generated_tests_add_and_remove () = [test_add2 100 100; test_add2 1000 1000
 test_remove2 100 100; test_remove2 1000 1000]
 
 let _generated_tests_for_graphs test_gen test_name = 
-  let steps = 2000 in
-  let s = string_of_int steps ^ "steps" ^ test_name  in
+  let steps = 1000 in
+  let s = string_of_int steps ^ " steps " ^ test_name  in
   [test_gen 10 steps; test_gen 100 steps] @
   List.init 25 (fun j -> test_gen ((j+1)*2000) steps)
 , s
