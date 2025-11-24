@@ -171,21 +171,24 @@ let _generated_tests_remove2 () = [test_remove2 10 2; test_remove2 100 2; test_r
 let _generated_tests_add_and_remove () = [test_add2 100 100; test_add2 1000 1000;
 test_remove2 100 100; test_remove2 1000 1000]
 
-let _generated_tests_for_graphs test_gen = 
-  List.concat (List.init 1 (fun i -> 
-      let rep = match i with
-        | 0 -> 2000
-        | _ -> 2000 in
-      [test_gen 10 rep; test_gen 100 rep] @
-      List.init 35 (fun j -> test_gen ((j+1)*5000) rep)))
+let _generated_tests_for_graphs test_gen test_name = 
+  let steps = 2000 in
+  let s = string_of_int steps ^ "steps" ^ test_name  in
+  [test_gen 10 steps; test_gen 100 steps] @
+  List.init 25 (fun j -> test_gen ((j+1)*2000) steps)
+, s
 
-let _generated_tests_for_graphs_steps test_gen = 
-  List.concat (List.init 1 (fun i -> 
-      let rep = match i with
-        | 0 -> 10000
-        | _ -> 10000 in
-      List.init 39 (fun j -> test_gen rep (30*(j+1)))))
+let _generated_tests_for_graphs_steps test_gen test_name = 
+  let size = 10000 in
+  let s = "size " ^ string_of_int size ^ " " ^ test_name in
+  List.init 39 (fun j -> 
+      let steps = 30*(j+1) in
+      let size = if size <= steps then 
+          let () = print_endline "WARNING: the number of removals is bigger than the size of the graph!!" in
+          size else size - steps in
+      test_gen size steps)
+, s
 
-let enabled_tests () = _generated_tests_for_graphs test_add2
+let enabled_tests () = _generated_tests_for_graphs_steps test_add2 "add 2"
 let debug = false
 let debug_enabled_tests () = [test_remove3 5 5]
