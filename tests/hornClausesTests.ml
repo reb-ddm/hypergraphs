@@ -201,6 +201,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
           | Some br ->
             (float_of_int size, f br) :: acc
           | None -> acc) results []
+    , "nr of nodes"
 
     in 
 
@@ -211,25 +212,30 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
         | _ -> invalid_arg "Need at least one size"
       in
       match IntMap.find_opt size_to_plot results with
-      | None -> []
+      | None -> [], ""
       | Some step_map ->
         IntMap.fold (fun step br acc ->
             (float_of_int step, f br) :: acc
           ) step_map []
+      , "nr of steps"
     in
     let _ = extract_series_size, extract_series_step in
 
     let plot_size_time_first_step extract_series =
-      let add_series = Gp.Series.linespoints_xy ~title:"add time" (extract_series (fun br -> br.add_time)) in
-      let remove_series = Gp.Series.linespoints_xy ~title:"remove time" (extract_series (fun br -> br.remove_time)) in
-      let open_chapter_series = Gp.Series.linespoints_xy ~title:"open chapter time" (extract_series (fun br -> br.open_chapter_time)) in
-      let reachable_vars_series = Gp.Series.linespoints_xy ~title:"reachable vars time" (extract_series (fun br -> br.reachable_vars_time)) in
-
+      let add_series, x_label = extract_series (fun br -> br.add_time) in
+      let add_series = Gp.Series.linespoints_xy ~title:"add time" add_series in
+      let remove_series = Gp.Series.linespoints_xy ~title:"remove time" (fst (extract_series (fun br -> br.remove_time))) in
+      let open_chapter_series = Gp.Series.linespoints_xy ~title:"open chapter time" (fst (extract_series (fun br -> br.open_chapter_time))) in
+      let reachable_vars_series = Gp.Series.linespoints_xy ~title:"reachable vars time" (fst (extract_series (fun br -> br.reachable_vars_time))) in
 
       let gp = Gp.create () in
+
+      let labels = Gp.Labels.create ~x:x_label ~y:"runtime in s" () in
+
       Gp.plot_many gp 
         ~output:(Gp.Output.create (`Png_cairo ("output/"^ title ^".png"))) 
-        [add_series; remove_series; open_chapter_series; reachable_vars_series];
+        [add_series; remove_series; open_chapter_series; reachable_vars_series]
+        ~labels;
       Gp.close gp
     in 
     plot_size_time_first_step extract_series_size
