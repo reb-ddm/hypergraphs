@@ -114,11 +114,12 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
                     let testid = test_name ^ string_of_int i in
                     let hc, success, is_add, test_time, test_reachable_vars_time = run_test hc testid test in
                     let add_time, remove_time, open_chapter_time =
-                      if is_add = Some true then 
+                      match is_add with
+                      | Some true -> 
                         add_time+. test_time, remove_time, open_chapter_time
-                      else if is_add = Some false then
+                      | Some false ->
                         add_time, remove_time +. test_time, open_chapter_time
-                      else 
+                      | None ->
                         add_time, remove_time, open_chapter_time +. test_time
                     in
                     if add_time +. remove_time +. open_chapter_time > timeout then

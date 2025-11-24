@@ -40,9 +40,6 @@ module SemiParametricHypergraph = struct
     let fold f a b = NodeSet.fold (fun a b -> f b a) b a in
     Hypergraphs.reachable_vars succs_of is_reachable (Node.Compound 0) fold
 
-  let add_clauses =
-    Hypergraphs.add_clauses add_clause
-
   let abstract_parameters t mvbdu mvbdu_valuation parameters = 
     let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
     match mvbdu_inter with
@@ -207,7 +204,12 @@ module SemiParametricHypergraph = struct
     let to_unparam = EdgeSet.diff t.parametrized_edges parametrized_edges in
     let to_param = EdgeSet.diff parametrized_edges t.parametrized_edges in
     let is_parametrized = (fun edge -> EdgeSet.mem edge parametrized_edges) in
-    let t = { t with parametrized_edges; is_parametrized ; restriction_bdu; add_parameter_for_new_edges = true } in
+    let t = 
+      { t with 
+        parametrized_edges; 
+        is_parametrized ; 
+        restriction_bdu; 
+        add_parameter_for_new_edges = true } in
     let t = remove_parameters t to_unparam
     in
     EdgeSet.fold
