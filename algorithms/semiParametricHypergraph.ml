@@ -17,18 +17,17 @@ module SemiParametricHypergraph = struct
     let mvbdu = ReachabilityStatus.get node t.reachability_status in 
     match mvbdu with 
     | Edges_intbdu.Bool b -> b
-    | Edges_intbdu.Mvbdu _ ->
+    | Edges_intbdu.Mvbdu int_mvbdu ->
+      let variables = 
+        Edges_intbdu.extensional_of_variables_list (Edges_intbdu.variables_list_of_mvbdu int_mvbdu) in 
       let valuation_list = 
-        EdgeSet.fold 
-          (fun edge valuations -> 
-             let _, i, _ = get_int_of_edge edge t in
+        List.map
+          (fun i -> 
              (i, 
               if Res.Array.get t.current_parameter_valuation i then 1 
-              else 0)
-             ::valuations) (*TODO maybe we need to reverse the list*)
-          t.parametrized_edges []
+              else 0)) 
+          variables
       in
-      let valuation_list = List.rev valuation_list in
       let valuation_list = Edges_intbdu.build_association_list valuation_list in
       let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
       let mvbdu_valuation = Edges_intbdu.mvbdu_normalize mvbdu_valuation t.restriction_bdu in

@@ -14,6 +14,9 @@ module Edges_intbdu : sig
   val build_variables_list : Internal_mvbdu.key list -> Internal_mvbdu.hconsed_variables_list
   val mvbdu_of_association_list : (int * int) list -> Internal_mvbdu.mvbdu
   val mvbdu_of_range_list : (int * (int option * int option)) list -> Internal_mvbdu.mvbdu
+  val variables_list_of_mvbdu : Internal_mvbdu.mvbdu -> Internal_mvbdu.hconsed_variables_list
+  val extensional_of_variables_list :
+    Internal_mvbdu.hconsed_variables_list -> Internal_mvbdu.key list
 
   type t = Bool of bool | Mvbdu of Internal_mvbdu.mvbdu
 
@@ -24,6 +27,8 @@ module Edges_intbdu : sig
   val mvbdu_and : t -> t -> t
   val mvbdu_true : unit -> t
   val mvbdu_false : unit -> t
+
+  (**If the mvbdu is equal to mvbdu_true of mvbdu_false then instead of storing the bdu, we only store true/false*)
   val mvbdu_normalize : Internal_mvbdu.mvbdu -> t -> t
 end
 
