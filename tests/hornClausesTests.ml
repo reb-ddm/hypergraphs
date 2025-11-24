@@ -133,13 +133,13 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
            in
            if success then
              match coordinates with 
-               Some (size, steps) ->
-               update_results results size steps add_time remove_time open_chapter_time reachable_vars_time
+               Some (_size, steps) ->
+               update_results results nr_vars steps add_time remove_time open_chapter_time reachable_vars_time
              | None -> results
            else 
              match coordinates with 
-               Some (size, steps) ->
-               update_results results size steps timeout timeout timeout timeout
+               Some (_size, steps) ->
+               update_results results nr_vars steps timeout timeout timeout timeout
              | None -> results
         )
         empty_results enabled_tests
