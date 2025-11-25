@@ -32,8 +32,8 @@ let simple_edges_starting_from_a_node node size name_vars nr_digits reachable_va
 let remove_simple_edges_starting_from_a_node vars =
   let a,_,_ = (List.fold_left (fun (tests, reachable_vars, i) var -> 
       ("remove " ^ string_of_int i, reachable_vars)::tests, 
-      reachable_vars_append (i - 1) reachable_vars var, i + 1
-    ) ([], [], 1) vars) 
+      reachable_vars_append i reachable_vars var, i + 1
+    ) ([], [], 0) vars) 
   in a
 
 (*add direct edges true -> a_2, then true -> a_3 and so on*)
@@ -137,13 +137,13 @@ let test_remove2 size steps =
   let vars, (tests, reachable_vars, j) = 
     simple_edges_starting_from_a_node name_pre_steps_var size name_vars nr_digits_size reachable_vars tests 1 in
   (* edge with source the set of all x_i and with goal node y*)
-  let open_chapter = "open 1" in
+  let open_chapter = "open 0" in
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let reachable_vars = reachable_vars_append j reachable_vars name_goal_var in
   let tests = (open_chapter, reachable_vars) :: (last_test, reachable_vars) :: tests in
   let remove_tests = List.init steps (fun i -> 
       if (i mod 2) = 0 then 
-        let index = if i = 0 then 1 else (2 + size) in
+        let index = if i = 0 then 0 else (1 + size + i/2) in
         "remove " ^ string_of_int index, []
       else
         "add "^name_pre_steps_var^":=", reachable_vars
@@ -174,7 +174,7 @@ let test_remove3 size steps =
   let reachable_vars2 = reachable_vars @ [name_goal_var2] in
   let remove_tests = List.init steps (fun i -> 
       if (i mod 2) = 0 then 
-        let index = (3 + size) in
+        let index = (2 + size + i/2) in
         "remove " ^ string_of_int index, reachable_vars
       else
         "add "^name_goal_var2 ^ ":=" ^ name_goal_var, reachable_vars2
@@ -202,7 +202,7 @@ let test_remove4 size pre_steps =
   let tests =(last_test,reachable_vars)::tests in
   let open_test = "open ()", reachable_vars in
   let tests = List.rev (add_simple_edges_from_true [] pre_steps_vars reachable_vars) @ [open_test] @ tests in
-  let tests = List.init (pre_steps - 1) (fun _ -> 
-      ("remove " ^string_of_int (pre_steps + size + 2), reachable_vars)
+  let tests = List.init (pre_steps - 1) (fun i -> 
+      ("remove " ^string_of_int (pre_steps + size + 1 + i), reachable_vars)
     ) @ tests in
   name, Some (size, pre_steps), nr_nodes, List.rev tests

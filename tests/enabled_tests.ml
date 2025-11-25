@@ -9,7 +9,7 @@ let t1 = "very_simple_add", None, 3, [
 let t2 = "very_simple_remove", None, 2, [
     ("add a:=", ["a"]);
     ("add b:=", ["a";"b"]);
-    ("remove 1", ["b"]);
+    ("remove 0", ["b"]);
     ("remove 1", []);
   ]
 
@@ -21,7 +21,7 @@ let t3 = "simple_loop", None, 6, [
     ("add x5:=x1,x2", ["x1";"x2";"x3";"x4";"x5"]);
     ("add x6:=x3,x4,x5", ["x1";"x2";"x3";"x4";"x5";"x6"]);
     ("add x5:=x6", ["x1";"x2";"x3";"x4";"x5";"x6"]);
-    ("remove 5", ["x1";"x2";"x3";"x4"]);
+    ("remove 4", ["x1";"x2";"x3";"x4"]);
   ]
 
 let t4 = "simple_loop_wrong_order", None, 6, [
@@ -33,14 +33,14 @@ let t4 = "simple_loop_wrong_order", None, 6, [
     ("add x4:=", ["x1"; "x3"; "x4"]);
     ("add x2:=", ["x1";"x2";"x3";"x4";"x5";"x6"]);
     (* ("add x2:=", ["x5";"x1";"x2";"x6";"x3";"x4"]); *)
-    ("remove 1", ["x1";"x2";"x3";"x4"]);
+    ("remove 0", ["x1";"x2";"x3";"x4"]);
     ("add x6:=x4", ["x1";"x2";"x3";"x4";"x5";"x6"]);
     (* ("add x6:=x4", ["x5";"x1";"x2";"x6";"x3";"x4"]); *)
   ]
 
 let t5 = "reflexive_edge", None, 3, [
     ("add a:=a", []);
-    ("remove 1", []);
+    ("remove 0", []);
     ("add a:=f,a,w", []);
     ("remove 1", []);
   ]
@@ -57,15 +57,15 @@ let t6 = "long_chain", None, 7, [
     ("add e:=a", ["a";"b";"c";"c2";"d";"e";"f"]);
     (* ("add c:=b", ["a";"b";"d";"c2";"c";"e";"f"]);
        ("add e:=a", ["a";"b";"d";"c2";"c";"e";"f"]); *)
-    ("remove 2", ["a";"e";"f"]);
-    ("remove 1", []);
-    ("remove 1", []);
-    ("remove 1", []);
-    ("remove 1", []);
-    ("remove 1", []);
-    ("remove 1", []);
-    ("remove 1", []);
-    ("remove 1", []);
+    ("remove 1", ["a";"e";"f"]);
+    ("remove 0", []);
+    ("remove 2", []);
+    ("remove 3", []);
+    ("remove 4", []);
+    ("remove 5", []);
+    ("remove 6", []);
+    ("remove 7", []);
+    ("remove 8", []);
   ]
 
 let t7 = "long_chain_v2_", None, 8, [
@@ -78,7 +78,7 @@ let t7 = "long_chain_v2_", None, 8, [
     ("add b:=a", ["a";"b";"d";"e";"f"]);
     ("add c:=b", ["a";"b";"c";"c2";"d";"e";"f"]);
     ("add e:=a", ["a";"b";"c";"c2";"d";"e";"f"]);
-    ("remove 2", ["a";"b";"c";"c2";"d";"e";"f"]);
+    ("remove 1", ["a";"b";"c";"c2";"d";"e";"f"]);
     ("add g:=a,b,c,d,e,f", ["a";"b";"c";"c2";"d";"e";"f";"g"]);
     ("remove 4", ["a";"b";"c";"c2";"d";"e";"f";"g"]);
     (* ("add b:=a", ["a";"d";"b";"e";"f"]);
@@ -87,11 +87,11 @@ let t7 = "long_chain_v2_", None, 8, [
        ("remove 2", ["a";"d";"b";"c2";"c";"e";"f"]);
        ("add g:=a,b,c,d,e,f", ["a";"d";"b";"c2";"c";"e";"f";"g"]);
        ("remove 4", ["a";"d";"b";"c2";"c";"e";"f";"g"]); *)
-    ("remove 6", ["a";"b";"e";"f"]);
-    ("remove 5", ["a";"e";"f"]);
+    ("remove 7", ["a";"b";"e";"f"]);
+    ("remove 6", ["a";"e";"f"]);
     ("add g:=a,d,e,f", ["a";"e";"f"]);
     ("add  d:=a,f,e", ["a";"d";"e";"f";"g"]);
-    ("remove 1", []);
+    ("remove 0", []);
   ]
 
 let t8 = "remove2_of_size_2_with_2_steps", None, 4, [
@@ -100,8 +100,8 @@ let t8 = "remove2_of_size_2_with_2_steps", None, 4, [
     ("add x0:=a1",["a1";"x0"]);
     ("add x1:=a1", ["a1";"x0";"x1"]);
     ("add y:=x0,x1", ["a1";"x0";"x1";"y"]);
-    ("open 1", ["a1";"x0";"x1";"y"]);
-    ("remove 1", []);
+    ("open 0", ["a1";"x0";"x1";"y"]);
+    ("remove 0", []);
     ("add a1:=",["a1";"x0";"x1";"y"])
   ]
 
@@ -112,17 +112,17 @@ let t9 = "chapters_small_test", None, 7, [
     ("add a3:=", ["a1"; "a2"; "a3"]);
     ("add a4:=", ["a1"; "a2"; "a3"; "a4"]);
     ("add a5:=a1,a2,a3,a4", ["a1"; "a2"; "a3"; "a4"; "a5"]);
-    ("open 1-3,5", ["a1"; "a2"; "a3"; "a4"; "a5"]);
-    ("remove 5", ["a1"; "a2"; "a3"; "a4"]);
-    ("remove 3", ["a1"; "a2"; "a4"]);
-    ("remove 2", ["a1"; "a4"]);
-    ("remove 1", ["a4"]);
+    ("open 0-2,4", ["a1"; "a2"; "a3"; "a4"; "a5"]);
+    ("remove 4", ["a1"; "a2"; "a3"; "a4"]);
+    ("remove 2", ["a1"; "a2"; "a4"]);
+    ("remove 1", ["a1"; "a4"]);
+    ("remove 0", ["a4"]);
   ]
 
 let t10 = "close_chapter_small_test", None, 2, [
     ("add a:=b",[]);
     ("add b:=", ["a"; "b"]);
-    ("remove 1", ["b"]);
+    ("remove 0", ["b"]);
     ("close", ["b"]);
     ("open 1", ["b"]);
     ("remove 1", [])
@@ -135,11 +135,11 @@ let t11 = "two_equal_edges", None, 3, [
     "add c:=", ["a";"c"];
     "add c:=", ["a";"c"];
     "add c:=", ["a";"c"];
+    "remove 1", ["a";"c"];
     "remove 2", ["a";"c"];
-    "remove 2", ["a";"c"];
-    "remove 2", ["a";"c"];
-    "remove 2", ["a";"c"];
-    "remove 2", [];
+    "remove 3", ["a";"c"];
+    "remove 4", ["a";"c"];
+    "remove 5", [];
   ]
 
 let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11], "simple tests"
@@ -168,8 +168,9 @@ let _generated_tests_remove2 () = [test_remove2 10 2; test_remove2 100 2; test_r
                                    test_remove2 10 200; test_remove2 100 200; test_remove2 1000 200; test_remove2 10000 200;
                                    test_remove2 10 2000; test_remove2 100 2000; test_remove2 1000 2000; test_remove2 10000 2000;
                                   ] 
-let _generated_tests_add_and_remove () = [test_add2 100 100; test_add2 1000 1000;
-test_remove2 100 100; test_remove2 1000 1000]
+let _generated_tests_add_and_remove () = 
+  [test_add 7 13; test_add2 7 13; test_remove 7 13; test_remove2 7 13; test_remove3 7 13; test_remove4 7 13;]
+  , "all generated tests small examples"
 
 let _generated_tests_for_graphs test_gen test_name = 
   let steps = 1000 in

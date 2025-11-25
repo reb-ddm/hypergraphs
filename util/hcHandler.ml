@@ -3,6 +3,7 @@ open Hypergraph_sig
 exception InvalidVarName of string
 exception InvalidCharachter of string
 exception InvalidCommand of string
+exception InvalidIndex of string
 
 module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
   (*TODO all indexes change after removing something. This is not so good 
@@ -13,14 +14,12 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
   type t = 
     {
       vars : Vars.t;
-      horn_clauses_rev: clause list;
+      horn_clauses_array: clause option Res.Array.t;
       horn_clause_handler: HC.t;
       compound_to_int : CompoundIntConversion.t;
     }
 
   let update_vars hc vars'= { hc with vars = vars' }
-  let update_handler hc hch = { hc with horn_clause_handler = hch }
-  let update_hcr hc hcr = { hc with horn_clauses_rev = hcr }
 
   let insert_var hc var =
     let (vars', id, _) = Vars.var_to_int hc.vars var in
@@ -30,7 +29,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     (*compound node for True*)
     let cti, true_node = Node.compound_node_of_intset (IdSet.empty ()) CompoundIntConversion.empty in
     { vars = Vars.init ~nr_vars;
-      horn_clauses_rev= []; 
+      horn_clauses_array = Res.Array.empty (); 
       horn_clause_handler= HC.init ~nr_vars true_node;
       compound_to_int = cti }
 
@@ -44,8 +43,8 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
 
   let add_clause (head, body) hc =
     let edge, hc = clause_to_edge (head, body) hc in
+    let () = Res.Array.add_one hc.horn_clauses_array (Some (head, body))in
     { hc with
-      horn_clauses_rev = (head, body)::hc.horn_clauses_rev; 
       horn_clause_handler = HC.add_clause edge hc.horn_clause_handler; }
 
   let reachable_vars hc =
@@ -148,9 +147,11 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
       let n = try int_of_string s 
         with Failure f -> raise (InvalidCharachter (s ^ " in function " ^ f))
       in
-      let hc_list = hc.horn_clauses_rev in
-      let index_in_list = List.length hc_list - n in
-      hc, Remove (List.nth hc_list index_in_list, index_in_list)
+      let hc_list = hc.horn_clauses_array in
+      match Res.Array.get hc_list n with
+      | Some clause ->
+        hc, Remove (clause, n)
+      | None | exception (Invalid_argument _) -> raise (InvalidIndex ("There is no horn clause with index " ^ string_of_int n))
       (* ---- OPEN ---- *)
     else if String.starts_with ~prefix:"open" s then 
       let s = String.trim (String.sub s 4 (String.length s - 4)) in
@@ -179,15 +180,14 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
               | _ -> raise (InvalidCharachter ("Invalid range syntax: " ^ p))
             ) parts
         in
-        let hc_list = hc.horn_clauses_rev in
-        let len = List.length hc_list in
+        let hc_list = hc.horn_clauses_array in
         let selected_clauses =
           indices
           |> List.map (fun n ->
-              if n <= 0 || n > len then
-                raise (InvalidCharachter ("Index " ^ string_of_int n ^ " out of bounds"))
-              else
-                List.nth hc_list (len - n)
+              match Res.Array.get hc_list n with
+              | Some clause ->
+                clause
+              | None | exception (Invalid_argument _) -> raise (InvalidIndex ("There is no horn clause with index " ^ string_of_int n))
             )
         in
         hc, OpenChapter selected_clauses
@@ -198,24 +198,25 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
 
   let to_string hc =
     let _, lines =
-      List.fold_left
-        (fun (i, acc) (head, body) ->
-           let lhs = Vars.int_to_var hc.vars head in
-           let rhs_list = List.map (fun x -> Vars.int_to_var hc.vars x) (List.of_seq (IdSet.to_seq body)) in
-           let rhs = String.concat "," rhs_list
-           in
-           let line = Printf.sprintf "%d: %s := %s" i lhs rhs in
-           (i - 1, line :: acc))
-        (List.length hc.horn_clauses_rev, []) hc.horn_clauses_rev
+      Res.Array.fold_left
+        (fun (i, acc) clause_opt ->
+           match clause_opt with
+           | None -> i+1, acc
+           | Some (head,body) ->
+             let lhs = Vars.int_to_var hc.vars head in
+             let rhs_list = List.map (fun x -> Vars.int_to_var hc.vars x) (List.of_seq (IdSet.to_seq body)) in
+             let rhs = String.concat "," rhs_list
+             in
+             let line = Printf.sprintf "%d: %s := %s" i lhs rhs in
+             (i+1, line :: acc))
+        (0, []) hc.horn_clauses_array
     in
     String.concat "\n" lines
 
   let remove_clause hc (head, body) index = 
-    let horn_clauses_rev = 
-      List.filteri (fun i _ -> not (i = index)) hc.horn_clauses_rev in
+    let () = Res.Array.set hc.horn_clauses_array index None in
     let clause, hc = clause_to_edge (head, body) hc in
     {hc with
-     horn_clauses_rev;       
      horn_clause_handler = 
        HC.remove_clause clause hc.horn_clause_handler }
 
