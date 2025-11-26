@@ -108,27 +108,25 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
            print_endline ("Starting test "^test_name);
            let hc = HypergraphHCH.init ~nr_vars in
            let _,_,success,add_time, remove_time, open_chapter_time, reachable_vars_time = 
-             List.fold_left
-               (fun (hc,i,success, add_time, remove_time, open_chapter_time, reachable_vars_time) test ->
-                  if success then
-                    let testid = test_name ^ string_of_int i in
-                    let hc, success, is_add, test_time, test_reachable_vars_time = run_test hc testid test in
-                    let add_time, remove_time, open_chapter_time =
-                      match is_add with
-                      | Some true -> 
-                        add_time+. test_time, remove_time, open_chapter_time
-                      | Some false ->
-                        add_time, remove_time +. test_time, open_chapter_time
-                      | None ->
-                        add_time, remove_time, open_chapter_time +. test_time
-                    in
-                    if add_time +. remove_time +. open_chapter_time > timeout then
-                      let () = print_endline ("   TIMEOUT FOR TEST " ^ testid ^ "!") in
-                      hc, 0, false, add_time, remove_time, open_chapter_time, reachable_vars_time
-                    else
-                      hc, i + 1, success, add_time, remove_time, open_chapter_time, reachable_vars_time +. test_reachable_vars_time
+             Hypergraph_sig.fold_until
+               (fun (hc,i,_, add_time, remove_time, open_chapter_time, reachable_vars_time) test ->
+                  let testid = test_name ^ string_of_int i in
+                  let hc, success, is_add, test_time, test_reachable_vars_time = run_test hc testid test in
+                  let add_time, remove_time, open_chapter_time =
+                    match is_add with
+                    | Some true -> 
+                      add_time+. test_time, remove_time, open_chapter_time
+                    | Some false ->
+                      add_time, remove_time +. test_time, open_chapter_time
+                    | None ->
+                      add_time, remove_time, open_chapter_time +. test_time
+                  in
+                  if add_time +. remove_time +. open_chapter_time > timeout then
+                    let () = print_endline ("   TIMEOUT FOR TEST " ^ testid ^ "!") in
+                    hc, 0, false, add_time, remove_time, open_chapter_time, reachable_vars_time
                   else
-                    hc,0,false, add_time, remove_time, open_chapter_time, reachable_vars_time)
+                    hc, i + 1, success, add_time, remove_time, open_chapter_time, reachable_vars_time +. test_reachable_vars_time)
+               (fun (_,_,success,_,_,_,_) -> not success)
                (hc, 0, true, 0., 0., 0., 0.) commands
            in
            if success then

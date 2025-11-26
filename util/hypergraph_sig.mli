@@ -12,6 +12,9 @@ module StringMap : Map.S with type key = string
 module IntMap : Map.S with type key = int
 exception ExceededNrOfVars
 
+(** `fold_until f p acc` works like `List.fold_left`, but the folding stops when `p acc` is false.*)
+val fold_until : 
+  ('a -> 'b -> 'a) -> ('a -> bool) -> 'a -> 'b list -> 'a
 
 module type OrderedAndPrintable = sig
   include Set.OrderedType 

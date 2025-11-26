@@ -14,6 +14,11 @@ module IdSet = struct
 
 end
 
+let rec fold_until f p acc = function
+  | _::_ when p acc -> acc
+  | x::xs -> fold_until f p (f acc x) xs
+  | [] -> acc
+
 module IntConversion(ConversionMap : Map.S) = struct
 
   type t = {
