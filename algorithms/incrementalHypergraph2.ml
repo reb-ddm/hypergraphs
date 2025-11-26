@@ -215,7 +215,7 @@ module IncrementalHypergraph2  = struct
         if not (is_reachable z hg) then 
           let preds = preds_of hg_after_reset z in
           let found =
-            NodeSet.find_first_opt (fun p -> is_reachable p hg) preds
+            NodeSet.to_seq preds |> Seq.find (fun p -> is_reachable p hg)
           in
           match found with
           | Some pred ->
