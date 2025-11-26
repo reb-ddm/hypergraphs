@@ -2,6 +2,8 @@ open Hypergraph_sig
 
 module IncrementalHypergraph2  = struct
 
+  let max_depth_local_path_search = 3
+
   module AdjacencyList = MutableNodeMap(NodeSet)
   module ReachabilityStatus = MutableNodeMap(struct include Int let empty () = 1 end)
   module NrIncomingEdges = MutableNodeMap(struct include Int let empty () = 0 end)
@@ -225,6 +227,60 @@ module IncrementalHypergraph2  = struct
         else hg
       ) hg c_set
 
+  (*BFS*)
+  let search_alternative_local_path x_set y hg =
+    let queue = Queue.create () in
+    let () = IdSet.iter (fun i ->
+        Queue.push (0, i) queue) x_set in
+    let process_simple_node i reachable_nodes depth = 
+      let reachable_nodes = IdSet.add i reachable_nodes in
+      if depth < max_depth_local_path_search then 
+        let () = 
+          Queue.add (depth + 1, i) queue
+        in reachable_nodes
+      else 
+        reachable_nodes in
+    let rec next_edge_of_path reachable_nodes =
+      if Queue.is_empty queue then None
+      else 
+        let (depth, node_id) = Queue.take queue in
+        let node = Node.Simple node_id in
+        let succs = succs_of hg node in
+        if NodeSet.mem y succs then Some node
+        else 
+          let reachable_nodes, result = 
+            NodeSet.fold (fun succ (reachable_nodes, acc) ->
+                if Option.is_some acc then reachable_nodes, acc else
+                  match succ with 
+                  | Node.Simple i ->
+                    process_simple_node i reachable_nodes depth, acc
+                  | Node.Compound _ -> 
+                    let preds = NodeSet.fold (fun pred idset -> 
+                        match pred with 
+                        | Node.Simple pred ->
+                          IdSet.add pred idset
+                        | Node.Compound _ -> idset) 
+                        (preds_of hg succ) (IdSet.empty ()) in
+                    if IdSet.subset preds reachable_nodes then 
+                      let succs = succs_of hg succ in
+                      if NodeSet.mem y succs then reachable_nodes, Some succ (*TODO should stop the iteration instead*)
+                      else
+                        NodeSet.fold (fun succ2 reachable_nodes->
+                            match succ2 with 
+                            | Node.Simple i ->
+                              process_simple_node i reachable_nodes depth 
+                            | Node.Compound _ -> reachable_nodes) succs reachable_nodes, acc
+                    else 
+                      reachable_nodes, acc
+              ) succs (reachable_nodes, None)
+          in 
+          match result with 
+          | Some _ -> result
+          | None -> next_edge_of_path reachable_nodes
+    in next_edge_of_path x_set
+
+
+
   (* remove a hyperedge x -> y from the graph *)    
   let remove_clause (y, x, x_set) hg =
     if Node.is_reflexive_edge x_set y then 
@@ -237,7 +293,10 @@ module IncrementalHypergraph2  = struct
       | Some min_pred ->
         if 
           Node.compare min_pred x = 0 then 
-          scan_successors_after_removal hg y
+          match search_alternative_local_path x_set y hg with
+          | Some node -> add_min_pred y ~min_pred:node hg 
+          | None ->
+            scan_successors_after_removal hg y
         else hg 
 
   let open_chapter _ t = t
