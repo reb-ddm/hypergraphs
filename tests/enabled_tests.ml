@@ -142,7 +142,13 @@ let t11 = "two_equal_edges", None, 3, [
     "remove 5", [];
   ]
 
-let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11], "simple tests"
+let t12 = "remove_and_then_add", None, 2, [
+  "add y:=x", [];
+  "remove 0", [];
+  "add y:=", ["y"]
+]
+
+let _simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11; t12], "simple tests"
 let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                            test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
                            test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;
