@@ -5,10 +5,15 @@ module IncrementalHypergraph2  = struct
   module AdjacencyList = MutableNodeMap(NodeSet)
   module ReachabilityStatus = MutableNodeMap(struct include Int let empty () = 1 end)
   module NrIncomingEdges = MutableNodeMap(struct include Int let empty () = 0 end)
+  module MinPredsMap = MutableNodeMap(struct
+      type t = Node.t option
+      let empty () = None
+    end)
 
   type t = {
     succs : AdjacencyList.t;
     preds : AdjacencyList.t;
+    min_pred : MinPredsMap.t;
     reachability_status : ReachabilityStatus.t;
   }
 
@@ -22,6 +27,7 @@ module IncrementalHypergraph2  = struct
     {
       succs = AdjacencyList.empty nr_vars;
       preds = AdjacencyList.empty nr_vars;
+      min_pred = MinPredsMap.empty nr_vars;
       reachability_status;
     }
 
@@ -68,6 +74,17 @@ module IncrementalHypergraph2  = struct
         AdjacencyList.add node new_set t.preds in
       t
 
+  let get_min_pred node t = 
+    MinPredsMap.get node t.min_pred
+
+  let add_min_pred node ~min_pred t = 
+    let () = MinPredsMap.add node (Some min_pred) t.min_pred
+    in t 
+
+  let remove_min_pred node t = 
+    let () = MinPredsMap.remove node t.min_pred
+    in t 
+
   let add_compound_node node set t =
     match node with
     | Node.Compound _id ->
@@ -102,15 +119,18 @@ module IncrementalHypergraph2  = struct
   let add_hyperedge =
     Hypergraphs.add_hyperedge add_compound_node add_simple_edge add_simple_edge (fun x -> x)
 
-  let rec closure node t =
+  let rec closure node ~pred t =
     if is_reachable node t then
       t 
     else
       let t = decrement_reachability t node in
       if is_reachable node t then 
+        let t = if Node.is_simple node then 
+            add_min_pred node ~min_pred:pred t 
+          else t in
         let succs = succs_of t node in 
         NodeSet.fold (fun succ t ->
-            closure succ t) succs t
+            closure succ ~pred:node t) succs t
       else
         t
 
@@ -118,7 +138,7 @@ module IncrementalHypergraph2  = struct
   let add_clause (y, x, x_set) t =
     let t = add_hyperedge x_set x y t in
     if is_reachable x t then 
-      closure y t 
+      closure y ~pred:x t 
     else t
 
   let add_clauses =
@@ -164,13 +184,23 @@ module IncrementalHypergraph2  = struct
         if Node.is_compound y then 
           increment_reachability hg y, c_set else
         if was_reachable then 
+          let hg = remove_min_pred y hg in
           increment_reachability hg y, y::c_set
           (*c_set contains only simple nodes*)
         else 
           hg, c_set in
       let hg, c_set = if was_reachable then
           NodeSet.fold (fun v (hg, c_set) ->
-              update_successors_after_removal v c_set hg
+              (*only visit the the successors whose min_pred is y*)
+              let is_min_pred = Node.is_simple v && 
+                                match get_min_pred v hg with 
+                                | None -> false
+                                | Some min_pred -> Node.compare min_pred y = 0
+              in
+              if Node.is_compound v || is_min_pred then
+                update_successors_after_removal v c_set hg
+              else
+                hg, c_set
             ) (succs_of hg y) (hg, c_set)
         else hg, c_set
       in
@@ -185,16 +215,15 @@ module IncrementalHypergraph2  = struct
         if not (is_reachable z hg) then 
           let preds = preds_of hg_after_reset z in
           let found =
-            NodeSet.exists (fun p -> is_reachable p hg) preds
+            NodeSet.find_first_opt (fun p -> is_reachable p hg) preds
           in
-          if found then
-            closure z hg
-          else 
+          match found with
+          | Some pred ->
+            closure z ~pred hg
+          | None ->
             hg
         else hg
       ) hg c_set
-
-
 
   (* remove a hyperedge x -> y from the graph *)    
   let remove_clause (y, x, x_set) hg =
@@ -203,7 +232,13 @@ module IncrementalHypergraph2  = struct
       hg 
     else
       let hg = remove_hyperedge x_set x y hg in
-      scan_successors_after_removal hg y
+      match get_min_pred y hg with
+      | None -> (* y is unreachable *)hg
+      | Some min_pred ->
+        if 
+          Node.compare min_pred x = 0 then 
+          scan_successors_after_removal hg y
+        else hg 
 
   let open_chapter _ t = t
   let close_chapter t = t
