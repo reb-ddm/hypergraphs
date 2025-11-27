@@ -22,14 +22,14 @@ module Edges_intbdu : sig
 
   val init : unit -> unit 
   val print : t -> unit
-  val mvbdu_equal : t -> t -> restrict:t -> bool
-  val mvbdu_or : t -> t -> restrict:t -> t
+  val mvbdu_equal : t -> t -> bool
+  val mvbdu_or : t -> t -> t
   val mvbdu_and : t -> t -> t
   val mvbdu_true : unit -> t
   val mvbdu_false : unit -> t
 
   (**If the mvbdu is equal to mvbdu_true of mvbdu_false then instead of storing the bdu, we only store true/false*)
-  val mvbdu_normalize : Internal_mvbdu.mvbdu -> t -> t
+  val mvbdu_normalize : Internal_mvbdu.mvbdu -> t
 end
 
 
@@ -70,7 +70,6 @@ module EdgeSet : Set.S with type elt = Edge.t
 type parametric_hypergraph = {
   adjacency_list : AdjacencyList.t;
   reachability_status : ReachabilityStatus.t;
-  restriction_bdu : Edges_intbdu.t;
   preds : AdjacencyList.t;
   edge_to_int : EdgeIntConversion.t;
   current_parameter_valuation : bool Res.Array.t;
@@ -82,8 +81,8 @@ type parametric_hypergraph = {
 
 include (FullyDynamicHornClauses with type t = parametric_hypergraph)
 exception OutOfBounds
-val mvbdu_or : t -> Edges_intbdu.t -> Edges_intbdu.t -> Edges_intbdu.t
-val mvbdu_equal : t -> Edges_intbdu.t -> Edges_intbdu.t -> bool
+val mvbdu_or :  Edges_intbdu.t -> Edges_intbdu.t -> Edges_intbdu.t
+val mvbdu_equal : Edges_intbdu.t -> Edges_intbdu.t -> bool
 val get_int_of_edge : Edge.t -> t -> t * int * bool
 val preds_of : t -> Node.t -> NodeSet.t
 val reachability_mvbdu_of : Node.t -> t -> Edges_intbdu.t
