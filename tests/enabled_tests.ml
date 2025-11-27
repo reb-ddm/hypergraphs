@@ -2,33 +2,28 @@ open GenerateTests
 open RegressionTests
 
 let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
-                           test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
-                           test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;
-                           test_add2 10 2000; test_add2 100 2000; test_add2 1000 2000; 
-                           test_add2 10000 2000;
-                           test_add2 10 4000; test_add2 100 4000; test_add2 1000 4000; 
-                           test_add2 10000 4000;
-                          ] 
-let _big_generated_tests () = [
-  (* test_add2 10 4000; test_add2 100 4000; test_add2 1000 4000; test_add2 10000 4000; *)
-  (* test_add2 20000 2; *)
-  (* test_add2 30000 2;  *)
-  test_add2 20000 4000;
-  (* test_add2 10 10000; test_add2 100 10000; test_add2 1000 10000; test_add2 10000 10000; *)
-]
-let _generated_tests_remove () = [test_remove 10 2; test_remove 100 2; test_remove 1000 2; test_remove 10000 2;
-                                  test_remove 10 20; test_remove 100 20; test_remove 1000 20; test_remove 10000 20;
-                                  test_remove 10 200; test_remove 100 200; test_remove 1000 200; test_remove 10000 200;
-                                  test_remove 10 2000; test_remove 100 2000; test_remove 1000 2000; test_remove 10000 2000;
+                                  test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
+                                  test_add2 10 200; test_add2 100 200; test_add2 1000 200; test_add2 10000 200;
+                                  test_add2 10 2000; test_add2 100 2000; 
+                                  test_add2 1000 2000; 
+                                  (* test_add2 10000 2000; *)
+                                  test_add2 10 4000; test_add2 100 4000; test_add2 1000 4000; 
+                                  (* test_add2 10000 4000; *)
+                                  (* test_add2 20000 2; test_add2 20000 20;  *)
+                                  (* test_add2 20000 200; 
+                                     (* test_add2 20000 2000;                                  test_add2 20000 4000; *)
+                                     test_add2 30000 2;
+                                     test_add2 10 8000; test_add2 100 8000;
+                                     (* test_add2 1000 8000;  *)
+                                     (* test_add2 10000 8000; *)
+                                     test_add2 10 10000; test_add2 100 10000;  *)
+                                  (* test_add2 1000 10000;  *)
+                                  (* test_add2 10000 10000; *)
                                  ] 
-let _generated_tests_remove2 () = [test_remove2 10 2; test_remove2 100 2; test_remove2 1000 2; test_remove2 10000 2;
-                                   test_remove2 10 20; test_remove2 100 20; test_remove2 1000 20; test_remove2 10000 20;
-                                   test_remove2 10 200; test_remove2 100 200; test_remove2 1000 200; test_remove2 10000 200;
-                                   test_remove2 10 2000; test_remove2 100 2000; test_remove2 1000 2000; test_remove2 10000 2000;
-                                  ] 
+
 let _generated_tests_add_and_remove () = 
   [test_add 7 13; test_add2 7 13; test_remove 7 13; test_remove2 7 13; test_remove3 7 13; test_remove4 7 13;]
-  , "all generated tests small examples"
+, "all generated tests small examples"
 
 let _generated_tests_for_graphs test_gen test_name = 
   let steps = 1000 in
@@ -50,4 +45,4 @@ let _generated_tests_for_graphs_steps test_gen test_name =
 
 let enabled_tests () = _generated_tests_for_graphs_steps test_add2 "add 2"
 let debug = false
-let debug_enabled_tests () = [test_remove3 5 5]
+let debug_enabled_tests () = fst simple_tests
