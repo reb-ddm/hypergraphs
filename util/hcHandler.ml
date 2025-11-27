@@ -98,7 +98,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
       Add of clause | Remove of clause * int | OpenChapter of clause list | CloseChapter
 
   let parse_clause s hc =
-    let is_alpha_or_digit = function 'a' .. 'z' | 'A' .. 'Z'| '0' .. '9' -> true | _ -> false in
+    let is_alpha_or_digit = function 'a' .. 'z' | 'A' .. 'Z'| '0' .. '9' | '_' -> true | _ -> false in
     let is_valid_var_name s = 
       String.length s > 0 && String.for_all is_alpha_or_digit s in
     let s = String.trim s in

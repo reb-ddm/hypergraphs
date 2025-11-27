@@ -42,6 +42,15 @@ let add_simple_edges_from_true tests pre_steps_vars reachable_vars =
       ("add " ^ var ^ ":=", reachable_vars)::tests
     ) tests (List.tl pre_steps_vars)
 
+let add_alternative_paths_edges tests pre_steps_vars reachable_vars copy_var =
+  (List.fold_left (fun (tests, previous_var, reachable_vars) var -> 
+       let var2 = copy_var var in
+       let tests = ("add " ^ var ^ ":=" ^ var2, reachable_vars)::tests in
+       let reachable_vars = reachable_vars @ [var2] in
+       ("add " ^ var2 ^ ":=" ^ previous_var, reachable_vars)::
+       tests, var, reachable_vars 
+     ) (tests, "", reachable_vars) pre_steps_vars)
+
 (*creates a hypergraph with 2*s + p nodes and 2*s + 2*p edges*)
 let test_add size pre_steps =
   let nr_nodes = 2*size + pre_steps in
@@ -216,3 +225,32 @@ let test_remove4_5 size pre_steps remove_first_edge =
 
 let test_remove4 size p = test_remove4_5 size p false
 let test_remove5 size p = test_remove4_5 size p true
+
+let test_remove6 size pre_steps =
+  let nr_nodes = size + 2 * pre_steps + 1 in
+  let nr_digits_size = String.length (string_of_int size) in
+  let nr_digits_pre_steps = String.length (string_of_int pre_steps) in
+  let name_pre_steps_var = "a" in
+  let name_vars = "x" in
+  let name_goal_var = "y" in
+  let name = 
+    "generated_test_remove4_of_size_" ^ string_of_int size ^ 
+    "_with_" ^ string_of_int pre_steps ^ "_preceding_nodes" in
+  let close = "close", [] in
+  let pre_steps_vars, (tests, reachable_vars, last_var, j) = 
+    chain_of_nodes_from_true pre_steps name_pre_steps_var nr_digits_pre_steps in
+  let vars, (tests, reachable_vars, j) = 
+    simple_edges_starting_from_a_node last_var size name_vars nr_digits_size reachable_vars (tests@[close]) j in
+  (* edge with source the set of all x_i and with goal node y*)
+  let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
+  let reachable_vars = reachable_vars_append j reachable_vars name_goal_var in
+  let tests =(last_test,reachable_vars)::tests in
+  let open_test = "open 0-"^ string_of_int pre_steps in
+  let copy_var var = "z" ^ var ^ "_2" in
+  let addpath_tests,_,reachable_vars = add_alternative_paths_edges [] pre_steps_vars reachable_vars copy_var in 
+  let tests = [open_test, reachable_vars] @ addpath_tests @ tests in
+  let remove_tests = List.init pre_steps (fun i -> 
+      ("remove " ^ string_of_int i, reachable_vars)
+    ) in
+  let tests = remove_tests @ tests in
+  name, Some (size, pre_steps), nr_nodes, List.rev tests

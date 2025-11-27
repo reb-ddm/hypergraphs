@@ -1,5 +1,6 @@
 open GenerateTests
 open RegressionTests
+let _ = simple_tests
 
 let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 1000 2; test_add2 10000 2;
                                   test_add2 10 20; test_add2 100 20; test_add2 1000 20; test_add2 10000 20;
@@ -22,7 +23,7 @@ let _generated_tests test_add2 = [test_add2 10 2; test_add2 100 2; test_add2 100
                                  ] 
 
 let _generated_tests_add_and_remove () = 
-  [test_add 7 13; test_add2 7 13; test_remove 7 13; test_remove2 7 13; test_remove3 7 13; test_remove4 7 13;]
+  [test_add 7 13; test_add2 7 13; test_remove 7 13; test_remove2 7 13; test_remove3 7 13; test_remove4 7 13; test_remove5 7 13; test_remove6 7 13;]
 , "all generated tests small examples"
 
 let _generated_tests_for_graphs test_gen test_name = 
