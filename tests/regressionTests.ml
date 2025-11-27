@@ -188,4 +188,11 @@ let t15 = "no_local_path", None, 5, [
     "add d:=b", ["a"; "b"; "c"; "d"];
   ]
 
-let simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11; t12; t13; t14; t15], "simple tests"
+let t16 = "two_incoming_edges", None, 3, [
+  "add a:=", ["a"];
+  "add b:=", ["a"; "b"];
+  "add c:=a", ["a"; "b"; "c"];
+  "add c:=b", ["a"; "b"; "c"];
+]
+
+let simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11; t12; t13; t14; t15; t16], "simple tests"
