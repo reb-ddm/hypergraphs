@@ -1,3 +1,2 @@
 open Hypergraph_sig
-
 include FullyDynamicHornClauses
