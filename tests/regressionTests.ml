@@ -189,10 +189,33 @@ let t15 = "no_local_path", None, 5, [
   ]
 
 let t16 = "two_incoming_edges", None, 3, [
-  "add a:=", ["a"];
-  "add b:=", ["a"; "b"];
-  "add c:=a", ["a"; "b"; "c"];
-  "add c:=b", ["a"; "b"; "c"];
-]
+    "add a:=", ["a"];
+    "add b:=", ["a"; "b"];
+    "add c:=a", ["a"; "b"; "c"];
+    "add c:=b", ["a"; "b"; "c"];
+  ]
 
-let simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11; t12; t13; t14; t15; t16], "simple tests"
+let t17 = "open_chapter_with_loop", None, 4, [
+    "close", [];
+    "add a:=", ["a"];
+    "add b:=a", ["a";"b"];
+    "add c:=b", ["a"; "b"; "c"];
+    "add d:=c", ["a"; "b"; "c"; "d"];
+    "add a:=d", ["a"; "b"; "c"; "d"];
+    "open 1,2", ["a"; "b"; "c"; "d"];
+  ]
+
+let t18 = "chapters_small_test2", None, 5, [
+    ("add a1:=", ["a1"]);
+    ("add a2:=", ["a1"; "a2"]);
+    ("add a3:=", ["a1"; "a2"; "a3"]);
+    ("add a4:=", ["a1"; "a2"; "a3"; "a4"]);
+    ("add a5:=a1,a2,a3,a4", ["a1"; "a2"; "a3"; "a4"; "a5"]);
+    ("open 0-2,4", ["a1"; "a2"; "a3"; "a4"; "a5"]);
+    ("remove 4", ["a1"; "a2"; "a3"; "a4"]);
+    ("remove 2", ["a1"; "a2"; "a4"]);
+    ("remove 1", ["a1"; "a4"]);
+    ("remove 0", ["a4"]);
+  ]
+
+let simple_tests = [t1; t2; t3; t4; t5; t6; t7; t8; t9; t10; t11; t12; t13; t14; t15; t16; t17; t18], "simple tests"

@@ -178,54 +178,17 @@ module IncrementalHypergraph2  = struct
     Hypergraphs.remove_hyperedge remove_simple_edge NodeSet.is_empty succs_of remove_successor remove_compound_node 
 
   let scan_successors_after_removal hg y =
-    (* select phase *)
-    let rec update_successors_after_removal y c_set hg =
-      (* visit successors if y is reachable *)
-      let was_reachable = is_reachable y hg in
-      let hg, c_set = 
-        if Node.is_compound y then 
-          increment_reachability hg y, c_set else
-        if was_reachable then 
-          let hg = remove_min_pred y hg in
-          increment_reachability hg y, y::c_set
-          (*c_set contains only simple nodes*)
-        else 
-          hg, c_set in
-      let hg, c_set = if was_reachable then
-          NodeSet.fold (fun v (hg, c_set) ->
-              (*only visit the the successors whose min_pred is y*)
-              let is_min_pred = Node.is_simple v && 
-                                match get_min_pred v hg with 
-                                | None -> false
-                                | Some min_pred -> Node.compare min_pred y = 0
-              in
-              if Node.is_compound v || is_min_pred then
-                update_successors_after_removal v c_set hg
-              else
-                hg, c_set
-            ) (succs_of hg y) (hg, c_set)
-        else hg, c_set
-      in
-      hg, c_set in
-    let (hg_after_reset, c_set) = 
-      update_successors_after_removal y [] hg
+    let visit_node v y hg = Node.is_simple v && 
+                            match get_min_pred v hg with 
+                            | None -> false
+                            | Some min_pred -> Node.compare min_pred y = 0
     in
-    (* propagate phase *)
-    (* build the set of nodes we need to process *)
-    List.fold_left (fun hg z ->
-        (* if there is a reachable predecessor, then the node is still reachable. *)
-        if not (is_reachable z hg) then 
-          let preds = preds_of hg_after_reset z in
-          let found =
-            NodeSet.to_seq preds |> Seq.find (fun p -> is_reachable p hg)
-          in
-          match found with
-          | Some pred ->
-            closure z ~pred hg
-          | None ->
-            hg
-        else hg
-      ) hg c_set
+    let (hg, c_set) = 
+      Hypergraphs.update_successors_after_removal is_reachable increment_reachability 
+        (fun hg y -> let hg = remove_min_pred y hg in increment_reachability hg y) 
+        visit_node succs_of y [] hg
+    in
+    Hypergraphs.propagate is_reachable preds_of hg closure c_set
 
   (*BFS*)
   let search_alternative_local_path x_set y hg =
@@ -278,8 +241,6 @@ module IncrementalHypergraph2  = struct
           | Some _ -> result
           | None -> next_edge_of_path reachable_nodes
     in next_edge_of_path x_set
-
-
 
   (* remove a hyperedge x -> y from the graph *)    
   let remove_clause (y, x, x_set) hg =

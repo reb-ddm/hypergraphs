@@ -297,35 +297,37 @@ module ParametricHypergraph = struct
       t |> add_simple_edge tail head |> add_new_edge_reachabilities tail head in
     Hypergraphs.add_hyperedge (fun _ _ t -> t) add_simple_edge add_simple_edge2 (fun a -> a) tail_set tail head t
 
+
+  let closure_get_edge_set node t = 
+    NodeSet.fold (fun succ edges -> 
+        let edge = if Node.is_compound succ then (Node.Compound 0, succ) else
+            (node, succ) in 
+        EdgeSet.add edge edges) (succs_of t node) (EdgeSet.empty) 
+
+  let rec closure_process nodes t = 
+    if EdgeSet.is_empty nodes then t 
+    else
+      let pred, node = EdgeSet.choose nodes in
+      let nodes = EdgeSet.remove (pred, node) nodes in
+      let t, nodes =
+        let old_mvbdu = reachability_mvbdu_of node t in
+        let t = if Node.is_compound node then 
+            (*look at all the predecessors*)
+            recalculate_mvbdu_compound_node node t
+          else 
+            let add_parameter = t.is_parametrized (pred, node) in
+            recalculate_mvbdu_simple_edge (pred, node) t add_parameter
+        in
+        let new_mvbdu = reachability_mvbdu_of node t in
+        if mvbdu_equal old_mvbdu new_mvbdu then
+          t, nodes 
+        else
+          t, EdgeSet.union (closure_get_edge_set node t) nodes
+      in closure_process nodes t
+
   (*BFS*)
   let closure node t =
-    let get_edge_set node t = 
-      NodeSet.fold (fun succ edges -> 
-          let edge = if Node.is_compound succ then (Node.Compound 0, succ) else
-              (node, succ) in 
-          EdgeSet.add edge edges) (succs_of t node) (EdgeSet.empty) in
-    let rec process nodes t = 
-      if EdgeSet.is_empty nodes then t 
-      else
-        let pred, node = EdgeSet.choose nodes in
-        let nodes = EdgeSet.remove (pred, node) nodes in
-        let t, nodes =
-          let old_mvbdu = reachability_mvbdu_of node t in
-          let t = if Node.is_compound node then 
-              (*look at all the predecessors*)
-              recalculate_mvbdu_compound_node node t
-            else 
-              let add_parameter = t.is_parametrized (pred, node) in
-              recalculate_mvbdu_simple_edge (pred, node) t add_parameter
-          in
-          let new_mvbdu = reachability_mvbdu_of node t in
-          if mvbdu_equal old_mvbdu new_mvbdu then
-            t, nodes 
-          else
-            t, EdgeSet.union (get_edge_set node t) nodes
-        in process nodes t
-    in 
-    process (get_edge_set node t) t
+    closure_process (closure_get_edge_set node t) t
 
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) t =

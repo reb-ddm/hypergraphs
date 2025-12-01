@@ -31,3 +31,20 @@ val reachable_vars : ('a -> Node.t -> 'b) ->
   int ->
   'a ->
   IdSet.t
+
+  val update_successors_after_removal : (Node.t -> 'a -> bool) ->
+('a -> Node.t -> 'a) ->
+('a -> Node.t -> 'a) ->
+(Node.t -> Node.t -> 'a -> bool) ->
+('a -> Node.t -> NodeSet.t) ->
+Node.t ->
+Node.t list ->
+'a ->
+'a * Node.t list
+
+  val propagate : (Node.t -> 'a -> bool) ->
+('a -> Node.t -> NodeSet.t) ->
+'a ->
+(Node.t -> pred:Node.t -> 'a -> 'a) ->
+Node.t list ->
+'a

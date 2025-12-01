@@ -31,14 +31,12 @@ let remove_hyperedge remove_simple_edge is_empty succs_of remove_successor remov
 let reachable_vars succs_of is_reachable true_node fold nr_vars hg = 
   let vars = Array.make nr_vars false in
   let rec find_next_reachable node reachable_vars =
-    (* let () = print_endline ("visiting " ^ Node.to_string node) in *)
     let visit_successor_simple_node succ i reachable_vars =
       if vars.(i) then 
         reachable_vars
       else
       if is_reachable succ hg then
         let () = vars.(i) <- true in
-        (* let () = print_endline ("continuing with " ^ Node.to_string succ) in *)
         find_next_reachable succ (IdSet.add i reachable_vars)
       else
         reachable_vars in
@@ -56,3 +54,48 @@ let reachable_vars succs_of is_reachable true_node fold nr_vars hg =
       ) reachable_vars (succs_of hg node)
   in
   find_next_reachable true_node (IdSet.empty ())
+
+let update_successors_after_removal is_reachable increment_reachability_compound 
+    increment_reachability_simple 
+    visit_node succs_of y c_set hg =
+  let rec aux y c_set hg =
+    (* visit successors if y is reachable *)
+    let was_reachable = is_reachable y hg in
+    let hg, c_set = 
+      if Node.is_compound y then 
+        increment_reachability_compound hg y, c_set else
+      if was_reachable then 
+        increment_reachability_simple hg y, y::c_set
+        (*c_set contains only simple nodes*)
+      else 
+        hg, c_set in
+    let hg, c_set = if was_reachable then
+        NodeSet.fold (fun v (hg, c_set) ->
+            (*only visit the the successors whose min_pred is y*)
+            if Node.is_compound v || visit_node v y hg then
+              aux v c_set hg
+            else
+              hg, c_set
+          ) (succs_of hg y) (hg, c_set)
+      else hg, c_set
+    in
+    hg, c_set in
+  aux y c_set hg
+
+let propagate is_reachable preds_of hg closure c_set =
+  (* propagate phase *)
+  (* build the set of nodes we need to process *)
+  List.fold_left (fun hg z ->
+      (* if there is a reachable predecessor, then the node is still reachable. *)
+      if not (is_reachable z hg) then 
+        let preds = preds_of hg z in
+        let found =
+          NodeSet.to_seq preds |> Seq.find (fun p -> is_reachable p hg)
+        in
+        match found with
+        | Some pred ->
+          closure z ~pred hg
+        | None ->
+          hg
+      else hg
+    ) hg c_set

@@ -102,4 +102,5 @@ val add_simple_edge :
 val add_hyperedge :
   IdSet.t ->
   Node.t -> Node.t -> t -> t
+val closure_process : EdgeSet.t -> t -> t
 val closure : Node.t -> t -> t

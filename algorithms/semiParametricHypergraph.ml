@@ -61,65 +61,10 @@ module SemiParametricHypergraph = struct
     in
     {t with reachability_status}
 
-  let and_reachability node mvbdu t = 
-    let previous_mvbdu = 
-      ReachabilityStatus.get node t.reachability_status in 
-    let and_mvbdu = Edges_intbdu.mvbdu_and previous_mvbdu mvbdu in
-    let () = ReachabilityStatus.add node and_mvbdu t.reachability_status
-    in t
-
-  let recalculate_mvbdu_compound_node_in_open (node, head) t =
-    let current_node_mvbdu = reachability_mvbdu_of node t 
-    in
-    and_reachability head current_node_mvbdu t
-
-  let recalculate_mvbdu_simple_node_in_open head t = 
-    let reach = NodeSet.fold (fun node reach ->
-        let status = 
-          reachability_mvbdu_of node t in
-        let status = 
-          if t.is_parametrized (node, head) then 
-            let _, id, _ = get_int_of_edge (node, head) t in  
-            let association_list = [(id, 1)] in
-            let new_mvbdu_node2 = Edges_intbdu.mvbdu_of_association_list association_list in
-            let new_mvbdu_node2 = Edges_intbdu.Mvbdu new_mvbdu_node2 in
-            Edges_intbdu.mvbdu_and status new_mvbdu_node2 
-          else
-            status 
-        in mvbdu_or reach status
-      ) (preds_of t head) (Edges_intbdu.mvbdu_false ()) in
+  let set_unreachable t node = 
     let () = 
-      ReachabilityStatus.add head reach t.reachability_status in
-    t
-
-  (*BFS*)
-  let closure_for_adding_parameter node t =
-    let get_edge_set node t = 
-      NodeSet.fold (fun succ edges -> 
-          let edge = if Node.is_compound succ then (node, succ) else
-              (Node.Compound 0, succ) in
-          EdgeSet.add edge edges) (succs_of t node) (EdgeSet.empty) in
-    let rec process nodes t = 
-      if EdgeSet.is_empty nodes then t 
-      else
-        let pred, node = EdgeSet.choose nodes in
-        let nodes = EdgeSet.remove (pred, node) nodes in
-        let t, nodes =
-          let old_mvbdu = reachability_mvbdu_of node t in
-          let t = if Node.is_compound node then 
-              recalculate_mvbdu_compound_node_in_open (pred, node) t
-            else 
-              (*look at all the predecessors*)
-              recalculate_mvbdu_simple_node_in_open node t
-          in
-          let new_mvbdu = reachability_mvbdu_of node t in
-          if mvbdu_equal old_mvbdu new_mvbdu then
-            t, nodes 
-          else
-            t, EdgeSet.union (get_edge_set node t) nodes
-        in process nodes t
-    in 
-    process (get_edge_set node t) t
+      ReachabilityStatus.add node (Edges_intbdu.mvbdu_false ()) t.reachability_status
+    in t 
 
   let remove_successor node ~succ t = 
     let successors = succs_of t node in 
@@ -205,20 +150,27 @@ module SemiParametricHypergraph = struct
         add_parameter_for_new_edges = true } in
     let t = remove_parameters t to_unparam
     in
-    EdgeSet.fold
-      (fun (tail, head) t ->
-         let old_mvbdu = reachability_mvbdu_of head t in
-         let t, id, _ = get_int_of_edge (tail, head) t in
-         let t = add_parameter_valuation id true t in
-         let t = recalculate_mvbdu_simple_node_in_open head t in
-         let new_mvbdu = reachability_mvbdu_of head t in
-         if mvbdu_equal old_mvbdu new_mvbdu then
-           t
-         else 
-           closure_for_adding_parameter head t 
-      )
-      to_param
-      t
+    let is_not_unreachable node t = 
+      let mvbdu = reachability_mvbdu_of node t in
+      not (Edges_intbdu.mvbdu_equal mvbdu (Edges_intbdu.mvbdu_false ())) in
+    let t, c_set = EdgeSet.fold
+        (fun (tail, head) (t, c_set) ->
+           let t, id, _ = get_int_of_edge (tail, head) t in
+           let t = add_parameter_valuation id true t in
+           Hypergraphs.update_successors_after_removal is_not_unreachable set_unreachable 
+             set_unreachable (fun _ _ _ -> true) succs_of head c_set t
+        )
+        to_param
+        (t, [])
+    in 
+    let edges_to_be_processsed = List.fold_left (fun edges z ->
+        NodeSet.fold (fun pred edges -> 
+            let edge = if Node.is_compound z then (Node.Compound 0, z) else
+                (pred, z) in 
+            EdgeSet.add edge edges) (preds_of t z) edges
+      ) EdgeSet.empty c_set in
+    closure_process edges_to_be_processsed t 
+
 end
 
 include SemiParametricHypergraph
