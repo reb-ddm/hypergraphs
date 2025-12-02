@@ -1,4 +1,5 @@
 open Hypergraph_sig
+
 val add_hyperedge :
   (Node.t -> IdSet.t -> 'a -> 'a) ->
   (Node.t -> Node.t -> 'a -> 'a) ->
@@ -12,7 +13,7 @@ val add_hyperedge :
 
 val add_clauses : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
 
-val remove_hyperedge : 
+val remove_hyperedge :
   (Node.t -> 'a -> 'b -> 'c) ->
   ('d -> bool) ->
   ('c -> Node.t -> 'd) ->
@@ -24,7 +25,8 @@ val remove_hyperedge :
   'b ->
   'c
 
-val reachable_vars : ('a -> Node.t -> 'b) ->
+val reachable_vars :
+  ('a -> Node.t -> 'b) ->
   (Node.t -> 'a -> bool) ->
   Node.t ->
   ((IdSet.t -> Node.t -> IdSet.t) -> IdSet.t -> 'b -> IdSet.t) ->
@@ -32,19 +34,21 @@ val reachable_vars : ('a -> Node.t -> 'b) ->
   'a ->
   IdSet.t
 
-  val update_successors_after_removal : (Node.t -> 'a -> bool) ->
-('a -> Node.t -> 'a) ->
-('a -> Node.t -> 'a) ->
-(Node.t -> Node.t -> 'a -> bool) ->
-('a -> Node.t -> NodeSet.t) ->
-Node.t ->
-Node.t list ->
-'a ->
-'a * Node.t list
+val update_successors_after_removal :
+  (Node.t -> 'a -> bool) ->
+  ('a -> Node.t -> 'a) ->
+  ('a -> Node.t -> 'a) ->
+  (Node.t -> Node.t -> 'a -> bool) ->
+  ('a -> Node.t -> NodeSet.t) ->
+  Node.t ->
+  Node.t list ->
+  'a ->
+  'a * Node.t list
 
-  val propagate : (Node.t -> 'a -> bool) ->
-('a -> Node.t -> NodeSet.t) ->
-'a ->
-(Node.t -> pred:Node.t -> 'a -> 'a) ->
-Node.t list ->
-'a
+val propagate :
+  (Node.t -> 'a -> bool) ->
+  ('a -> Node.t -> NodeSet.t) ->
+  'a ->
+  (Node.t -> pred:Node.t -> 'a -> 'a) ->
+  Node.t list ->
+  'a
