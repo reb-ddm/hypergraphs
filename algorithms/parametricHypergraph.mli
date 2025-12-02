@@ -1,36 +1,19 @@
-open Kappa_mvbdu
 open Hypergraph_sig
 
 module Edges_intbdu : sig
-  module Internal_mvbdu :
-    Mvbdu_wrapper.Internalized_mvbdu with type key = Id.t and type value = int
+  type association_list
+  type mvbdu
+  type variables_list
+  type key = Id.t
 
-  val build_association_list :
-    (int * int) list -> Internal_mvbdu.hconsed_association_list
+  val build_association_list : (int * int) list -> association_list
+  val mvbdu_of_hconsed_asso : association_list -> mvbdu
+  val mvbdu_project_abstract_away : mvbdu -> variables_list -> mvbdu
+  val build_variables_list : key list -> variables_list
+  val variables_list_of_mvbdu : mvbdu -> variables_list
+  val extensional_of_variables_list : variables_list -> key list
 
-  val mvbdu_of_hconsed_asso :
-    Internal_mvbdu.hconsed_association_list -> Internal_mvbdu.mvbdu
-
-  val mvbdu_project_abstract_away :
-    Internal_mvbdu.mvbdu ->
-    Internal_mvbdu.hconsed_variables_list ->
-    Internal_mvbdu.mvbdu
-
-  val build_variables_list :
-    Internal_mvbdu.key list -> Internal_mvbdu.hconsed_variables_list
-
-  val mvbdu_of_association_list : (int * int) list -> Internal_mvbdu.mvbdu
-
-  val mvbdu_of_range_list :
-    (int * (int option * int option)) list -> Internal_mvbdu.mvbdu
-
-  val variables_list_of_mvbdu :
-    Internal_mvbdu.mvbdu -> Internal_mvbdu.hconsed_variables_list
-
-  val extensional_of_variables_list :
-    Internal_mvbdu.hconsed_variables_list -> Internal_mvbdu.key list
-
-  type t = Bool of bool | Mvbdu of Internal_mvbdu.mvbdu
+  type t = Bool of bool | Mvbdu of mvbdu
 
   val init : unit -> unit
   val print : t -> unit
@@ -40,7 +23,7 @@ module Edges_intbdu : sig
   val mvbdu_true : unit -> t
   val mvbdu_false : unit -> t
 
-  val mvbdu_normalize : Internal_mvbdu.mvbdu -> t
+  val mvbdu_normalize : mvbdu -> t
   (**If the mvbdu is equal to mvbdu_true of mvbdu_false then instead of storing the bdu, we only store true/false*)
 end
 

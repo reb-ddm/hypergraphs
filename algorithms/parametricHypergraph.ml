@@ -11,6 +11,8 @@ module Edges_intbdu = struct
   module Internal_mvbdu = Internalize (Edges_bdu)
   include Internal_mvbdu
 
+  type variables_list = hconsed_variables_list
+  type association_list = hconsed_association_list
   type t = Bool of bool | Mvbdu of mvbdu
 
   let init () =
