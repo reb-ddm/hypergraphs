@@ -244,7 +244,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
             i + 1, line :: acc)
         (0, []) hc.horn_clauses_array
     in
-    String.concat "\n" lines
+    String.concat "\n" (List.rev lines)
 
   let remove_clause hc (head, body) index =
     let () = Res.Array.set hc.horn_clauses_array index None in
