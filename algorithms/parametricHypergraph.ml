@@ -318,25 +318,48 @@ module ParametricHypergraph = struct
       (fun a -> a)
       tail_set tail head t
 
-  let closure_get_edge_set node t =
+  let add_successors_to_sets node t
+      (non_param_edges, compound_nodes, param_edges) =
     NodeSet.fold
-      (fun succ edges ->
-        let edge =
-          if Node.is_compound succ then
-            Node.Compound 0, succ
+      (fun succ (non_param_edges, compound_nodes, param_edges) ->
+        if Node.is_compound succ then
+          non_param_edges, NodeSet.add succ compound_nodes, param_edges
+        else (
+          let edge = node, succ in
+          if t.is_parametrized edge then
+            non_param_edges, compound_nodes, EdgeSet.add edge param_edges
           else
-            node, succ
-        in
-        EdgeSet.add edge edges)
-      (succs_of t node) EdgeSet.empty
+            EdgeSet.add edge non_param_edges, compound_nodes, param_edges
+        ))
+      (succs_of t node)
+      (non_param_edges, compound_nodes, param_edges)
 
-  let rec closure_process nodes t =
-    if EdgeSet.is_empty nodes then
+  let rec closure_process (non_param_edges, compound_nodes, param_edges) t =
+    (*first process all non-parametrized edges, then compound nodes, and the the parametrized edges. Such that we can in some cases avoid mvbdus altogether.*)
+    let empty_non_param, empty_compound, empty_param =
+      ( EdgeSet.is_empty non_param_edges,
+        NodeSet.is_empty compound_nodes,
+        EdgeSet.is_empty param_edges )
+    in
+    if empty_non_param && empty_compound && empty_param then
       t
     else (
-      let pred, node = EdgeSet.choose nodes in
-      let nodes = EdgeSet.remove (pred, node) nodes in
-      let t, nodes =
+      let t, (non_param_edges, compound_nodes, param_edges) =
+        let pred, node, non_param_edges, compound_nodes, param_edges =
+          if not empty_non_param then (
+            let pred, node = EdgeSet.choose non_param_edges in
+            let non_param_edges = EdgeSet.remove (pred, node) non_param_edges in
+            pred, node, non_param_edges, compound_nodes, param_edges
+          ) else if not empty_compound then (
+            let pred, node = Node.Compound 0, NodeSet.choose compound_nodes in
+            let compound_nodes = NodeSet.remove node compound_nodes in
+            pred, node, non_param_edges, compound_nodes, param_edges
+          ) else (
+            let pred, node = EdgeSet.choose param_edges in
+            let param_edges = EdgeSet.remove (pred, node) param_edges in
+            pred, node, non_param_edges, compound_nodes, param_edges
+          )
+        in
         let old_mvbdu = reachability_mvbdu_of node t in
         let t =
           if Node.is_compound node then
@@ -349,15 +372,21 @@ module ParametricHypergraph = struct
         in
         let new_mvbdu = reachability_mvbdu_of node t in
         if mvbdu_equal old_mvbdu new_mvbdu then
-          t, nodes
+          t, (non_param_edges, compound_nodes, param_edges)
         else
-          t, EdgeSet.union (closure_get_edge_set node t) nodes
+          ( t,
+            add_successors_to_sets node t
+              (non_param_edges, compound_nodes, param_edges) )
       in
-      closure_process nodes t
+      closure_process (non_param_edges, compound_nodes, param_edges) t
     )
 
   (*BFS*)
-  let closure node t = closure_process (closure_get_edge_set node t) t
+  let closure node t =
+    closure_process
+      (add_successors_to_sets node t
+         (EdgeSet.empty, NodeSet.empty (), EdgeSet.empty))
+      t
 
   (* add an edge x -> y to the hypergraph *)
   let add_clause (y, x, x_set) t =

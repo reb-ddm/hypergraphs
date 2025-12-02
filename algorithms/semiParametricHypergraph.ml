@@ -191,22 +191,32 @@ module SemiParametricHypergraph = struct
             succs_of head c_set t)
         to_param (t, [])
     in
-    let edges_to_be_processsed =
+    let non_param_edges, compound_nodes, parametrized_edges =
       List.fold_left
-        (fun edges z ->
+        (fun (non_param_edges, compound_nodes, parametrized_edges) z ->
           NodeSet.fold
-            (fun pred edges ->
-              let edge =
-                if Node.is_compound z then
-                  Node.Compound 0, z
+            (fun pred (non_param_edges, compound_nodes, parametrized_edges) ->
+              if Node.is_compound z then
+                ( non_param_edges,
+                  NodeSet.add z compound_nodes,
+                  parametrized_edges )
+              else (
+                let edge = pred, z in
+                if t.is_parametrized edge then
+                  ( non_param_edges,
+                    compound_nodes,
+                    EdgeSet.add edge parametrized_edges )
                 else
-                  pred, z
-              in
-              EdgeSet.add edge edges)
-            (preds_of t z) edges)
-        EdgeSet.empty c_set
+                  ( EdgeSet.add edge non_param_edges,
+                    compound_nodes,
+                    parametrized_edges )
+              ))
+            (preds_of t z)
+            (non_param_edges, compound_nodes, parametrized_edges))
+        (EdgeSet.empty, NodeSet.empty (), EdgeSet.empty)
+        c_set
     in
-    closure_process edges_to_be_processsed t
+    closure_process (non_param_edges, compound_nodes, parametrized_edges) t
 end
 
 include SemiParametricHypergraph
