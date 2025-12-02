@@ -264,7 +264,7 @@ let test_remove3 size steps =
   in
   name, Some (size, steps), nr_nodes, List.rev tests @ remove_tests
 
-let test_remove4_5 size pre_steps remove_first_edge =
+let test_remove4_5 size pre_steps remove_first_edge name =
   let nr_nodes = size + pre_steps + 1 in
   let nr_digits_size = String.length (string_of_int size) in
   let nr_digits_pre_steps = String.length (string_of_int pre_steps) in
@@ -272,7 +272,7 @@ let test_remove4_5 size pre_steps remove_first_edge =
   let name_vars = "x" in
   let name_goal_var = "y" in
   let name =
-    "generated_test_remove4_of_size_" ^ string_of_int size ^ "_with_"
+    "generated_test_remove" ^ name ^ "_of_size_" ^ string_of_int size ^ "_with_"
     ^ string_of_int pre_steps ^ "_preceding_nodes"
   in
   let close = "close", [] in
@@ -328,8 +328,8 @@ let test_remove4_5 size pre_steps remove_first_edge =
   let tests = remove_tests @ remove_first_edge_test @ tests in
   name, Some (size, pre_steps), nr_nodes, List.rev tests
 
-let test_remove4 size p = test_remove4_5 size p false
-let test_remove5 size p = test_remove4_5 size p true
+let test_remove4 size p = test_remove4_5 size p false "4"
+let test_remove5 size p = test_remove4_5 size p true "5"
 
 let test_remove6 size pre_steps =
   let nr_nodes = size + (2 * pre_steps) + 1 in
@@ -339,7 +339,7 @@ let test_remove6 size pre_steps =
   let name_vars = "x" in
   let name_goal_var = "y" in
   let name =
-    "generated_test_remove4_of_size_" ^ string_of_int size ^ "_with_"
+    "generated_test_remove6_of_size_" ^ string_of_int size ^ "_with_"
     ^ string_of_int pre_steps ^ "_preceding_nodes"
   in
   let close = "close", [] in
