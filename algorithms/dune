@@ -9,7 +9,8 @@
   kappa_data_structures
   kappa_kasa_kastor_toolset
   psq
-  kappa_parameters)
+  kappa_parameters
+  cudd)
  (flags
   (:standard
    -w
