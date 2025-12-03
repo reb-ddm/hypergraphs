@@ -19,10 +19,7 @@ module SemiParametricHypergraph = struct
     match mvbdu with
     | Edges_intbdu.Bool b -> b
     | Edges_intbdu.Mvbdu int_mvbdu ->
-      let variables =
-        Edges_intbdu.extensional_of_variables_list
-          (Edges_intbdu.variables_list_of_mvbdu int_mvbdu)
-      in
+      let variables = Edges_intbdu.variables_list_of_mvbdu int_mvbdu in
       let valuation_list =
         List.map
           (fun i ->
@@ -33,9 +30,9 @@ module SemiParametricHypergraph = struct
                 0 ))
           variables
       in
-      let valuation_list = Edges_intbdu.build_association_list valuation_list in
-      let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
-      let mvbdu_valuation = Edges_intbdu.mvbdu_normalize mvbdu_valuation in
+      let mvbdu_valuation =
+        Edges_intbdu.mvbdu_of_association_list valuation_list
+      in
       let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
       let mvbdu_false = Edges_intbdu.mvbdu_false () in
       not (mvbdu_equal mvbdu_inter mvbdu_false)
@@ -46,24 +43,17 @@ module SemiParametricHypergraph = struct
 
   let abstract_parameters mvbdu mvbdu_valuation parameters =
     let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
-    match mvbdu_inter with
-    | Bool _ -> mvbdu_inter
-    | Mvbdu mvbdu_inter ->
-      let mvbdu =
-        Edges_intbdu.mvbdu_project_abstract_away mvbdu_inter parameters
-      in
-      Edges_intbdu.mvbdu_normalize mvbdu
+    Edges_intbdu.mvbdu_project_abstract_away mvbdu_inter parameters
 
   let remove_parameters_for_all_nodes valuation_list parameters t =
     let valuation_list = List.rev valuation_list in
     let parameters = List.rev parameters in
-    let valuation_list = Edges_intbdu.build_association_list valuation_list in
-    let vars = Edges_intbdu.build_variables_list parameters in
-    let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
-    let mvbdu_valuation = Edges_intbdu.mvbdu_normalize mvbdu_valuation in
+    let mvbdu_valuation =
+      Edges_intbdu.mvbdu_of_association_list valuation_list
+    in
     let reachability_status =
       ReachabilityStatus.map
-        (fun _ mvbdu -> abstract_parameters mvbdu mvbdu_valuation vars)
+        (fun _ mvbdu -> abstract_parameters mvbdu mvbdu_valuation parameters)
         t.reachability_status
     in
     { t with reachability_status }

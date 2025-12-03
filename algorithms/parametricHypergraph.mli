@@ -1,17 +1,10 @@
 open Hypergraph_sig
 
 module Edges_intbdu : sig
-  type association_list
   type mvbdu
-  type variables_list
   type key = Id.t
 
-  val build_association_list : (int * int) list -> association_list
-  val mvbdu_of_hconsed_asso : association_list -> mvbdu
-  val mvbdu_project_abstract_away : mvbdu -> variables_list -> mvbdu
-  val build_variables_list : key list -> variables_list
-  val variables_list_of_mvbdu : mvbdu -> variables_list
-  val extensional_of_variables_list : variables_list -> key list
+  val variables_list_of_mvbdu : mvbdu -> key list
 
   type t = Bool of bool | Mvbdu of mvbdu
 
@@ -22,9 +15,8 @@ module Edges_intbdu : sig
   val mvbdu_and : t -> t -> t
   val mvbdu_true : unit -> t
   val mvbdu_false : unit -> t
-
-  val mvbdu_normalize : mvbdu -> t
-  (**If the mvbdu is equal to mvbdu_true of mvbdu_false then instead of storing the bdu, we only store true/false*)
+  val mvbdu_of_association_list : (int * int) list -> t
+  val mvbdu_project_abstract_away : t -> key list -> t
 end
 
 module AdjacencyList : sig

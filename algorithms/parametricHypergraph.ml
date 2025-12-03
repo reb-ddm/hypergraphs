@@ -11,8 +11,6 @@ module Edges_intbdu = struct
   module Internal_mvbdu = Internalize (Edges_bdu)
   include Internal_mvbdu
 
-  type variables_list = hconsed_variables_list
-  type association_list = hconsed_association_list
   type t = Bool of bool | Mvbdu of mvbdu
 
   let init () =
@@ -33,13 +31,16 @@ module Edges_intbdu = struct
       in
       print parameters mvbdu
 
+  let variables_list_of_mvbdu mvbdu =
+    let variables_list = variables_list_of_mvbdu mvbdu in
+    extensional_of_variables_list variables_list
+
   let build_restriction_bdu variables_list =
     let range = List.map (fun var -> var, (Some 0, Some 1)) variables_list in
     mvbdu_of_range_list range
 
   let build_restriction_bdu_1 mvbdu =
     let variables_list = variables_list_of_mvbdu mvbdu in
-    let variables_list = extensional_of_variables_list variables_list in
     build_restriction_bdu variables_list
 
   let rec merge_list_no_duplicates l1 l2 =
@@ -56,9 +57,7 @@ module Edges_intbdu = struct
 
   let build_restriction_bdu_2 mvbdu1 mvbdu2 =
     let variables_list1 = variables_list_of_mvbdu mvbdu1 in
-    let variables_list1 = extensional_of_variables_list variables_list1 in
     let variables_list2 = variables_list_of_mvbdu mvbdu2 in
-    let variables_list2 = extensional_of_variables_list variables_list2 in
     let variables_list =
       merge_list_no_duplicates variables_list1 variables_list2
     in
@@ -114,6 +113,19 @@ module Edges_intbdu = struct
     | Bool false -> Logical_formulae.False
     | Bool true -> Logical_formulae.True
     | Mvbdu mvbdu -> mvbdu_to_formula ~cartesian_decomposition:false mvbdu
+
+  let mvbdu_of_association_list association_list =
+    let valuation_list = build_association_list association_list in
+    let mvbdu_valuation = mvbdu_of_hconsed_asso valuation_list in
+    mvbdu_normalize mvbdu_valuation
+
+  let mvbdu_project_abstract_away mvbdu variables_list =
+    let variables_list = build_variables_list variables_list in
+    match mvbdu with
+    | Bool _ -> mvbdu
+    | Mvbdu mvbdu_inter ->
+      let mvbdu = mvbdu_project_abstract_away mvbdu_inter variables_list in
+      mvbdu_normalize mvbdu
 end
 
 module ParametricHypergraph = struct
@@ -178,9 +190,9 @@ module ParametricHypergraph = struct
             else
               0 ))
     in
-    let valuation_list = Edges_intbdu.build_association_list valuation_list in
-    let mvbdu_valuation = Edges_intbdu.mvbdu_of_hconsed_asso valuation_list in
-    let mvbdu_valuation = Edges_intbdu.mvbdu_normalize mvbdu_valuation in
+    let mvbdu_valuation =
+      Edges_intbdu.mvbdu_of_association_list valuation_list
+    in
     let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
     let mvbdu_false = Edges_intbdu.mvbdu_false () in
     not (mvbdu_equal mvbdu_inter mvbdu_false)
@@ -260,7 +272,6 @@ module ParametricHypergraph = struct
             let new_mvbdu_node2 =
               Edges_intbdu.mvbdu_of_association_list association_list
             in
-            let new_mvbdu_node2 = Edges_intbdu.Mvbdu new_mvbdu_node2 in
             t, Edges_intbdu.mvbdu_and current_node_mvbdu new_mvbdu_node2
           ) else
             t, current_node_mvbdu
