@@ -51,6 +51,9 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     let () = Res.Array.add_one hc.horn_clauses_array (Some (head, body)) in
     { hc with horn_clause_handler = HC.add_clause edge hc.horn_clause_handler }
 
+  let clause_of_index i hc = 
+    Res.Array.get hc.horn_clauses_array i
+
   let reachable_vars hc =
     Vars.get_vars_in_alphabetical_order hc.vars
     |> Seq.filter_map (fun (name, id) ->

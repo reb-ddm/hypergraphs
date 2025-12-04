@@ -10,6 +10,7 @@ module HornClauseHandler : functor (_ : FullyDynamicHornClauses) -> sig
 
   val init : nr_vars:int -> t
   val add_clause : int * IdSet.t -> t -> t
+  val clause_of_index : int -> t -> clause option
   val reachable_vars : t -> string list
 
   val first_reachable_vars : t -> string Seq.t
