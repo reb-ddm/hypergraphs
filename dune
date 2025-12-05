@@ -62,14 +62,9 @@
    -open
    Incremental_analysis_interactive_agent)))
 
-
 (executable
  (name QuickCheckTests)
- (libraries
-  qcheck
-  incremental_analysis_util
-  incremental_analysis_algorithms
-  )
+ (libraries qcheck incremental_analysis_util incremental_analysis_algorithms)
  (modules QuickCheckTests)
  (public_name QuickCheckTests)
  (package kappa-binaries)
@@ -80,5 +75,4 @@
    -open
    Incremental_analysis_util
    -open
-   Incremental_analysis_algorithms))
-)
+   Incremental_analysis_algorithms)))

@@ -51,8 +51,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     let () = Res.Array.add_one hc.horn_clauses_array (Some (head, body)) in
     { hc with horn_clause_handler = HC.add_clause edge hc.horn_clause_handler }
 
-  let clause_of_index i hc = 
-    Res.Array.get hc.horn_clauses_array i
+  let clause_of_index i hc = Res.Array.get hc.horn_clauses_array i
 
   let reachable_vars hc =
     Vars.get_vars_in_alphabetical_order hc.vars
@@ -249,8 +248,8 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     in
     String.concat "\n" (List.rev lines)
 
-  let remove_clause hc (head, body) index =
-    let () = Res.Array.set hc.horn_clauses_array index None in
+  let remove_clause hc (head, body) _index =
+    (* let () = Res.Array.set hc.horn_clauses_array index None in *)
     let clause, hc = clause_to_edge (head, body) hc in
     {
       hc with
