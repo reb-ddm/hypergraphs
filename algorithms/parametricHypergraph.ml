@@ -123,9 +123,9 @@ module Edges_intbdu = struct
           let output_true = to_formula branch_true in
           let output_false = to_formula branch_false in
           let imply_false =
-            Logical_formulae.IMPLY (Logical_formulae.NOT atom, output_true)
+            Logical_formulae.IMPLY (Logical_formulae.NOT atom, output_false)
           in
-          let imply_true = Logical_formulae.IMPLY (atom, output_false) in
+          let imply_true = Logical_formulae.IMPLY (atom, output_true) in
           Logical_formulae.AND (imply_false, imply_true)
       in
       Logical_formulae.simplify (to_formula mvbdu)
