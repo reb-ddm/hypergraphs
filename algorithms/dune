@@ -10,13 +10,15 @@
   kappa_kasa_kastor_toolset
   psq
   kappa_parameters
-  cudd)
+  incremental_analysis_bdds)
  (flags
   (:standard
    -w
    @a-40-42
    -open
    Incremental_analysis_util
+   -open
+   Incremental_analysis_bdds
    -open
    Kappa_kasa_frontend
    -open

@@ -1,23 +1,5 @@
 open Hypergraph_sig
-
-module Edges_intbdu : sig
-  type mvbdu
-  type key = Id.t
-
-  val variables_list_of_mvbdu : mvbdu -> key list
-
-  type t = Bool of bool | Mvbdu of mvbdu
-
-  val init : unit -> unit
-  val print : t -> unit
-  val mvbdu_equal : t -> t -> bool
-  val mvbdu_or : t -> t -> t
-  val mvbdu_and : t -> t -> t
-  val mvbdu_true : unit -> t
-  val mvbdu_false : unit -> t
-  val mvbdu_of_association_list : (int * int) list -> t
-  val mvbdu_project_abstract_away : t -> key list -> t
-end
+module Edges_intbdu : Bdd_sig.Bdd
 
 module AdjacencyList : sig
   type t
