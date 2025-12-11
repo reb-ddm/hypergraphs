@@ -128,5 +128,11 @@ module type FullyDynamicHornClauses = sig
   val close_chapter : t -> t
 end
 
+
+type test_step = 
+  (** (command to add or remove an edge, list of reachable vars after the graph was modified)*)
+  string * string list
+
 type test_suite =
-  string * (int * int) option * int * (string * string list) list
+  (** (test name, optional coordinates for the runtime plot, nr of nodes, commands for the hypergraph creation, commands for the hypergraph modification) *)
+  string * (int * int) option * int * test_step list * test_step list

@@ -1,4 +1,3 @@
-open Printf
 open HcHandler
 open Hypergraph_sig
 open Enabled_tests
@@ -21,6 +20,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     remove_time: float;
     open_chapter_time: float;
     reachable_vars_time: float;
+    build_time: float;
   }
 
   (* results: size -> steps -> bench_result *)
@@ -46,7 +46,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     Lwt_main.run (with_timeout ())
 
   let update_results results size steps add_time remove_time open_chapter_time
-      reachable_vars_time =
+      reachable_vars_time build_time =
     let step_map =
       match IntMap.find_opt size results with
       | Some sm -> sm
@@ -54,7 +54,13 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     in
     let updated_step_map =
       IntMap.add steps
-        { add_time; remove_time; open_chapter_time; reachable_vars_time }
+        {
+          add_time;
+          remove_time;
+          open_chapter_time;
+          reachable_vars_time;
+          build_time;
+        }
         step_map
     in
     IntMap.add size updated_step_map results
@@ -124,13 +130,54 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
   let run_tests title enabled_tests =
     let _ = print_endline title in
-    (* collect results *)
     let results =
       List.fold_left
-        (fun results (test_name, coordinates, nr_vars, commands) ->
-          (* infer number of steps from test_name, e.g. generated_test_remove2_of_size_10_with_2_steps *)
+        (fun results (test_name, coordinates, nr_vars, commands_build, commands) ->
           print_endline ("Starting test " ^ test_name);
           let hc = HypergraphHCH.init ~nr_vars in
+          let hc, _, success1, build_time, reachable_vars_time1 =
+            Hypergraph_sig.fold_until
+              (fun (hc, i, _, build_time, reachable_vars_time) test ->
+                let testid = test_name ^ "_build_graph" ^ string_of_int i in
+                let hc, success, is_add, test_time, test_reachable_vars_time =
+                  run_test hc testid test
+                in
+                let build_time, success =
+                  match is_add with
+                  | Some true -> build_time +. test_time, success
+                  | Some false ->
+                    let () =
+                      print_endline
+                        "Warning: there was an ignored 'remove' while building \
+                         the graph"
+                    in
+                    0., false
+                  | None ->
+                    if i = 0 && fst test = "close" then
+                      0., success
+                    else (
+                      let () =
+                        print_endline
+                          "Warning: there was an ignored 'open' or 'close' \
+                           while building the graph"
+                      in
+                      0., false
+                    )
+                in
+                if build_time > timeout then (
+                  let () =
+                    print_endline ("   TIMEOUT FOR TEST " ^ testid ^ "!")
+                  in
+                  hc, 0, false, build_time, reachable_vars_time
+                ) else
+                  ( hc,
+                    i + 1,
+                    success,
+                    build_time,
+                    reachable_vars_time +. test_reachable_vars_time ))
+              (fun (_, _, success, _, _) -> not success)
+              (hc, 0, true, 0., 0.) commands_build
+          in
           let ( _,
                 _,
                 success,
@@ -179,25 +226,24 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
                     open_chapter_time,
                     reachable_vars_time +. test_reachable_vars_time ))
               (fun (_, _, success, _, _, _, _) -> not success)
-              (hc, 0, true, 0., 0., 0., 0.)
+              (hc, 0, success1, 0., 0., 0., reachable_vars_time1)
               commands
           in
           if success then (
             match coordinates with
             | Some (_size, steps) ->
               update_results results nr_vars steps add_time remove_time
-                open_chapter_time reachable_vars_time
+                open_chapter_time reachable_vars_time build_time
             | None -> results
           ) else (
             match coordinates with
             | Some (_size, steps) ->
               update_results results nr_vars steps timeout timeout timeout
-                timeout
+                timeout timeout
             | None -> results
           ))
         empty_results enabled_tests
     in
-    (* print markdown table *)
     let all_sizes =
       IntMap.bindings results |> List.map fst |> List.sort compare
     in
@@ -208,43 +254,6 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
            (IntMap.bindings results))
       |> List.sort_uniq compare
     in
-    let print_table label selector =
-      printf "\n- %s\n\n" (String.uppercase_ascii label);
-      printf "|       | %s |\n"
-        (String.concat " | " (List.map string_of_int all_steps));
-      printf "| ----- %s |\n"
-        (String.concat "" (List.map (fun _ -> "| ---- ") all_steps));
-      List.iter
-        (fun size ->
-          printf "| %-5d " size;
-          List.iter
-            (fun step ->
-              let v =
-                match IntMap.find_opt size results with
-                | None -> ""
-                | Some sm ->
-                  (match IntMap.find_opt step sm with
-                  | None -> ""
-                  | Some result ->
-                    let t = selector result in
-                    if 0. < t && t < 0.00005 then
-                      "0"
-                    else if t < 1. then
-                      sprintf "%.2f" t
-                    else
-                      sprintf "%.1f" t)
-              in
-              printf "| %-4s " v)
-            all_steps;
-          print_endline "|")
-        all_sizes
-    in
-
-    print_table "ADDING" (fun t -> t.add_time);
-    print_table "REMOVING" (fun t -> t.remove_time);
-    print_table "OPEN/CLOSE CHAPTER" (fun t -> t.open_chapter_time);
-    print_table "REACHABLE VARS" (fun t -> t.reachable_vars_time);
-
     (* PLOT WITH GNUPLOT *)
     let module Gp = Gnuplot in
     let extract_series_step f =
@@ -280,7 +289,9 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
     let plot_size_time_first_step extract_series =
       let add_series, x_label = extract_series (fun br -> br.add_time) in
-      let add_series = Gp.Series.linespoints_xy ~title:"add time" add_series in
+      let add_series =
+        Gp.Series.linespoints_xy ~title:"add time" add_series
+      in
       let remove_series =
         Gp.Series.linespoints_xy ~title:"remove time"
           (fst (extract_series (fun br -> br.remove_time)))
@@ -293,6 +304,10 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
         Gp.Series.linespoints_xy ~title:"reachable vars time"
           (fst (extract_series (fun br -> br.reachable_vars_time)))
       in
+      let build_graph_series =
+        Gp.Series.linespoints_xy ~title:"build graph"
+          (fst (extract_series (fun br -> br.build_time)))
+      in
 
       let gp = Gp.create () in
 
@@ -301,7 +316,11 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
       Gp.plot_many gp
         ~output:(Gp.Output.create (`Png_cairo ("output/" ^ title ^ ".png")))
         [
-          add_series; remove_series; open_chapter_series; reachable_vars_series;
+          add_series;
+          remove_series;
+          open_chapter_series;
+          reachable_vars_series;
+          build_graph_series;
         ]
         ~labels;
       Gp.close gp

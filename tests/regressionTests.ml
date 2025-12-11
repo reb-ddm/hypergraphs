@@ -2,12 +2,14 @@ let t1 =
   ( "very_simple_add",
     None,
     3,
+    [],
     [ "add a:=b,c", []; "add b:=", [ "b" ]; "add c:=", [ "a"; "b"; "c" ] ] )
 
 let t2 =
   ( "very_simple_remove",
     None,
     2,
+    [],
     [
       "add a:=", [ "a" ];
       "add b:=", [ "a"; "b" ];
@@ -19,6 +21,7 @@ let t3 =
   ( "simple_loop",
     None,
     6,
+    [],
     [
       "add x1:=", [ "x1" ];
       "add x2:=", [ "x1"; "x2" ];
@@ -34,6 +37,7 @@ let t4 =
   ( "simple_loop_wrong_order",
     None,
     6,
+    [],
     [
       "add x5:=x1,x2", [];
       "add x1:=", [ "x1" ];
@@ -52,12 +56,14 @@ let t5 =
   ( "reflexive_edge",
     None,
     3,
+    [],
     [ "add a:=a", []; "remove 0", []; "add a:=f,a,w", []; "remove 1", [] ] )
 
 let t6 =
   ( "long_chain",
     None,
     7,
+    [],
     [
       "add a:=", [ "a" ];
       "add b:=a", [ "a"; "b" ];
@@ -85,6 +91,7 @@ let t7 =
   ( "long_chain_v2_",
     None,
     8,
+    [],
     [
       "add a:=", [ "a" ];
       "add d:=a,b", [ "a" ];
@@ -115,6 +122,7 @@ let t8 =
   ( "remove2_of_size_2_with_2_steps",
     None,
     4,
+    [],
     [
       "close", [];
       "add a1:=", [ "a1" ];
@@ -130,6 +138,7 @@ let t9 =
   ( "chapters_small_test",
     None,
     7,
+    [],
     [
       "close", [];
       "add a1:=", [ "a1" ];
@@ -148,6 +157,7 @@ let t10 =
   ( "close_chapter_small_test",
     None,
     2,
+    [],
     [
       "add a:=b", [];
       "add b:=", [ "a"; "b" ];
@@ -161,6 +171,7 @@ let t11 =
   ( "two_equal_edges",
     None,
     3,
+    [],
     [
       "add a:=c", [];
       "add c:=", [ "a"; "c" ];
@@ -179,12 +190,14 @@ let t12 =
   ( "remove_and_then_add",
     None,
     2,
+    [],
     [ "add y:=x", []; "remove 0", []; "add y:=", [ "y" ] ] )
 
 let t13 =
   ( "alternative_local_path",
     None,
     5,
+    [],
     [
       "close", [];
       "add a:=", [ "a" ];
@@ -202,6 +215,7 @@ let t14 =
   ( "alternative_local_path_compound_node",
     None,
     8,
+    [],
     [
       "close", [];
       "add x1:=", [ "x1" ];
@@ -221,6 +235,7 @@ let t15 =
   ( "no_local_path",
     None,
     5,
+    [],
     [
       "close", [];
       "add a:=", [ "a" ];
@@ -238,6 +253,7 @@ let t16 =
   ( "two_incoming_edges",
     None,
     3,
+    [],
     [
       "add a:=", [ "a" ];
       "add b:=", [ "a"; "b" ];
@@ -249,6 +265,7 @@ let t17 =
   ( "open_chapter_with_loop",
     None,
     4,
+    [],
     [
       "close", [];
       "add a:=", [ "a" ];
@@ -263,6 +280,7 @@ let t18 =
   ( "chapters_small_test2",
     None,
     5,
+    [],
     [
       "add a1:=", [ "a1" ];
       "add a2:=", [ "a1"; "a2" ];

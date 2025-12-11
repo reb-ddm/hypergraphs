@@ -122,8 +122,8 @@ let test_add size pre_steps =
     )
   in
   let tests, reachable_vars = next_layer name_vars size tests reachable_vars in
-  let tests = add_simple_edges_from_true tests pre_steps_vars reachable_vars in
-  name, Some (size, pre_steps), nr_nodes, List.rev tests
+  let tests2 = add_simple_edges_from_true [] pre_steps_vars reachable_vars in
+  name, Some (size, pre_steps), nr_nodes, List.rev tests, List.rev tests2
 
 let test_add2 size pre_steps =
   let nr_nodes = size + pre_steps + 1 in
@@ -153,8 +153,8 @@ let test_add2 size pre_steps =
   let tests, reachable_vars =
     (last_test, reachable_vars) :: tests, reachable_vars
   in
-  let tests = add_simple_edges_from_true tests pre_steps_vars reachable_vars in
-  name, Some (size, pre_steps), nr_nodes, List.rev tests
+  let tests2 = add_simple_edges_from_true [] pre_steps_vars reachable_vars in
+  name, Some (size, pre_steps), nr_nodes, List.rev tests, List.rev tests2
 
 let test_remove size pre_steps =
   let nr_nodes = size + pre_steps + 1 in
@@ -179,7 +179,7 @@ let test_remove size pre_steps =
   let reachable_vars = reachable_vars_append j reachable_vars name_goal_var in
   let tests = List.rev ((last_test, reachable_vars) :: tests) in
   let remove_tests = remove_simple_edges_starting_from_a_node pre_steps_vars in
-  name, Some (size, pre_steps), nr_nodes, tests @ remove_tests
+  name, Some (size, pre_steps), nr_nodes, tests, remove_tests
 
 let test_remove2 size steps =
   let nr_nodes = size + 2 in
@@ -204,9 +204,7 @@ let test_remove2 size steps =
   let open_chapter = "open 0" in
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let reachable_vars = reachable_vars_append j reachable_vars name_goal_var in
-  let tests =
-    (open_chapter, reachable_vars) :: (last_test, reachable_vars) :: tests
-  in
+  let tests = (last_test, reachable_vars) :: tests in
   let remove_tests =
     List.init steps (fun i ->
         if i mod 2 = 0 then (
@@ -220,7 +218,11 @@ let test_remove2 size steps =
         ) else
           "add " ^ name_pre_steps_var ^ ":=", reachable_vars)
   in
-  name, Some (size, steps), nr_nodes, List.rev tests @ remove_tests
+  ( name,
+    Some (size, steps),
+    nr_nodes,
+    List.rev tests,
+    (open_chapter, reachable_vars) :: remove_tests )
 
 let test_remove3 size steps =
   let nr_nodes = size + 3 in
@@ -247,12 +249,7 @@ let test_remove3 size steps =
   let reachable_vars = reachable_vars_append j reachable_vars name_goal_var in
   let open_test = "open ()", reachable_vars in
   let last_test2 = "add " ^ name_goal_var2 ^ ":=" ^ name_goal_var in
-  let tests =
-    (last_test2, reachable_vars @ [ name_goal_var2 ])
-    :: open_test
-    :: (last_test, reachable_vars)
-    :: tests
-  in
+  let tests = (last_test, reachable_vars) :: tests in
   let reachable_vars2 = reachable_vars @ [ name_goal_var2 ] in
   let remove_tests =
     List.init steps (fun i ->
@@ -262,7 +259,13 @@ let test_remove3 size steps =
         ) else
           "add " ^ name_goal_var2 ^ ":=" ^ name_goal_var, reachable_vars2)
   in
-  name, Some (size, steps), nr_nodes, List.rev tests @ remove_tests
+  ( name,
+    Some (size, steps),
+    nr_nodes,
+    List.rev tests,
+    open_test
+    :: (last_test2, reachable_vars @ [ name_goal_var2 ])
+    :: remove_tests )
 
 let test_remove4_5 size pre_steps remove_first_edge name =
   let nr_nodes = size + pre_steps + 1 in
@@ -293,9 +296,9 @@ let test_remove4_5 size pre_steps remove_first_edge name =
     else
       "open ()", reachable_vars
   in
-  let tests =
+  let prefix_remove_tests =
     List.rev (add_simple_edges_from_true [] pre_steps_vars reachable_vars)
-    @ [ open_test ] @ tests
+    @ [ open_test ]
   in
   let reachable_vars =
     if remove_first_edge then
@@ -325,8 +328,11 @@ let test_remove4_5 size pre_steps remove_first_edge name =
     else
       remove_tests
   in
-  let tests = remove_tests @ remove_first_edge_test @ tests in
-  name, Some (size, pre_steps), nr_nodes, List.rev tests
+  ( name,
+    Some (size, pre_steps),
+    nr_nodes,
+    List.rev tests,
+    List.rev (remove_tests @ remove_first_edge_test @ prefix_remove_tests) )
 
 let test_remove4 size p = test_remove4_5 size p false "4"
 let test_remove5 size p = test_remove4_5 size p true "5"
@@ -354,14 +360,18 @@ let test_remove6 size pre_steps =
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let reachable_vars = reachable_vars_append j reachable_vars name_goal_var in
   let tests = (last_test, reachable_vars) :: tests in
-  let open_test = "open 0-" ^ string_of_int pre_steps in
+  let open_test = "open 0-" ^ string_of_int (pre_steps - 1) in
   let copy_var var = "z" ^ var ^ "_2" in
   let addpath_tests, _, reachable_vars =
     add_alternative_paths_edges [] pre_steps_vars reachable_vars copy_var
   in
-  let tests = [ open_test, reachable_vars ] @ addpath_tests @ tests in
+  let tests = addpath_tests @ tests in
   let remove_tests =
     List.init pre_steps (fun i -> "remove " ^ string_of_int i, reachable_vars)
   in
-  let tests = remove_tests @ tests in
-  name, Some (size, pre_steps), nr_nodes, List.rev tests
+  let tests = tests in
+  ( name,
+    Some (size, pre_steps),
+    nr_nodes,
+    List.rev tests,
+    (open_test, reachable_vars) :: List.rev remove_tests )
