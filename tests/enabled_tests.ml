@@ -37,16 +37,16 @@ let _generated_tests test_add2 =
     (* test_add2 10000 10000; *)
   ]
 
-let _generated_tests_add_and_remove () =
+let _generated_tests_add_and_remove n i =
   ( [
-      test_add 7 13;
-      test_add2 7 13;
-      test_remove 7 13;
-      test_remove2 7 13;
-      test_remove3 7 13;
-      test_remove4 7 13;
-      test_remove5 7 13;
-      test_remove6 7 13;
+      test_add n i;
+      test_add2 n i;
+      test_remove n i;
+      test_remove2 n i;
+      test_remove3 n i;
+      test_remove4 n i;
+      test_remove5 n i;
+      test_remove6 n i;
     ],
     "all generated tests small examples" )
 
