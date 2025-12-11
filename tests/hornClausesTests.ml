@@ -290,18 +290,18 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     let plot_size_time_first_step extract_series =
       let add_series, x_label = extract_series (fun br -> br.add_time) in
       let add_series =
-        Gp.Series.linespoints_xy ~title:"add time" add_series
+        Gp.Series.linespoints_xy ~title:"add clauses" add_series
       in
       let remove_series =
-        Gp.Series.linespoints_xy ~title:"remove time"
+        Gp.Series.linespoints_xy ~title:"remove clauses"
           (fst (extract_series (fun br -> br.remove_time)))
       in
       let open_chapter_series =
-        Gp.Series.linespoints_xy ~title:"open chapter time"
+        Gp.Series.linespoints_xy ~title:"choose a subset of active clauses"
           (fst (extract_series (fun br -> br.open_chapter_time)))
       in
       let reachable_vars_series =
-        Gp.Series.linespoints_xy ~title:"reachable vars time"
+        Gp.Series.linespoints_xy ~title:"check reachability of first 1000 nodes"
           (fst (extract_series (fun br -> br.reachable_vars_time)))
       in
       let build_graph_series =
