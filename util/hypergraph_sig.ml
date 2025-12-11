@@ -184,7 +184,7 @@ module Vars = struct
           id + 1
         else
           vars.next_unused_int
-        (*TODO if you remember the free sites then remove id and add everything between unused_int and id*)
+          (*TODO if you remember the free sites then remove id and add everything between unused_int and id*)
       in
       {
         vars with
@@ -204,11 +204,11 @@ module Vars = struct
       else (
         let i = vars.next_unused_int in
         ( {
-            vars with
-            var_name_to_int = StringMap.add var i vars.var_name_to_int;
-            int_name_to_var = IntMap.add i var vars.int_name_to_var;
-            next_unused_int = i + 1;
-          },
+          vars with
+          var_name_to_int = StringMap.add var i vars.var_name_to_int;
+          int_name_to_var = IntMap.add i var vars.int_name_to_var;
+          next_unused_int = i + 1;
+        },
           i,
           true )
       )
@@ -286,9 +286,9 @@ module MutableNodeMap (Elt : HasEmpty) = struct
     in
     Res.Array.iteri
       (fun i elt ->
-        match elt with
-        | None -> ()
-        | Some elt -> f (Node.Compound i) elt)
+         match elt with
+         | None -> ()
+         | Some elt -> f (Node.Compound i) elt)
       t.compound_nodes_map
 
   let map f t =
@@ -298,9 +298,9 @@ module MutableNodeMap (Elt : HasEmpty) = struct
     let compound_nodes_map =
       Res.Array.mapi
         (fun i elt ->
-          match elt with
-          | None -> None
-          | Some elt -> Some (f (Node.Compound i) elt))
+           match elt with
+           | None -> None
+           | Some elt -> Some (f (Node.Compound i) elt))
         t.compound_nodes_map
     in
     { simple_nodes_map; compound_nodes_map }
