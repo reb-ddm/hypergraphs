@@ -10,7 +10,8 @@
   kappa_kasa_kastor_toolset
   psq
   kappa_parameters
-  cudd)
+  cudd
+  ctypes-foreign)
  (flags
   (:standard
    -w
@@ -24,4 +25,7 @@
    -open
    Kappa_kasa_kastor_toolset
    -open
-   Kappa_parameters)))
+   Kappa_parameters
+   -cclib
+   -L/home/reb_ddm/ens/code/sylvan/build/src/lib 
+   -cclib -lsylvan)))
