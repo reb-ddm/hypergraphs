@@ -14,5 +14,10 @@ let _run_tests (enabled_tests, s) =
        debug_enabled_tests (), ""
      else
        enabled_tests ()) *)
+let uzero = Unsigned.UInt.of_int 0
+let sizezero = Unsigned.Size_t.of_int 0
+let size = Unsigned.Size_t.of_int (512*1024*1024)
 
-let _ = Sylvan_bindings.init_mdd ()
+let _ = Sylvan_bindings.lace_start uzero sizezero
+let _ = Sylvan_bindings.sylvan_set_limits size 1 5
+
