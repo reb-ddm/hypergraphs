@@ -72,8 +72,40 @@ let variables_list_of_mvbdu (m : mvbdu) : key list =
   done;
   IntSet.elements !seen
 
-let mvbdu_of_association_list _ = (*TODO*)
-  mvbdu_false ()
+let mvbdu_of_association_list alist =
+  (* Build a level where all values {0,1} are allowed. TODO adapt for MDDs *)
+  let all_values_level down =
+    let node1 =
+      lddmc_makenode
+        (Unsigned.UInt32.of_int 1)
+        down
+        lddmc_false
+    in
+    lddmc_makenode
+      (Unsigned.UInt32.of_int 0)
+      down
+      node1
+  in
+  (* Build bottom-up *)
+  let rec build level vars down =
+    match vars with
+    | [] -> down
+    | (v, value) :: rest when v = level ->
+      (* Variable constrained to a single value *)
+      let node = lddmc_makenode
+        (Unsigned.UInt32.of_int value)
+        down
+        lddmc_false in
+      build (level + 1) rest node
+    | _ ->
+      (* Variable unconstrained: allow {0,1} *)
+      let node = all_values_level down in
+      build (level + 1) vars node
+  in
+  let root =
+    build 0 alist lddmc_true
+  in
+  Mvbdu root
 
 let mvbdu_project_abstract_away t _ = t (*TODO*)
 
