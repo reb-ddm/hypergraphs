@@ -26,6 +26,4 @@
    Kappa_kasa_kastor_toolset
    -open
    Kappa_parameters
-   -cclib
-   -L/home/reb_ddm/ens/code/sylvan/build/src/lib 
    -cclib -lsylvan)))
