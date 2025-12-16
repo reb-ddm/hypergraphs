@@ -24,17 +24,17 @@ let lddmc_makenode =
     (uint32_t @-> mdd @-> mdd @-> returning mdd)
 
 let lddmc_union =
-  foreign "lddmc_union" (mdd @-> mdd @-> returning mdd)
+  foreign "ocaml_lddmc_union_f" (mdd @-> mdd @-> returning mdd)
 
 let lddmc_intersect =
-  foreign "lddmc_intersect" (mdd @-> mdd @-> returning mdd)
+  foreign "ocaml_lddmc_intersect_f" (mdd @-> mdd @-> returning mdd)
 
 let mtbdd_support =
-  foreign "mtbdd_support"
+  foreign "ocaml_mtbdd_support_f"
     (mdd @-> returning mdd)
 
 let lddmc_project =
-  foreign "lddmc_project"
+  foreign "ocaml_lddmc_project_f"
     (mdd @-> mdd @-> mdd @-> returning mdd)
 
 let lddmc_getvalue =
