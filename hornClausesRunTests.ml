@@ -9,15 +9,16 @@ let _run_tests (enabled_tests, s) =
     enabled_tests
 
 (* let _ =
-  run_tests
+   run_tests
     (if debug then
        debug_enabled_tests (), ""
      else
        enabled_tests ()) *)
-let uzero = Unsigned.UInt.of_int 0
-let sizezero = Unsigned.Size_t.of_int 0
-let size = Unsigned.Size_t.of_int (512*1024*1024)
 
-let _ = Sylvan_bindings.lace_start uzero sizezero
-let _ = Sylvan_bindings.sylvan_set_limits size 1 5
+let main () =
+  let () = Sylvan_wrapper.init () in
+  let m = Sylvan_wrapper.mvbdu_of_association_list [ 0, 1; 2, 0 ] in
+  let () = Sylvan_wrapper.print m in
+  print_newline ()
 
+let _ = main ()
