@@ -26,4 +26,5 @@
    Kappa_kasa_kastor_toolset
    -open
    Kappa_parameters
-   -cclib -lsylvan)))
+   -cclib
+   -lsylvan)))
