@@ -17,3 +17,5 @@ val lddmc_getright : mdd -> mdd
 val lddmc_follow : mdd -> Unsigned.uint32 -> mdd
 val lddmc_print : mdd -> unit
 val lddmc_equal : mdd -> mdd -> bool
+val branch_0 : Unsigned.uint32
+val branch_1 : Unsigned.uint32

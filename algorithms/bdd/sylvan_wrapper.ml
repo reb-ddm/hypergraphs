@@ -23,8 +23,8 @@ let is_true (d, ldd) =
     else (
       let down = lddmc_getdown ldd in
       let value = lddmc_getvalue ldd in
-      let follow1 = lddmc_follow ldd Unsigned.UInt32.one in
-      Unsigned.UInt32.(equal value zero)
+      let follow1 = lddmc_follow ldd branch_1 in
+      Unsigned.UInt32.equal value branch_0
       && lddmc_equal down follow1
       && verify_level (level - 1) down
     )
@@ -39,8 +39,8 @@ let print (d, ldd) =
   print_newline ()
 
 let all_values_level down =
-  let node1 = lddmc_makenode (Unsigned.UInt32.of_int 1) down lddmc_false in
-  lddmc_makenode (Unsigned.UInt32.of_int 0) down node1
+  let node1 = lddmc_makenode branch_1 down lddmc_false in
+  lddmc_makenode branch_0 down node1
 
 let normalize_depth (d1, a) (d2, b) =
   if d1 = d2 then
@@ -114,5 +114,68 @@ let mvbdu_of_association_list alist =
   in
   build 0 alist lddmc_true
 
-let mvbdu_project_abstract_away t _ = t (*TODO*)
-let mvbdu_to_formula _ = Logical_formulae.True (*TODO*)
+let rec abstract_away_inefficient level vars ldd =
+  (* no memoization *)
+  match vars with
+  | [] -> ldd
+  | v :: rest when v > level -> abstract_away_inefficient level rest ldd
+  | v :: rest ->
+    (* Abstract away variable: the value can be 0 or 1 *)
+    (* It only works in this context where we only have BDDs *)
+    let down0 = lddmc_follow ldd branch_0 in
+    let down1 = lddmc_follow ldd branch_1 in
+    let new_down0 =
+      if lddmc_equal down0 lddmc_false then
+        down0
+      else
+        abstract_away_inefficient (level - 1) rest down0
+    in
+    let new_down1 =
+      if lddmc_equal down1 lddmc_false then
+        down1
+      else if down0 = down1 then
+        new_down0
+      else
+        abstract_away_inefficient (level - 1) rest down0
+    in
+    if v = level then (
+      let down = lddmc_union new_down0 new_down1 in
+      all_values_level down
+    ) else if lddmc_equal down0 lddmc_false then
+      if lddmc_equal down1 lddmc_false then
+        lddmc_false
+      else
+        lddmc_makenode branch_1 new_down1 lddmc_false
+    else if lddmc_equal down1 lddmc_false then
+      lddmc_makenode branch_0 new_down0 lddmc_false
+    else (
+      let node1 = lddmc_makenode branch_1 new_down1 lddmc_false in
+      lddmc_makenode branch_0 new_down0 node1
+    )
+
+let mvbdu_project_abstract_away (d, t) vars =
+  if is_false (d, t) then
+    d, t
+  else
+    d, abstract_away_inefficient d vars t
+
+let mvbdu_to_formula (d, ldd) =
+  let rec to_formula level ldd =
+    if lddmc_equal ldd lddmc_false then
+      Logical_formulae.False
+    else if lddmc_equal ldd lddmc_true then
+      Logical_formulae.True
+    else (
+      let atom = Logical_formulae.P level in
+      let branch_true = lddmc_follow ldd branch_1 in
+      let branch_false = lddmc_follow ldd branch_0 in
+      let output_true = to_formula (level - 1) branch_true in
+      let output_false = to_formula (level - 1) branch_false in
+      let imply_false =
+        Logical_formulae.IMPLY (Logical_formulae.NOT atom, output_false)
+      in
+      let imply_true = Logical_formulae.IMPLY (atom, output_true) in
+      Logical_formulae.AND (imply_false, imply_true)
+    )
+  in
+  Logical_formulae.simplify (to_formula d ldd)

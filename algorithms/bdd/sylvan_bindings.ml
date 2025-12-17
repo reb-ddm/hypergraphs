@@ -33,3 +33,5 @@ let lddmc_getright = foreign "lddmc_getright" (mdd @-> returning mdd)
 let lddmc_follow = foreign "lddmc_follow" (mdd @-> uint32_t @-> returning mdd)
 let lddmc_print = foreign "lddmc_print" (mdd @-> returning void)
 let lddmc_equal = Unsigned.UInt64.equal
+let branch_1 = Unsigned.UInt32.one
+let branch_0 = Unsigned.UInt32.zero
