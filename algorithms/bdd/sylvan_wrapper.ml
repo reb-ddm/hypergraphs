@@ -3,13 +3,17 @@ open Sylvan_bindings
 type key = int
 type t = int * Sylvan_bindings.mdd (* depth, mdd *)
 
+let is_init = ref false
+
 let init () =
-  let heap_nodes = 100_000_000 in
-  let () = lace_start (Unsigned.UInt.of_int 0) (Unsigned.Size_t.of_int 0) in
-  sylvan_set_limits (Unsigned.Size_t.of_int heap_nodes) 1 1;
-  sylvan_init_package ();
-  sylvan_init_ldd ();
-  ()
+  if not !is_init then 
+    let heap_nodes = 100_000_000 in
+    let () = lace_start (Unsigned.UInt.of_int 0) (Unsigned.Size_t.of_int 0) in
+    sylvan_set_limits (Unsigned.Size_t.of_int heap_nodes) 1 1;
+    sylvan_init_package ();
+    sylvan_init_ldd ();
+    is_init := true;
+    ()
 
 let mvbdu_true () = 0, lddmc_true
 let mvbdu_false () = 0, lddmc_false

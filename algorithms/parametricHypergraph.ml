@@ -1,5 +1,5 @@
 open Hypergraph_sig
-module Edges_intbdu = Cudd_wrapper
+module Edges_intbdu = Sylvan_wrapper
 
 exception UnknownEdge
 

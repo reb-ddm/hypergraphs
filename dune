@@ -23,6 +23,8 @@
  (package kappa-binaries)
  (flags
   (:standard
+   -cclib
+   -lsylvan
    -open
    Kappa_logging
    -open
