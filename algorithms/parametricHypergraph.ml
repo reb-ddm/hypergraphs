@@ -134,24 +134,24 @@ module ParametricHypergraph = struct
 
   let recalculate_mvbdu_simple_edge (node, head) t add_parameter =
     let current_node_mvbdu = reachability_mvbdu_of node t in
-    match current_node_mvbdu with
-    | Bool false -> t
-    | Bool true | Mvbdu _ ->
-      (match reachability_mvbdu_of head t with
-      | Bool true -> t
-      | Bool false | Mvbdu _ ->
-        let t, reach =
-          if add_parameter then (
-            let t, id, _ = get_int_of_edge (node, head) t in
-            let association_list = [ id, 1 ] in
-            let new_mvbdu_node2 =
-              Edges_intbdu.mvbdu_of_association_list association_list
-            in
-            t, Edges_intbdu.mvbdu_and current_node_mvbdu new_mvbdu_node2
-          ) else
-            t, current_node_mvbdu
-        in
-        or_reachability head reach t)
+    if Edges_intbdu.is_false current_node_mvbdu then
+      t
+    else if Edges_intbdu.is_true (reachability_mvbdu_of head t) then
+      t
+    else (
+      let t, reach =
+        if add_parameter then (
+          let t, id, _ = get_int_of_edge (node, head) t in
+          let association_list = [ id, 1 ] in
+          let new_mvbdu_node2 =
+            Edges_intbdu.mvbdu_of_association_list association_list
+          in
+          t, Edges_intbdu.mvbdu_and current_node_mvbdu new_mvbdu_node2
+        ) else
+          t, current_node_mvbdu
+      in
+      or_reachability head reach t
+    )
 
   let recalculate_mvbdu_compound_node node1 t =
     let reach =

@@ -104,6 +104,14 @@ let mvbdu_equal mvbdu1 mvbdu2 =
 let mvbdu_true () = Bool true
 let mvbdu_false () = Bool false
 
+let is_true = function
+  | Bool true -> true
+  | Bool _ | Mvbdu _ -> false
+
+let is_false = function
+  | Bool false -> true
+  | Bool _ | Mvbdu _ -> false
+
 let mvbdu_to_formula mvbdu =
   match mvbdu with
   | Bool false -> Logical_formulae.False
@@ -122,3 +130,8 @@ let mvbdu_project_abstract_away mvbdu variables_list =
   | Mvbdu mvbdu_inter ->
     let mvbdu = mvbdu_project_abstract_away mvbdu_inter variables_list in
     mvbdu_normalize mvbdu
+
+let variables_list_of_mvbdu mvbdu =
+  match mvbdu with
+  | Bool _ -> []
+  | Mvbdu mvbdu -> variables_list_of_mvbdu mvbdu

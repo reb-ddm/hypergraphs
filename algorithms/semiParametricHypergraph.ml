@@ -16,10 +16,12 @@ module SemiParametricHypergraph = struct
 
   let is_reachable node t =
     let mvbdu = ReachabilityStatus.get node t.reachability_status in
-    match mvbdu with
-    | Edges_intbdu.Bool b -> b
-    | Edges_intbdu.Mvbdu int_mvbdu ->
-      let variables = Edges_intbdu.variables_list_of_mvbdu int_mvbdu in
+    if Edges_intbdu.is_true mvbdu then
+      true
+    else if Edges_intbdu.is_false mvbdu then
+      false
+    else (
+      let variables = Edges_intbdu.variables_list_of_mvbdu mvbdu in
       let valuation_list =
         List.map
           (fun i ->
@@ -36,6 +38,7 @@ module SemiParametricHypergraph = struct
       let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
       let mvbdu_false = Edges_intbdu.mvbdu_false () in
       not (mvbdu_equal mvbdu_inter mvbdu_false)
+    )
 
   let reachable_vars =
     let fold f a b = NodeSet.fold (fun a b -> f b a) b a in

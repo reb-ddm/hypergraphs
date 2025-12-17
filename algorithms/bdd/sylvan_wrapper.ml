@@ -1,5 +1,4 @@
 open Sylvan_bindings
-open Printf
 
 module IntSet = Set.Make (struct
   type t = int
@@ -7,9 +6,10 @@ module IntSet = Set.Make (struct
   let compare = compare
 end)
 
-type mvbdu = Sylvan_bindings.mdd
 type key = int
-type t = Bool of bool | Mvbdu of mvbdu
+
+type t = (* (int *  *)
+         Sylvan_bindings.mdd (* depth, mdd *)
 
 let init () =
   let heap_nodes = 100_000_000 in
@@ -19,46 +19,24 @@ let init () =
   sylvan_init_ldd ();
   ()
 
-let mvbdu_true () = Mvbdu lddmc_true
-let mvbdu_false () = Mvbdu lddmc_false
+let mvbdu_true () = lddmc_true
+let mvbdu_false () = lddmc_false
+let is_true ldd = ldd = mvbdu_true ()
+let is_false ldd = ldd = mvbdu_false ()
 
-let print = function
-  | Bool b -> printf "<Bool %b>\n" b
-  | Mvbdu d ->
-    lddmc_print d;
-    print_newline ()
+let print d =
+  lddmc_print d;
+  print_newline ()
 
-let rec mvbdu_equal a b =
-  match a, b with
-  | Bool x, Bool y -> x = y
-  | Bool x, Mvbdu d ->
-    (* compare boolean const to a singleton leaf *)
-    if x then
-      lddmc_equal d lddmc_true
-    else
-      lddmc_equal d lddmc_false
-  | Mvbdu d, Bool x -> mvbdu_equal (Bool x) (Mvbdu d)
-  | Mvbdu x, Mvbdu y -> lddmc_equal x y
-
-let mvbdu_or a b =
-  match a, b with
-  | Bool true, _ | _, Bool true -> Bool true
-  | Bool false, other -> other
-  | other, Bool false -> other
-  | Mvbdu x, Mvbdu y -> Mvbdu (lddmc_union x y)
-
-let mvbdu_and a b =
-  match a, b with
-  | Bool false, _ | _, Bool false -> Bool false
-  | Bool true, other -> other
-  | other, Bool true -> other
-  | Mvbdu x, Mvbdu y -> Mvbdu (lddmc_intersect x y)
+let mvbdu_equal a b = lddmc_equal a b
+let mvbdu_or a b = lddmc_union a b
+let mvbdu_and a b = lddmc_intersect a b
 
 (* TODO adapt for MDDs *)
 let is_terminal (n : mdd) : bool =
   lddmc_equal n lddmc_false || lddmc_equal n lddmc_true
 
-let variables_list_of_mvbdu (m : mvbdu) : key list =
+let variables_list_of_mvbdu m : key list =
   let supp = mtbdd_support m in
   let seen = ref IntSet.empty in
   let stack = Stack.create () in
@@ -97,8 +75,7 @@ let mvbdu_of_association_list alist =
       let node = all_values_level down in
       build (level + 1) vars node
   in
-  let root = build 0 alist lddmc_true in
-  Mvbdu root
+  build 0 alist lddmc_true
 
 let mvbdu_project_abstract_away t _ = t (*TODO*)
 let mvbdu_to_formula _ = Logical_formulae.True (*TODO*)
