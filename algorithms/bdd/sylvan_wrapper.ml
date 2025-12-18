@@ -41,13 +41,13 @@ let is_true (d, ldd) =
 
 let is_false (d, ldd) =
   let is_false = lddmc_equal ldd lddmc_false in
-  if is_false then 
+  if is_false then
     if d != 0 then
       raise InvalidRepresentation
     else
       true
-  else false
-
+  else
+    false
 
 let print (d, ldd) =
   print_endline ("heigt: " ^ string_of_int d);
@@ -134,51 +134,21 @@ let mvbdu_of_association_list alist =
   in
   build 0 alist lddmc_true
 
-let rec abstract_away_inefficient level vars ldd =
-  (* no memoization *)
-  match vars with
-  | [] -> ldd
-  | v :: rest when v > level -> abstract_away_inefficient level rest ldd
-  | v :: rest ->
-    (* Abstract away variable: the value can be 0 or 1 *)
-    (* It only works in this context where we only have BDDs *)
-    let down0 = lddmc_follow ldd branch_0 in
-    let down1 = lddmc_follow ldd branch_1 in
-    let new_down0 =
-      if lddmc_equal down0 lddmc_false then
-        down0
-      else
-        abstract_away_inefficient (level - 1) rest down0
-    in
-    let new_down1 =
-      if lddmc_equal down1 lddmc_false then
-        down1
-      else if down0 = down1 then
-        new_down0
-      else
-        abstract_away_inefficient (level - 1) rest down0
-    in
-    if v = level then (
-      let down = lddmc_union new_down0 new_down1 in
-      all_values_level down
-    ) else if lddmc_equal down0 lddmc_false then
-      if lddmc_equal down1 lddmc_false then
-        lddmc_false
-      else
-        lddmc_makenode branch_1 new_down1 lddmc_false
-    else if lddmc_equal down1 lddmc_false then
-      lddmc_makenode branch_0 new_down0 lddmc_false
-    else (
-      let node1 = lddmc_makenode branch_1 new_down1 lddmc_false in
-      lddmc_makenode branch_0 new_down0 node1
-    )
-
-let mvbdu_project_abstract_away (d, t) vars =
-  if is_false (d, t) then
-    let () = if d <> 0 then print_endline "problem" in
-    d, t
+let mvbdu_project_abstract_away (d, ldd) vars =
+  let rec build_proj level = function
+    | _ when level = d -> []
+    | [] -> (level, 1) :: build_proj (level + 1) []
+    | v :: vars when v = level -> (level, 0) :: build_proj (level + 1) vars
+    | vars -> (level, 1) :: build_proj (level + 1) vars
+  in
+  let proj = build_proj 0 vars in
+  (*TODO add -1 at the beginning*)
+  let _, proj = mvbdu_of_association_list proj in
+  let result = lddmc_project ldd proj in
+  if lddmc_equal result lddmc_false then
+    0, result
   else
-    d, abstract_away_inefficient d vars t
+    d, result
 
 let mvbdu_to_formula (d, ldd) =
   let rec to_formula level ldd =

@@ -11,7 +11,7 @@ val lddmc_makenode : Unsigned.uint32 -> mdd -> mdd -> mdd
 val lddmc_union : mdd -> mdd -> mdd
 val lddmc_intersect : mdd -> mdd -> mdd
 val mtbdd_support : mdd -> mdd
-val lddmc_project : mdd -> mdd -> mdd -> mdd
+val lddmc_project : mdd -> mdd -> mdd
 val lddmc_getvalue : mdd -> Unsigned.uint32
 val lddmc_getdown : mdd -> mdd
 val lddmc_getright : mdd -> mdd

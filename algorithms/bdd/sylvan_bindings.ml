@@ -26,7 +26,7 @@ let lddmc_intersect =
 let mtbdd_support = foreign "ocaml_mtbdd_support_f" (mdd @-> returning mdd)
 
 let lddmc_project =
-  foreign "ocaml_lddmc_project_f" (mdd @-> mdd @-> mdd @-> returning mdd)
+  foreign "ocaml_lddmc_project_f" (mdd @-> mdd @-> returning mdd)
 
 let lddmc_getvalue = foreign "lddmc_getvalue" (mdd @-> returning uint32_t)
 let lddmc_getdown = foreign "lddmc_getdown" (mdd @-> returning mdd)

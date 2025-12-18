@@ -26,13 +26,16 @@ module SemiParametricHypergraph = struct
         List.map
           (fun i ->
             ( i,
-              if Res.Array.get t.current_parameter_valuation i then
-                1
-              else
-                0 ))
+              try
+                if Res.Array.get t.current_parameter_valuation i then
+                  1
+                else
+                  0
+              with Invalid_argument _ -> 0 ))
           variables
       in
       let mvbdu_valuation =
+        (*TODO directly traverse the BDD instead of this*)
         Edges_intbdu.mvbdu_of_association_list valuation_list
       in
       let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
