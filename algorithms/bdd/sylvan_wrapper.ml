@@ -1,5 +1,7 @@
 open Sylvan_bindings
 
+exception InvalidRepresentation
+
 type key = int
 type t = int * Sylvan_bindings.mdd (* depth, mdd *)
 
@@ -25,7 +27,7 @@ let is_true (d, ldd) =
   (* Build bottom-up *)
   let rec verify_level level ldd =
     if level = 0 then
-      (0, ldd) = mvbdu_true ()
+      lddmc_equal ldd lddmc_true
     else (
       let down = lddmc_getdown ldd in
       let value = lddmc_getvalue ldd in
@@ -37,7 +39,15 @@ let is_true (d, ldd) =
   in
   verify_level d ldd
 
-let is_false ldd = ldd = mvbdu_false ()
+let is_false (d, ldd) =
+  let is_false = lddmc_equal ldd lddmc_false in
+  if is_false then 
+    if d != 0 then
+      raise InvalidRepresentation
+    else
+      true
+  else false
+
 
 let print (d, ldd) =
   print_endline ("heigt: " ^ string_of_int d);
@@ -96,7 +106,11 @@ let mvbdu_and a b =
     mvbdu_false ()
   else (
     let (_, a), (d2, b) = normalize_depth a b in
-    d2, lddmc_intersect a b
+    let ldd = lddmc_intersect a b in
+    if lddmc_equal ldd lddmc_false then
+      mvbdu_false ()
+    else
+      d2, ldd
   )
 
 let variables_list_of_mvbdu (d, _) = List.init d (fun x -> x)
@@ -161,6 +175,7 @@ let rec abstract_away_inefficient level vars ldd =
 
 let mvbdu_project_abstract_away (d, t) vars =
   if is_false (d, t) then
+    let () = if d <> 0 then print_endline "problem" in
     d, t
   else
     d, abstract_away_inefficient d vars t
