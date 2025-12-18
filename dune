@@ -77,6 +77,8 @@
  (package kappa-binaries)
  (flags
   (:standard
+   -cclib
+   -lsylvan
    -w
    @a-40-42
    -open
