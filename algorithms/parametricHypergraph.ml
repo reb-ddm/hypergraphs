@@ -52,9 +52,6 @@ module ParametricHypergraph = struct
       is_semi_parametrized = false;
     }
 
-  let mvbdu_equal mvbdu1 mvbdu2 = Edges_intbdu.mvbdu_equal mvbdu1 mvbdu2
-  let mvbdu_or mvbdu1 mvbdu2 = Edges_intbdu.mvbdu_or mvbdu1 mvbdu2
-
   let is_reachable node t =
     let mvbdu = ReachabilityStatus.get node t.reachability_status in
     let valuation_list =
@@ -69,8 +66,7 @@ module ParametricHypergraph = struct
       Edges_intbdu.mvbdu_of_association_list valuation_list
     in
     let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
-    let mvbdu_false = Edges_intbdu.mvbdu_false () in
-    not (mvbdu_equal mvbdu_inter mvbdu_false)
+    not (Edges_intbdu.is_false mvbdu_inter)
 
   let get_int_of_edge edge t =
     let edge_to_int, i, is_new =
@@ -80,7 +76,7 @@ module ParametricHypergraph = struct
 
   let or_reachability node mvbdu t =
     let previous_mvbdu = ReachabilityStatus.get node t.reachability_status in
-    let or_mvbdu = mvbdu_or previous_mvbdu mvbdu in
+    let or_mvbdu = Edges_intbdu.mvbdu_or previous_mvbdu mvbdu in
     let () = ReachabilityStatus.add node or_mvbdu t.reachability_status in
     t
 
@@ -259,7 +255,7 @@ module ParametricHypergraph = struct
           )
         in
         let new_mvbdu = reachability_mvbdu_of node t in
-        if mvbdu_equal old_mvbdu new_mvbdu then
+        if Edges_intbdu.mvbdu_equal old_mvbdu new_mvbdu then
           t, (non_param_edges, compound_nodes, param_edges)
         else
           ( t,
@@ -283,7 +279,7 @@ module ParametricHypergraph = struct
       let old_mvbdu = reachability_mvbdu_of y t in
       let t = add_hyperedge x_set x y t in
       let new_mvbdu = reachability_mvbdu_of y t in
-      if mvbdu_equal old_mvbdu new_mvbdu then
+      if Edges_intbdu.mvbdu_equal old_mvbdu new_mvbdu then
         t
       else
         closure y t

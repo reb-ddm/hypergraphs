@@ -10,6 +10,7 @@ let sylvan_set_limits =
   foreign "sylvan_set_limits" (size_t @-> int @-> int @-> returning void)
 
 let sylvan_init_package = foreign "sylvan_init_package" (void @-> returning void)
+let sylvan_quit = foreign "sylvan_quit" (void @-> returning void)
 let sylvan_init_ldd = foreign "sylvan_init_ldd" (void @-> returning void)
 let lddmc_false : mdd = Unsigned.UInt64.of_int 0
 let lddmc_true : mdd = Unsigned.UInt64.of_int 1

@@ -28,6 +28,11 @@ let ithvar (v : key) =
 
 let init () = ensure_init ()
 
+let quit () =
+  man_ref := None;
+  btrue_ref := None;
+  bfalse_ref := None
+
 let variables_list_of_mvbdu m =
   let supp = Bdd.support m in
   Bdd.list_of_support supp

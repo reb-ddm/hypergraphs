@@ -16,6 +16,8 @@ let init () =
   in
   if not (is_init ()) then init parameters
 
+let quit () = ()
+
 let print mvbdu =
   match mvbdu with
   | Bool true -> print_endline "MVBDU_TRUE"

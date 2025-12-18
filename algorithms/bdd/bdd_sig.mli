@@ -15,4 +15,5 @@ module type Bdd = sig
   val mvbdu_project_abstract_away : t -> key list -> t
   val mvbdu_to_formula : t -> int Logical_formulae.formula
   val variables_list_of_mvbdu : t -> key list
+  val quit : unit -> unit
 end

@@ -43,8 +43,6 @@ include FullyDynamicHornClauses with type t = parametric_hypergraph
 
 exception OutOfBounds
 
-val mvbdu_or : Edges_intbdu.t -> Edges_intbdu.t -> Edges_intbdu.t
-val mvbdu_equal : Edges_intbdu.t -> Edges_intbdu.t -> bool
 val get_int_of_edge : Edge.t -> t -> t * int * bool
 val preds_of : t -> Node.t -> NodeSet.t
 val reachability_mvbdu_of : Node.t -> t -> Edges_intbdu.t

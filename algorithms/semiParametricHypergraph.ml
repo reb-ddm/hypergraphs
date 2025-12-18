@@ -36,8 +36,7 @@ module SemiParametricHypergraph = struct
         Edges_intbdu.mvbdu_of_association_list valuation_list
       in
       let mvbdu_inter = Edges_intbdu.mvbdu_and mvbdu mvbdu_valuation in
-      let mvbdu_false = Edges_intbdu.mvbdu_false () in
-      not (mvbdu_equal mvbdu_inter mvbdu_false)
+      not (Edges_intbdu.is_false mvbdu_inter)
     )
 
   let reachable_vars =
@@ -171,7 +170,7 @@ module SemiParametricHypergraph = struct
     let t = remove_parameters t to_unparam in
     let is_not_unreachable node t =
       let mvbdu = reachability_mvbdu_of node t in
-      not (Edges_intbdu.mvbdu_equal mvbdu (Edges_intbdu.mvbdu_false ()))
+      not (Edges_intbdu.is_false mvbdu)
     in
     let t, c_set =
       EdgeSet.fold
