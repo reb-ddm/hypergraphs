@@ -1,0 +1,22 @@
+; (executable ; generate stubs in the wrong directory
+;  (name Gensylvanstubs)
+;  (libraries ctypes ctypes.stubs)
+;  (modules Gensylvanstubs)
+;  (public_name Gensylvanstubs)
+;  (package kappa-binaries))
+
+(library
+ (name sylvan_bindings_library)
+ (modules bindings_generated sylvan_bindings)
+ (libraries ctypes ctypes.stubs)
+ (foreign_stubs
+  (language c)
+  (names bindings_stubs)
+  (flags
+   :standard -I/home/ddm2/ens/code/KappaTools/core/incremental_analysis/algorithms/bdd/sylvan/src
+   -I/home/ddm2/ens/code/KappaTools/core/incremental_analysis/algorithms/bdd/lace/src
+   -I/home/ddm2/ens/code/KappaTools/core/incremental_analysis/algorithms/bdd/lace/build)
+ )
+ (flags :standard -cclib
+ -L/home/ddm2/ens/code/KappaTools/core/incremental_analysis/algorithms/bdd/sylvan/build/src/lib -cclib -lsylvan)
+ )

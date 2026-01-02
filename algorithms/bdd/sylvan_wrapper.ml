@@ -1,4 +1,4 @@
-open Sylvan_bindings
+open Sylvan_bindings_library
 
 exception InvalidRepresentation
 
@@ -6,6 +6,9 @@ type key = int
 type t = int * Sylvan_bindings.mdd (* depth, mdd *)
 
 let is_init = ref false
+
+open Sylvan_bindings
+open Sylvan_bindings.Bindings(Bindings_generated)
 
 let init () =
   if not !is_init then (
@@ -23,6 +26,7 @@ let mvbdu_true () = 0, lddmc_true
 let mvbdu_false () = 0, lddmc_false
 
 let is_true (d, ldd) =
+  let () = if d <> 0 then print_endline "strange" in
   (* Verify that all levels are {0,1}. TODO adapt for MDDs *)
   (* Build bottom-up *)
   let rec verify_level level ldd =
@@ -96,6 +100,8 @@ let mvbdu_or a b =
     b
   else if is_false b then
     a
+  else if is_true a || is_true b then
+    mvbdu_true () 
   else (
     let (_, a), (d2, b) = normalize_depth a b in
     d2, lddmc_union a b
@@ -103,7 +109,9 @@ let mvbdu_or a b =
 
 let mvbdu_and a b =
   if is_false a || is_false b then
-    mvbdu_false ()
+    mvbdu_false () else
+  if is_true a then b else 
+  if is_true b then a 
   else (
     let (_, a), (d2, b) = normalize_depth a b in
     let ldd = lddmc_intersect a b in

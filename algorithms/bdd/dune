@@ -11,7 +11,8 @@
   psq
   kappa_parameters
   cudd
-  ctypes-foreign)
+  ctypes.stubs
+  sylvan_bindings_library)
  (flags
   (:standard
    -w
