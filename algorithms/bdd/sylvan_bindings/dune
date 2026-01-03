@@ -13,10 +13,17 @@
   (language c)
   (names bindings_stubs)
   (flags
-   :standard -I/home/ddm2/ens/code/KappaTools/core/incremental_analysis/algorithms/bdd/sylvan/src
-   -I/home/ddm2/ens/code/KappaTools/core/incremental_analysis/algorithms/bdd/lace/src
-   -I/home/ddm2/ens/code/KappaTools/core/incremental_analysis/algorithms/bdd/lace/build)
+   :standard -I../../../../../../../core/incremental_analysis/algorithms/bdd/sylvan/src
+   -I../../../../../../../core/incremental_analysis/algorithms/bdd/sylvan/build/_deps/lace-src/src
+   -I../../../../../../../core/incremental_analysis/algorithms/bdd/sylvan/build/_deps/lace-build)
  )
- (flags :standard -cclib
- -L/home/ddm2/ens/code/KappaTools/core/incremental_analysis/algorithms/bdd/sylvan/build/src/lib -cclib -lsylvan)
+ (c_library_flags
+ -L../../../../../../../core/incremental_analysis/algorithms/bdd/sylvan/build/src/lib 
+ -L../../../../../../../core/incremental_analysis/algorithms/bdd/sylvan/build/_deps/lace-build/lib
+ -lsylvan
+ -llace
+ -pthread)
+ (flags 
+ :standard 
+ )
  )
