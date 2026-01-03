@@ -26,7 +26,6 @@ let mvbdu_true () = 0, lddmc_true
 let mvbdu_false () = 0, lddmc_false
 
 let is_true (d, ldd) =
-  let () = if d <> 0 then print_endline "strange" in
   (* Verify that all levels are {0,1}. TODO adapt for MDDs *)
   (* Build bottom-up *)
   let rec verify_level level ldd =

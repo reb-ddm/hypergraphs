@@ -178,6 +178,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
               (fun (_, _, success, _, _) -> not success)
               (hc, 0, true, 0., 0.) commands_build
           in
+          let () = debug_print "finished building" in
           let ( _,
                 _,
                 success,
