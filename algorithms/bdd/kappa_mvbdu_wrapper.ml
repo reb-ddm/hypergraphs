@@ -7,7 +7,7 @@ module Edges_bdu :
 module Internal_mvbdu = Internalize (Edges_bdu)
 include Internal_mvbdu
 
-type t = Bool of bool | Mvbdu of mvbdu
+type t = mvbdu
 
 let init () =
   let parameters =
@@ -19,15 +19,11 @@ let init () =
 let quit () = ()
 
 let print mvbdu =
-  match mvbdu with
-  | Bool true -> print_endline "MVBDU_TRUE"
-  | Bool false -> print_endline "MVBDU_FALSE"
-  | Mvbdu mvbdu ->
-    let parameters =
-      Remanent_parameters.get_parameters ~html_mode:false
-        ~called_from:Remanent_parameters_sig.Internalised ()
-    in
-    print parameters mvbdu
+  let parameters =
+    Remanent_parameters.get_parameters ~html_mode:false
+      ~called_from:Remanent_parameters_sig.Internalised ()
+  in
+  print parameters mvbdu
 
 let variables_list_of_mvbdu mvbdu =
   let variables_list = variables_list_of_mvbdu mvbdu in
@@ -63,62 +59,28 @@ let build_restriction_bdu_2 mvbdu1 mvbdu2 =
 
 let mvbdu_normalize mvbdu =
   let restriction_bdu = build_restriction_bdu_1 mvbdu in
-  let mvbdu = mvbdu_and mvbdu restriction_bdu in
-  if equal mvbdu (mvbdu_true ()) then
-    Bool true
-  else if equal mvbdu (mvbdu_false ()) then
-    Bool false
-  else
-    Mvbdu mvbdu
+  mvbdu_and mvbdu restriction_bdu 
 
 let mvbdu_or mvbdu1 mvbdu2 =
-  match mvbdu1, mvbdu2 with
-  | Bool b1, Bool b2 -> Bool (b1 || b2)
-  | Bool true, _ | _, Bool true -> Bool true
-  | Bool false, m | m, Bool false -> m
-  | Mvbdu mvbdu1, Mvbdu mvbdu2 ->
-    let or_mvbdu = mvbdu_or mvbdu1 mvbdu2 in
-    let restriction_bdu = build_restriction_bdu_2 mvbdu1 mvbdu2 in
-    let result = mvbdu_and or_mvbdu restriction_bdu in
-    if equal result (mvbdu_true ()) then
-      Bool true
-    else
-      Mvbdu result
+  let or_mvbdu = mvbdu_or mvbdu1 mvbdu2 in
+  let restriction_bdu = build_restriction_bdu_2 mvbdu1 mvbdu2 in
+  mvbdu_and or_mvbdu restriction_bdu
 
-let mvbdu_and mvbdu1 mvbdu2 =
-  match mvbdu1, mvbdu2 with
-  | Bool b1, Bool b2 -> Bool (b1 && b2)
-  | Bool false, _ | _, Bool false -> Bool false
-  | Bool true, m | m, Bool true -> m
-  | Mvbdu m1, Mvbdu m2 ->
-    let result = mvbdu_and m1 m2 in
-    if equal result (mvbdu_false ()) then
-      Bool false
-    else
-      Mvbdu result
+let mvbdu_and m1 m2 =
+  mvbdu_and m1 m2
 
 let mvbdu_equal mvbdu1 mvbdu2 =
-  match mvbdu1, mvbdu2 with
-  | Bool b1, Bool b2 -> b1 = b2
-  | Bool _, Mvbdu _ | Mvbdu _, Bool _ -> false
-  | Mvbdu mvbdu1, Mvbdu mvbdu2 -> equal mvbdu1 mvbdu2
+  equal mvbdu1 mvbdu2
 
-let mvbdu_true () = Bool true
-let mvbdu_false () = Bool false
+let mvbdu_true () = mvbdu_true ()
+let mvbdu_false () = mvbdu_false ()
 
-let is_true = function
-  | Bool true -> true
-  | Bool _ | Mvbdu _ -> false
+let is_true mvbdu = mvbdu_equal mvbdu (mvbdu_true())
 
-let is_false = function
-  | Bool false -> true
-  | Bool _ | Mvbdu _ -> false
+let is_false mvbdu = mvbdu_equal mvbdu (mvbdu_false())
 
 let mvbdu_to_formula mvbdu =
-  match mvbdu with
-  | Bool false -> Logical_formulae.False
-  | Bool true -> Logical_formulae.True
-  | Mvbdu mvbdu -> mvbdu_to_formula ~cartesian_decomposition:false mvbdu
+  mvbdu_to_formula ~cartesian_decomposition:false mvbdu
 
 let mvbdu_of_association_list association_list =
   let valuation_list = build_association_list association_list in
@@ -127,13 +89,8 @@ let mvbdu_of_association_list association_list =
 
 let mvbdu_project_abstract_away mvbdu variables_list =
   let variables_list = build_variables_list variables_list in
-  match mvbdu with
-  | Bool _ -> mvbdu
-  | Mvbdu mvbdu_inter ->
-    let mvbdu = mvbdu_project_abstract_away mvbdu_inter variables_list in
-    mvbdu_normalize mvbdu
+  let mvbdu = mvbdu_project_abstract_away mvbdu variables_list in
+  mvbdu_normalize mvbdu
 
 let variables_list_of_mvbdu mvbdu =
-  match mvbdu with
-  | Bool _ -> []
-  | Mvbdu mvbdu -> variables_list_of_mvbdu mvbdu
+  variables_list_of_mvbdu mvbdu
