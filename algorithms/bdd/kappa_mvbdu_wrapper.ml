@@ -1,5 +1,7 @@
 open Kappa_mvbdu.Mvbdu_wrapper
 
+(* Internally, all variables are stored with negative index, such that the vaiables with a higher index are nearer to the root. *)
+
 module Edges_bdu :
   Mvbdu with type key = int and type value = int with type mvbdu = Mvbdu.mvbdu =
   Mvbdu
@@ -25,16 +27,19 @@ let print mvbdu =
   in
   print parameters mvbdu
 
-let variables_list_of_mvbdu mvbdu =
+let negative_variables_list_of_mvbdu mvbdu = 
   let variables_list = variables_list_of_mvbdu mvbdu in
   extensional_of_variables_list variables_list
+
+let variables_list_of_mvbdu mvbdu =
+  List.rev_map (fun v -> -v) (negative_variables_list_of_mvbdu mvbdu)
 
 let build_restriction_bdu variables_list =
   let range = List.map (fun var -> var, (Some 0, Some 1)) variables_list in
   mvbdu_of_range_list range
 
 let build_restriction_bdu_1 mvbdu =
-  let variables_list = variables_list_of_mvbdu mvbdu in
+  let variables_list = negative_variables_list_of_mvbdu mvbdu in
   build_restriction_bdu variables_list
 
 let rec merge_list_no_duplicates l1 l2 =
@@ -50,8 +55,8 @@ let rec merge_list_no_duplicates l1 l2 =
       h2 :: merge_list_no_duplicates l1 t2
 
 let build_restriction_bdu_2 mvbdu1 mvbdu2 =
-  let variables_list1 = variables_list_of_mvbdu mvbdu1 in
-  let variables_list2 = variables_list_of_mvbdu mvbdu2 in
+  let variables_list1 = negative_variables_list_of_mvbdu mvbdu1 in
+  let variables_list2 = negative_variables_list_of_mvbdu mvbdu2 in
   let variables_list =
     merge_list_no_duplicates variables_list1 variables_list2
   in
@@ -83,14 +88,13 @@ let mvbdu_to_formula mvbdu =
   mvbdu_to_formula ~cartesian_decomposition:false mvbdu
 
 let mvbdu_of_association_list association_list =
+  let association_list = List.rev_map (fun (v, value) -> -v, value) association_list in
   let valuation_list = build_association_list association_list in
   let mvbdu_valuation = mvbdu_of_hconsed_asso valuation_list in
   mvbdu_normalize mvbdu_valuation
 
 let mvbdu_project_abstract_away mvbdu variables_list =
+  let variables_list = List.rev_map (fun v -> -v) variables_list in
   let variables_list = build_variables_list variables_list in
   let mvbdu = mvbdu_project_abstract_away mvbdu variables_list in
   mvbdu_normalize mvbdu
-
-let variables_list_of_mvbdu mvbdu =
-  variables_list_of_mvbdu mvbdu
