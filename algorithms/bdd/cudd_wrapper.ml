@@ -38,9 +38,8 @@ let variables_list_of_mvbdu m =
   Bdd.list_of_support supp
 
 let print m =
-  let printer fmt k = Format.fprintf fmt "%d" k in
-  Bdd.print printer Format.std_formatter m;
-  print_newline ()
+  let printer fmt k = Format.fprintf fmt "%d\n" k in
+  Bdd.print printer Format.std_formatter m
 
 let mvbdu_equal a b = Bdd.is_equal a b
 let mvbdu_or a b = Bdd.dor a b
