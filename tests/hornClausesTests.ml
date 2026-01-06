@@ -308,35 +308,48 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
     let plot_size_time_first_step extract_series =
       let add_series, x_label = extract_series (fun br -> br.add_time) in
-      let add_series =
-        Gp.Series.linespoints_xy ~title:"add clauses" add_series
-      in
-      let remove_series =
-        Gp.Series.linespoints_xy ~title:"remove clauses"
-          (fst (extract_series (fun br -> br.remove_time)))
+      let build_graph_series =
+        Gp.Series.linespoints_xy ~title:"build graph"
+        ~color:(`Rgb (220,161,0))
+          (fst (extract_series (fun br -> br.build_time)))
       in
       let open_chapter_series =
         Gp.Series.linespoints_xy ~title:"choose a subset of active clauses"
+        ~color:(`Rgb (115,180,237))
           (fst (extract_series (fun br -> br.open_chapter_time)))
+      in
+      let add_series =
+        Gp.Series.linespoints_xy ~title:"add clauses" 
+        ~color:(`Rgb (140,43,215))
+        add_series
+      in
+      let remove_series =
+        Gp.Series.linespoints_xy ~title:"remove clauses"
+        ~color:(`Rgb (77,158,120))
+          (fst (extract_series (fun br -> br.remove_time)))
       in
       let _reachable_vars_series =
         Gp.Series.linespoints_xy ~title:"check reachability of first 1000 nodes"
+        ~color:`Red
           (fst (extract_series (fun br -> br.reachable_vars_time)))
-      in
-      let build_graph_series =
-        Gp.Series.linespoints_xy ~title:"build graph"
-          (fst (extract_series (fun br -> br.build_time)))
       in
 
       let gp = Gp.create () in
 
       let labels = Gp.Labels.create ~x:x_label ~y:"runtime in s" () in
 
-      let is_enabled tot_time = tot_time > 0.005 in
+      let is_enabled tot_time = tot_time > 0.0005 in
 
-      Gp.plot_many gp
+      Gp.plot_many ~logscale:("y", None) gp
         ~output:(Gp.Output.create (`Png_cairo ("output/" ^ title ^ ".png")))
-        ((if is_enabled enabled_results.add_time then
+        ([ build_graph_series ]
+        @
+             (if is_enabled enabled_results.open_chapter_time then
+               [ open_chapter_series ]
+             else
+               [])
+               @ 
+        (if is_enabled enabled_results.add_time then
            [ add_series ]
          else
            [])
@@ -345,16 +358,11 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
              [ remove_series ]
            else
              [])
-             @
-             (if is_enabled enabled_results.open_chapter_time then
-               [ open_chapter_series ]
-             else
-               [])
-               @ (* if is_enabled enabled_results.reachable_vars_time then [ reachable_vars_series ] else []
+                (* if is_enabled enabled_results.reachable_vars_time then [ reachable_vars_series ] else []
                     @ *)
-               [ build_graph_series ])
+                    )
         ~labels;
       Gp.close gp
     in
-    plot_size_time_first_step extract_series_size
+    plot_size_time_first_step extract_series_step
 end
