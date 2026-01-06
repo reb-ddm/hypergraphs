@@ -27,7 +27,7 @@ let print mvbdu =
   in
   print parameters mvbdu
 
-let negative_variables_list_of_mvbdu mvbdu = 
+let negative_variables_list_of_mvbdu mvbdu =
   let variables_list = variables_list_of_mvbdu mvbdu in
   extensional_of_variables_list variables_list
 
@@ -64,31 +64,27 @@ let build_restriction_bdu_2 mvbdu1 mvbdu2 =
 
 let mvbdu_normalize mvbdu =
   let restriction_bdu = build_restriction_bdu_1 mvbdu in
-  mvbdu_and mvbdu restriction_bdu 
+  mvbdu_and mvbdu restriction_bdu
 
 let mvbdu_or mvbdu1 mvbdu2 =
   let or_mvbdu = mvbdu_or mvbdu1 mvbdu2 in
   let restriction_bdu = build_restriction_bdu_2 mvbdu1 mvbdu2 in
   mvbdu_and or_mvbdu restriction_bdu
 
-let mvbdu_and m1 m2 =
-  mvbdu_and m1 m2
-
-let mvbdu_equal mvbdu1 mvbdu2 =
-  equal mvbdu1 mvbdu2
-
+let mvbdu_and m1 m2 = mvbdu_and m1 m2
+let mvbdu_equal mvbdu1 mvbdu2 = equal mvbdu1 mvbdu2
 let mvbdu_true () = mvbdu_true ()
 let mvbdu_false () = mvbdu_false ()
-
-let is_true mvbdu = mvbdu_equal mvbdu (mvbdu_true())
-
-let is_false mvbdu = mvbdu_equal mvbdu (mvbdu_false())
+let is_true mvbdu = mvbdu_equal mvbdu (mvbdu_true ())
+let is_false mvbdu = mvbdu_equal mvbdu (mvbdu_false ())
 
 let mvbdu_to_formula mvbdu =
   mvbdu_to_formula ~cartesian_decomposition:false mvbdu
 
 let mvbdu_of_association_list association_list =
-  let association_list = List.rev_map (fun (v, value) -> -v, value) association_list in
+  let association_list =
+    List.rev_map (fun (v, value) -> -v, value) association_list
+  in
   let valuation_list = build_association_list association_list in
   let mvbdu_valuation = mvbdu_of_hconsed_asso valuation_list in
   mvbdu_normalize mvbdu_valuation
