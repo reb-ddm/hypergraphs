@@ -454,7 +454,7 @@ let test_remove8 size steps =
   let name_vars = "x" in
   let name_goal_var = "y" in
   let name =
-    "generated_test_remove2_of_size_" ^ string_of_int size ^ "_with_"
+    "generated_test_remove8_of_size_" ^ string_of_int size ^ "_with_"
     ^ string_of_int steps ^ "_steps"
   in
   let close = "close", [] in
