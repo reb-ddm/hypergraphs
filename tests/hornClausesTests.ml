@@ -45,8 +45,8 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     in
     Lwt_main.run (with_timeout ())
 
-  let update_results results size steps add_time remove_time open_chapter_time
-      reachable_vars_time build_time =
+  let update_results results er size steps add_time remove_time
+      open_chapter_time reachable_vars_time build_time =
     let step_map =
       match IntMap.find_opt size results with
       | Some sm -> sm
@@ -63,7 +63,14 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
         }
         step_map
     in
-    IntMap.add size updated_step_map results
+    ( IntMap.add size updated_step_map results,
+      {
+        add_time = er.add_time +. add_time;
+        remove_time = er.remove_time +. remove_time;
+        open_chapter_time = er.open_chapter_time +. open_chapter_time;
+        reachable_vars_time = er.reachable_vars_time +. reachable_vars_time;
+        build_time = er.build_time +. build_time;
+      } )
 
   let rec compare_list_first_n cmp xs ys n =
     if n = 0 then
@@ -130,9 +137,19 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
   let run_tests title enabled_tests =
     let _ = print_endline title in
-    let results =
+    let enabled_results =
+      {
+        add_time = 0.;
+        remove_time = 0.;
+        open_chapter_time = 0.;
+        reachable_vars_time = 0.;
+        build_time = 0.;
+      }
+    in
+    let results, enabled_results =
       List.fold_left
-        (fun results (test_name, coordinates, nr_vars, commands_build, commands) ->
+        (fun (results, enabled_results)
+             (test_name, coordinates, nr_vars, commands_build, commands) ->
           print_endline ("Starting test " ^ test_name);
           let hc = HypergraphHCH.init ~nr_vars in
           let hc, _, success1, build_time, reachable_vars_time1 =
@@ -232,17 +249,19 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
           if success then (
             match coordinates with
             | Some (_size, steps) ->
-              update_results results nr_vars steps add_time remove_time
-                open_chapter_time reachable_vars_time build_time
-            | None -> results
+              update_results results enabled_results nr_vars steps add_time
+                remove_time open_chapter_time reachable_vars_time build_time
+            | None -> 
+              results, enabled_results
           ) else (
             match coordinates with
             | Some (_size, steps) ->
-              update_results results nr_vars steps timeout timeout timeout
-                timeout timeout
-            | None -> results
+              update_results results enabled_results nr_vars steps timeout
+                timeout timeout timeout timeout
+            | None -> results, enabled_results
           ))
-        empty_results enabled_tests
+        (empty_results, enabled_results)
+        enabled_tests
     in
     let all_sizes =
       IntMap.bindings results |> List.map fst |> List.sort compare
@@ -300,7 +319,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
         Gp.Series.linespoints_xy ~title:"choose a subset of active clauses"
           (fst (extract_series (fun br -> br.open_chapter_time)))
       in
-      let reachable_vars_series =
+      let _reachable_vars_series =
         Gp.Series.linespoints_xy ~title:"check reachability of first 1000 nodes"
           (fst (extract_series (fun br -> br.reachable_vars_time)))
       in
@@ -313,15 +332,27 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
 
       let labels = Gp.Labels.create ~x:x_label ~y:"runtime in s" () in
 
+      let is_enabled tot_time = tot_time > 0.005 in
+
       Gp.plot_many gp
         ~output:(Gp.Output.create (`Png_cairo ("output/" ^ title ^ ".png")))
-        [
-          add_series;
-          remove_series;
-          open_chapter_series;
-          reachable_vars_series;
-          build_graph_series;
-        ]
+        ((if is_enabled enabled_results.add_time then
+           [ add_series ]
+         else
+           [])
+           @
+           (if is_enabled enabled_results.remove_time then
+             [ remove_series ]
+           else
+             [])
+             @
+             (if is_enabled enabled_results.open_chapter_time then
+               [ open_chapter_series ]
+             else
+               [])
+               @ (* if is_enabled enabled_results.reachable_vars_time then [ reachable_vars_series ] else []
+                    @ *)
+               [ build_graph_series ])
         ~labels;
       Gp.close gp
     in
