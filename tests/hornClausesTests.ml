@@ -251,8 +251,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
             | Some (_size, steps) ->
               update_results results enabled_results nr_vars steps add_time
                 remove_time open_chapter_time reachable_vars_time build_time
-            | None -> 
-              results, enabled_results
+            | None -> results, enabled_results
           ) else (
             match coordinates with
             | Some (_size, steps) ->
@@ -310,27 +309,27 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
       let add_series, x_label = extract_series (fun br -> br.add_time) in
       let build_graph_series =
         Gp.Series.linespoints_xy ~title:"build graph"
-        ~color:(`Rgb (220,161,0))
+          ~color:(`Rgb (220, 161, 0))
           (fst (extract_series (fun br -> br.build_time)))
       in
       let open_chapter_series =
         Gp.Series.linespoints_xy ~title:"choose a subset of active clauses"
-        ~color:(`Rgb (115,180,237))
+          ~color:(`Rgb (115, 180, 237))
           (fst (extract_series (fun br -> br.open_chapter_time)))
       in
       let add_series =
-        Gp.Series.linespoints_xy ~title:"add clauses" 
-        ~color:(`Rgb (140,43,215))
-        add_series
+        Gp.Series.linespoints_xy ~title:"add clauses"
+          ~color:(`Rgb (140, 43, 215))
+          add_series
       in
       let remove_series =
         Gp.Series.linespoints_xy ~title:"remove clauses"
-        ~color:(`Rgb (77,158,120))
+          ~color:(`Rgb (77, 158, 120))
           (fst (extract_series (fun br -> br.remove_time)))
       in
       let _reachable_vars_series =
         Gp.Series.linespoints_xy ~title:"check reachability of first 1000 nodes"
-        ~color:`Red
+          ~color:`Red
           (fst (extract_series (fun br -> br.reachable_vars_time)))
       in
 
@@ -343,24 +342,21 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
       Gp.plot_many ~logscale:("y", None) gp
         ~output:(Gp.Output.create (`Png_cairo ("output/" ^ title ^ ".png")))
         ([ build_graph_series ]
-        @
-             (if is_enabled enabled_results.open_chapter_time then
-               [ open_chapter_series ]
-             else
-               [])
-               @ 
-        (if is_enabled enabled_results.add_time then
-           [ add_series ]
-         else
-           [])
-           @
-           (if is_enabled enabled_results.remove_time then
-             [ remove_series ]
+        @ (if is_enabled enabled_results.open_chapter_time then
+             [ open_chapter_series ]
            else
              [])
-                (* if is_enabled enabled_results.reachable_vars_time then [ reachable_vars_series ] else []
-                    @ *)
-                    )
+        @ (if is_enabled enabled_results.add_time then
+             [ add_series ]
+           else
+             [])
+        @
+        if is_enabled enabled_results.remove_time then
+          [ remove_series ]
+        else
+          []
+        (* if is_enabled enabled_results.reachable_vars_time then [ reachable_vars_series ] else []
+            @ *))
         ~labels;
       Gp.close gp
     in

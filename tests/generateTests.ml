@@ -421,19 +421,20 @@ let test_remove7 size pre_steps =
   let remove_tests =
     List.init pre_steps (fun i ->
         let var =
-          name_pre_steps_var1 ^ string_of_int_with_n_digits i nr_digits_pre_steps
+          name_pre_steps_var1
+          ^ string_of_int_with_n_digits i nr_digits_pre_steps
         in
         let previous_var =
           if i = 0 then
             ""
           else
-            name_pre_steps_var1 ^ string_of_int_with_n_digits (i - 1) nr_digits_pre_steps
+            name_pre_steps_var1
+            ^ string_of_int_with_n_digits (i - 1) nr_digits_pre_steps
         in
         [
           "add " ^ var ^ ":=" ^ previous_var, reachable_vars;
           "remove " ^ string_of_int i, [];
           (*Not the right set, but it doesnt matter*)
-          
         ])
   in
   let open_test = "open 0-" ^ string_of_int (pre_steps - 1) in
@@ -443,14 +444,12 @@ let test_remove7 size pre_steps =
     List.rev tests,
     (open_test, reachable_vars) :: List.rev (List.flatten remove_tests) )
 
-
-    
 let test_remove8 size steps =
   let og_steps = steps in
   let nr_nodes = steps + size + 3 in
   let nr_digits_size = String.length (string_of_int size) in
   let name_pre_steps_var1 = "a1" in
-    let name_pre_steps_var2 = "a2" in
+  let name_pre_steps_var2 = "a2" in
   let name_vars = "x" in
   let name_goal_var = "y" in
   let name =
@@ -462,7 +461,9 @@ let test_remove8 size steps =
     [ "add " ^ name_pre_steps_var1 ^ ":=", [ name_pre_steps_var1 ]; close ]
   in
   let tests, reachable_vars =
-    ( ("add " ^ name_pre_steps_var2 ^ ":=", [ name_pre_steps_var1; name_pre_steps_var2 ]) :: tests ,
+    ( ( "add " ^ name_pre_steps_var2 ^ ":=",
+        [ name_pre_steps_var1; name_pre_steps_var2 ] )
+      :: tests,
       [ name_pre_steps_var1; name_pre_steps_var2 ] )
   in
   let vars, (tests, reachable_vars, j) =
@@ -470,23 +471,25 @@ let test_remove8 size steps =
       nr_digits_size reachable_vars tests 1
   in
   (* edge with source the set of all x_i and with goal node y*)
-  let open_chapter = "open 2-" ^string_of_int (min size steps + 2) in
+  let open_chapter = "open 2-" ^ string_of_int (min size steps + 2) in
   let last_test = "add " ^ name_goal_var ^ ":=" ^ String.concat "," vars in
   let reachable_vars = reachable_vars_append j reachable_vars name_goal_var in
   let tests = (last_test, reachable_vars) :: tests in
   let steps = min steps size in
   let add_tests =
     List.init steps (fun i ->
-          "add " ^  name_vars ^ string_of_int_with_n_digits i nr_digits_size ^ ":=" ^ name_pre_steps_var2, reachable_vars)
+        ( "add " ^ name_vars
+          ^ string_of_int_with_n_digits i nr_digits_size
+          ^ ":=" ^ name_pre_steps_var2,
+          reachable_vars ))
   in
   let remove_tests =
     List.init steps (fun i ->
-      let index = i + 3 + size in
-          "remove " ^ string_of_int index, []
-          )
+        let index = i + 3 + size in
+        "remove " ^ string_of_int index, [])
   in
   ( name,
     Some (size, og_steps),
     nr_nodes,
     List.rev tests,
-    (open_chapter, reachable_vars) :: add_tests @ remove_tests )
+    ((open_chapter, reachable_vars) :: add_tests) @ remove_tests )
