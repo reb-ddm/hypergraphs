@@ -1,5 +1,21 @@
 open Hypergraph_sig
 
+(**
+NOM:
+mst/m
+DATA STRUCTURE:
+Hypergraph which remembers for each node the shortest path from the initial states to the node.
+ADDING A CLAUSE:
+Restart fixpoint iteration.
+REMOVING A CLAUSE:
+If the predecessor of a node is removed, then look at all the successors:
+- if a different path with the same length is found, then choose this one
+- otherwise set as unreachable
+Then take all the nodes that were thus set as unreachable and recalculate their new predecessor.
+COMPLEXITY:
+Maintaining the minimal path is much more expensive than just maintaining reachability, so this is very inefficient.
+*)
+
 exception UnknownNodeId of (string * Node.t)
 
 module Hypergraph = struct

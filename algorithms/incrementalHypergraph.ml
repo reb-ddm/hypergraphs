@@ -1,5 +1,20 @@
 open Hypergraph_sig
 
+(**
+NOM:
+incremental/i
+DATA STRUCTURE:
+Hypergraph which remembers for each node if it is reachable or not.
+ADDING A CLAUSE:
+Restart fixpoint iteration.
+REMOVING A CLAUSE:
+Set all nodes as unreachable and recalculate reachability.
+COMPLEXITY:
+For adding a clause, linear in the size of the newly reachable nodes.
+For the removal, linear in the size of the graph. Very inefficient removal as it recomputes everything.
+*)
+
+
 module IncrementalHypergraph = struct
   module AdjacencyList = MutableNodeMap (NodeSet)
 

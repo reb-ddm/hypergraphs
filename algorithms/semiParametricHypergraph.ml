@@ -1,5 +1,17 @@
 open Hypergraph_sig
 
+(**
+DATA STRUCTURE:
+Hypergraph which remembers for each node a boolean formula that tells us which rules need to be present in order for this node to be reachable. But only a subset of the rules appear in the formulas.
+ADDING A CLAUSE:
+Restart fixpoint iteration.
+REMOVING A CLAUSE:
+Set the boolean variable of the rule to false. Only a subset of the rules (the currently open chapter) can be removed.
+RUNTIME:
+For adding a clause, linear in the size of the graph. Sometimes already reachable nodes need to be looked at again to update the booean formula.
+For removing a clause, O(1).
+*)
+
 module SemiParametricHypergraph = struct
   include ParametricHypergraph
 

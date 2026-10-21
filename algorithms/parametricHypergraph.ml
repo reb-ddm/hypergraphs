@@ -3,6 +3,18 @@ module Edges_intbdu = Sylvan_wrapper
 
 exception UnknownEdge
 
+(**
+DATA STRUCTURE:
+Hypergraph which remembers for each node a boolean formula that tells us which rules need to be present in order for this node to be reachable.
+ADDING A CLAUSE:
+Restart fixpoint iteration.
+REMOVING A CLAUSE:
+Set the boolean variable of the rule to false.
+RUNTIME:
+For adding a clause, linear in the size of the graph. Sometimes already reachable nodes need to be looked at again to update the booean formula.
+For removing a clause, O(1).
+*)
+
 module ParametricHypergraph = struct
   module AdjacencyList = MutableNodeMap (NodeSet)
 

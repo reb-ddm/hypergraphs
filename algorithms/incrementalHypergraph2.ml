@@ -1,5 +1,19 @@
 open Hypergraph_sig
 
+(**
+DATA STRUCTURE:
+Hypergraph which remembers for each node a minimal (not necessarily the shortest, but the "first" one that was added) path from the initial states to the node.
+ADDING A CLAUSE:
+Restart fixpoint iteration.
+REMOVING A CLAUSE:
+If the predecessor of a node is removed, then set all the successors as unreachable.
+The take all the nodes that were thus set as unreachable and recalculate their new predecessor.
+Optimization: before removing the reachability, check if there is an alternative path from source to goal with <= n steps. (n = max_depth_local_path_search = 3).
+RUNTIME:
+For adding a clause, linear in the size of the newly reachable nodes.
+For removing a clause, either O(1) if a non-predecessor node is removed, else O(number of successors).
+*)
+
 module IncrementalHypergraph2 = struct
   let max_depth_local_path_search = 3
 
