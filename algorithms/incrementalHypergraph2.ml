@@ -25,11 +25,6 @@ module IncrementalHypergraph2 = struct
     let empty () = 1
   end)
 
-  module NrIncomingEdges = MutableNodeMap (struct
-    include Int
-
-    let empty () = 0
-  end)
 
   module MinPredsMap = MutableNodeMap (struct
     type t = Node.t option
@@ -49,8 +44,6 @@ module IncrementalHypergraph2 = struct
   let init ~nr_vars true_node =
     let reachability_status = ReachabilityStatus.empty nr_vars in
     let () = ReachabilityStatus.add true_node 0 reachability_status in
-    let nr_incoming_edges = NrIncomingEdges.empty 0 in
-    let () = NrIncomingEdges.add true_node 1 nr_incoming_edges in
     {
       succs = AdjacencyList.empty nr_vars;
       preds = AdjacencyList.empty nr_vars;

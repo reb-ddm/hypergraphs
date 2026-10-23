@@ -1,0 +1,9 @@
+(library
+ (name incremental_analysis_generic_framework)
+ (libraries incremental_analysis_util)
+ (flags
+  (:standard
+   -w
+   @a-40-42
+   -open
+   Incremental_analysis_util)))
