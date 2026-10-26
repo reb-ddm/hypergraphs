@@ -1,62 +1,70 @@
-module type ProgramToHCS =
-  sig
-    type program
-  type hs_id
+module type ProgramToHCS = 
+sig
+  type program
   type horn_clause_scheme
   type vars
-  val diff_hcschemes : vars -> program -> program -> vars * horn_clause_scheme list * hs_id list
+  val diff_hcschemes : vars -> program -> program -> vars * horn_clause_scheme list * horn_clause_scheme list (** list of removed and added horn clause schemes*)
   val empty_program : program
   val empty_vars : vars
-  val hs_of_id : vars -> hs_id -> horn_clause_scheme
-  end
+
+end
+
 module type IncrementalSymbolicHornClauseSolverStrategy =
-  sig
-    type t
-    type horn_clause_scheme
-    type horn_clause
-    type hs_id
-    type literal
-    type analysis_result
+sig
+  type t
+  type horn_clause_scheme
+  type horn_clause
+  type literal
+  type analysis_result
   type init_data
-    val update_add_hcs : t -> horn_clause_scheme list -> t
-    val update_remove_hcs : t -> horn_clause_scheme list -> t
-    val next_hc : t -> t * horn_clause option
-    val propagate_change : t -> horn_clause -> t
-    val empty_datastructure : t * init_data
-  end
-module type AbstractionProof =
-  sig
-    type t
-    type node
-    type hs_id
-    type edge = hs_id * node * node list
-    type analysis_result
-        type init_data
-      val name : string
-    val empty : init_data -> t
-    val visit_edge : t -> edge -> t * bool
-    val remove_edges : t -> hs_id list -> t
-    val return_result : t -> analysis_result
-  end
+  val update_add_hcs : t -> horn_clause_scheme list -> t (** The added Horn Clause schemes are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
+  val update_remove_hcs : t -> horn_clause_scheme list -> t (** The removed Horn Clause schemes are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
+  val next_hc_add : t -> t * horn_clause option
+  val propagate_change_add : t -> horn_clause -> t(** Given a Horn Clause that modified the result, add all its successprs to the next horn clauses to be iterated. Used when a Horn Clause is added. *)
+  val next_hc_remove_inf : t -> t * horn_clause option
+  val propagate_change_remove_inf : t -> horn_clause -> t(** Given a Horn Clause that modified the result, add all its successprs tp the next horn clauses to be iterated. Used in the first phase of the removal of a clause. *)
+  val next_hc_restore_inf : t -> t * horn_clause option
+  val propagate_change_restore_inf : t -> horn_clause -> t(** Given a Horn Clause that modified the result, add all its successprs tp the next horn clauses to be iterated. Used in the second phase of the removal of a clause. *)
+  val empty_datastructure : t * init_data
+end
+
+module type AbstractionProof = 
+sig
+  type t 
+  type horn_clause
+  type analysis_result
+  type init_data
+  val name : string
+  val empty : init_data -> t
+  val visit_edge_add : t -> horn_clause -> t * bool (* one edge is visited during the adding of some edges. Returns true if the result changed.*)
+  val remove_inf_edge : t -> horn_clause -> t * bool (* one edge is visited during the removing of some edges and it is set to unreachable. Returns true if the result changed.*)
+  val restore_inf_edge : t -> horn_clause -> t * bool (* one edge is visited during the removal of some edges in order to restore the information that was lost during the "remove information" phase. Returns true if the result changed.*)
+  val return_result : t -> analysis_result
+end
+
 module Framework :
   functor 
     (ProgramTrans : ProgramToHCS) 
-    (Abstraction : AbstractionProof with type hs_id = ProgramTrans.hs_id) 
-    (IncStrategy : IncrementalSymbolicHornClauseSolverStrategy with type horn_clause_scheme = ProgramTrans.horn_clause_scheme and type horn_clause = Abstraction.edge and type literal = Abstraction.node and type hs_id = Abstraction.hs_id and type init_data = Abstraction.init_data)
+    (Abstraction : AbstractionProof) 
+    (IncStrategy : IncrementalSymbolicHornClauseSolverStrategy with type horn_clause_scheme = ProgramTrans.horn_clause_scheme and type horn_clause = Abstraction.horn_clause and type init_data = Abstraction.init_data)
     ->
     sig
       type hc_scheme = ProgramTrans.horn_clause_scheme
       type t = ProgramTrans.vars * IncStrategy.t * Abstraction.t
-      val name : string
       val init_analyis : t
+      val name : string
       val diff :
-        ProgramTrans.vars -> ProgramTrans.program ->
-        ProgramTrans.program -> ProgramTrans.vars * hc_scheme list * IncStrategy.hs_id list
+        ProgramTrans.vars ->
+        ProgramTrans.program ->
+        ProgramTrans.program ->
+        ProgramTrans.vars * hc_scheme list * hc_scheme list
       val incremental_fixpoint :
         t ->
         ProgramTrans.program ->
-        ProgramTrans.program -> t
+        ProgramTrans.program ->
+        ProgramTrans.vars * IncStrategy.t * Abstraction.t
       val analysis_result : Abstraction.t -> Abstraction.analysis_result
       val initial_analysis :
-        ProgramTrans.program -> t
+        ProgramTrans.program ->
+        ProgramTrans.vars * IncStrategy.t * Abstraction.t
     end
