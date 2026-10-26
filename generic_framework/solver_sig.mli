@@ -3,7 +3,9 @@ sig
   type program
   type horn_clause_scheme
   type vars
-  val diff_hcschemes : vars -> program -> program -> vars * horn_clause_scheme list * horn_clause_scheme list (** list of removed and added horn clause schemes*)
+
+  (** list of removed and added horn clause schemes*)
+  val diff_hcschemes : vars -> program -> program -> vars * horn_clause_scheme list * horn_clause_scheme list 
   val empty_program : program
   val empty_vars : vars
 
@@ -17,15 +19,25 @@ sig
   type literal
   type analysis_result
   type init_data
-  val update_add_hcs : t -> horn_clause_scheme list -> t (** The added Horn Clause schemes are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
-  val update_remove_hcs : t -> horn_clause_scheme list -> t (** The removed Horn Clause schemes are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
-  val next_hc_add : t -> t * horn_clause option
-  val propagate_change_add : t -> horn_clause -> t(** Given a Horn Clause that modified the result, add all its successprs to the next horn clauses to be iterated. Used when a Horn Clause is added. *)
-  val next_hc_remove_inf : t -> t * horn_clause option
-  val propagate_change_remove_inf : t -> horn_clause -> t(** Given a Horn Clause that modified the result, add all its successprs tp the next horn clauses to be iterated. Used in the first phase of the removal of a clause. *)
-  val next_hc_restore_inf : t -> t * horn_clause option
-  val propagate_change_restore_inf : t -> horn_clause -> t(** Given a Horn Clause that modified the result, add all its successprs tp the next horn clauses to be iterated. Used in the second phase of the removal of a clause. *)
   val empty_datastructure : t * init_data
+
+  (** The added Horn Clause schemes are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
+  val update_add_hcs : t -> horn_clause_scheme list -> t
+
+  (** The removed Horn Clause schemes are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
+  val update_remove_hcs : t -> horn_clause_scheme list -> t 
+  val next_hc_add : t -> t * horn_clause option
+
+  (** Given a Horn Clause that modified the result, add all its successors to the next horn clauses to be iterated. Used when a Horn Clause is added. *)
+  val propagate_change_add : t -> horn_clause -> t
+  val next_hc_remove_inf : t -> t * horn_clause option
+
+  (** Given a Horn Clause that modified the result, add all its successors tp the next horn clauses to be iterated. Used in the first phase of the removal of a clause. *)
+  val propagate_change_remove_inf : t -> horn_clause -> t
+  val next_hc_restore_inf : t -> t * horn_clause option
+
+  (** Given a Horn Clause that modified the result, add all its successors tp the next horn clauses to be iterated. Used in the second phase of the removal of a clause. *)
+  val propagate_change_restore_inf : t -> horn_clause -> t
 end
 
 module type AbstractionProof = 
@@ -36,9 +48,15 @@ sig
   type init_data
   val name : string
   val empty : init_data -> t
-  val visit_edge_add : t -> horn_clause -> t * bool (* one edge is visited during the adding of some edges. Returns true if the result changed.*)
-  val remove_inf_edge : t -> horn_clause -> t * bool (* one edge is visited during the removing of some edges and it is set to unreachable. Returns true if the result changed.*)
-  val restore_inf_edge : t -> horn_clause -> t * bool (* one edge is visited during the removal of some edges in order to restore the information that was lost during the "remove information" phase. Returns true if the result changed.*)
+
+  (** one edge is visited during the adding of some edges. Returns true if the result changed.*)
+  val visit_edge_add : t -> horn_clause -> t * bool
+
+  (** one edge is visited during the removing of some edges and it is set to unreachable. Returns true if the result changed.*) 
+  val remove_inf_edge : t -> horn_clause -> t * bool 
+
+  (** one edge is visited during the removal of some edges in order to restore the information that was lost during the "remove information" phase. Returns true if the result changed.*)
+  val restore_inf_edge : t -> horn_clause -> t * bool
   val return_result : t -> analysis_result
 end
 
