@@ -46,6 +46,7 @@ sig
   type horn_clause
   type analysis_result
   type init_data
+  type literal
   val name : string
   val empty : init_data -> t
 
@@ -58,6 +59,7 @@ sig
   (** one edge is visited during the removal of some edges in order to restore the information that was lost during the "remove information" phase. Returns true if the result changed.*)
   val restore_inf_edge : t -> horn_clause -> t * bool
   val return_result : t -> analysis_result
+  val is_reachable : t -> literal -> bool
 end
 
 module Framework :
@@ -81,8 +83,14 @@ module Framework :
         ProgramTrans.program ->
         ProgramTrans.program ->
         ProgramTrans.vars * IncStrategy.t * Abstraction.t
-      val analysis_result : Abstraction.t -> Abstraction.analysis_result
+      val analysis_result : t -> Abstraction.analysis_result
       val initial_analysis :
         ProgramTrans.program ->
         ProgramTrans.vars * IncStrategy.t * Abstraction.t
     end
+
+    module FrameworkHypergraph 
+    (ProgramTrans : ProgramToHCS with type horn_clause_scheme = Hypergraph_sig.edge) 
+    (Abstraction : AbstractionProof with type analysis_result = Hypergraph_sig.IdSet.t and type literal = Hypergraph_sig.Node.t) 
+    (_ : IncrementalSymbolicHornClauseSolverStrategy with type horn_clause_scheme = ProgramTrans.horn_clause_scheme and type horn_clause = Abstraction.horn_clause and type init_data = Abstraction.init_data) 
+    : Hypergraph_sig.FullyDynamicHornClauses

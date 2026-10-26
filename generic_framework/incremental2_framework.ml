@@ -112,7 +112,7 @@ struct
   type horn_clause_scheme = int * IdSet.t
   type horn_clause = Edge.t
   type literal = Id.t
-  type analysis_result = Id.t list
+  type analysis_result = IdSet.t
   type init_data = Node.t
   type t = {
     succs: AdjacencyList.t;
@@ -325,8 +325,9 @@ struct
     reachability_status: ReachabilityStatus.t;
   }
   type horn_clause = Node.t * Node.t
-  type analysis_result = Node.t list
+  type analysis_result = IdSet.t
   type init_data = Node.t
+  type literal = Node.t
 
   let decrement_reachability t node =
     let previous_i = ReachabilityStatus.get node t.reachability_status in
@@ -335,7 +336,7 @@ struct
     in
     t
 
-  let is_reachable node t =
+  let is_reachable t node =
     0 = ReachabilityStatus.get node t.reachability_status
 
 
@@ -367,11 +368,11 @@ struct
     }
 
   let visit_edge_add t (dest, source) =
-    if is_reachable dest t then
+    if is_reachable t dest then
       t, false
     else (
       let t = decrement_reachability t dest in
-      if is_reachable dest t then (
+      if is_reachable t dest then (
         if Node.is_simple dest then
           add_min_pred dest ~min_pred:source t, true
         else
@@ -390,7 +391,7 @@ struct
       | Some min_pred -> Node.compare min_pred y = 0
     in
     if Node.is_compound head || visit_node head body t then
-      let was_reachable = is_reachable head t in
+      let was_reachable = is_reachable t head in
       (let t = 
          if Node.is_compound head then
            increment_reachability t head
@@ -406,14 +407,17 @@ struct
     else t, false
 
   let restore_inf_edge t (head, body) = 
-    if not (is_reachable head t) && is_reachable body t then 
+    if not (is_reachable t head) && is_reachable t body then 
       t, true
     else t, false
 
   let return_result t = 
-    let reachable_vars = ref [] in
+    let reachable_vars = ref (IdSet.empty ()) in
     ReachabilityStatus.iter (fun node r -> 
-        if r = 0 then reachable_vars := node :: !reachable_vars) 
+        if r = 0 then match node with 
+          | Simple i -> 
+            reachable_vars := IdSet.add i !reachable_vars
+          | Compound _ -> ()) 
       t.reachability_status;
     !reachable_vars
 
