@@ -1,5 +1,4 @@
 open HcHandler
-open Hypergraph_sig
 open Enabled_tests
 open Lwt.Infix
 
@@ -9,8 +8,7 @@ let debug_print s =
   else
     ()
 
-module RunTests (HC : FullyDynamicHornClauses) = struct
-  module HypergraphHCH = HornClauseHandler (HC)
+module RunTests (HypergraphHCH : HornClauseHandlerType) = struct
   module IntMap = Map.Make (Int)
 
   let timeout = 180.
@@ -122,6 +120,7 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
       let success =
         let expected_output = Seq.take 1000 (List.to_seq expected_output) in
         if
+          Seq.length actual_output == Seq.length expected_output && 
           compare_list_first_n String.compare actual_output expected_output 1000
           = 0
         then

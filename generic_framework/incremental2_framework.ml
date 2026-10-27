@@ -2,7 +2,7 @@
 open Hypergraph_sig
 open HcHandler
 open Solver_sig
-module BasicHornClauses: ProgramToHCS = 
+module BasicHornClauses : ProgramToHCS with type horn_clause_scheme = int * IdSet.t and type program = string = 
 struct
   type program = string
   type horn_clause_scheme = int * IdSet.t
@@ -82,7 +82,7 @@ struct
       in
       let hc_list = hc.horn_clauses_array in
       match Res.Array.get hc_list n with
-      | Some hcs -> hc, [],[hcs]
+      | Some hcs -> hc, [],[hcs,n]
       | None | (exception Invalid_argument _) ->
         raise
           (InvalidCommand ("There is no horn clause with index " ^ string_of_int n))
@@ -97,21 +97,29 @@ struct
       raise (InvalidCommand s)
 
   (*PUBLIC FUNCTIONS*)
+  let clause_of_index i hc = Res.Array.get hc.horn_clauses_array i
 
   let diff_hcschemes hc _ command = parse_clause command hc
   let empty_program = ""
   let empty_vars = {vars=Vars.init ~nr_vars:10000; horn_clauses_array = Res.Array.empty ();}
 
+  let var_to_string i vars = Vars.int_to_var vars.vars i
+
+  let print_clause vars (head, body) =
+    print_string (Vars.int_to_var vars.vars head);
+    print_string " := ";
+    let var_names = IdSet.fold (fun v l -> Vars.int_to_var vars.vars v :: l) body [] in
+    print_endline (String.concat ", " var_names)
+
 end
 
-module BasicFixpointHypergraph : IncrementalSymbolicHornClauseSolverStrategy =
+module BasicFixpointHypergraph : IncrementalSymbolicHornClauseSolverStrategy with type horn_clause_scheme = int * IdSet.t and type horn_clause = Node.t * Node.t and type init_data = Node.t =
 struct
   module AdjacencyList = MutableNodeMap (NodeSet)
 
 
   type horn_clause_scheme = int * IdSet.t
   type horn_clause = Edge.t
-  type literal = Id.t
   type analysis_result = IdSet.t
   type init_data = Node.t
   type t = {
@@ -306,7 +314,7 @@ struct
 
 end
 
-module Incremental2Abstraction : AbstractionProof = 
+module Incremental2Abstraction : AbstractionProof with type analysis_result = IdSet.t and type horn_clause = Node.t * Node.t and type init_data = Node.t = 
 struct
 
   module ReachabilityStatus = MutableNodeMap (struct
@@ -327,7 +335,6 @@ struct
   type horn_clause = Node.t * Node.t
   type analysis_result = IdSet.t
   type init_data = Node.t
-  type literal = Node.t
 
   let decrement_reachability t node =
     let previous_i = ReachabilityStatus.get node t.reachability_status in
@@ -371,13 +378,15 @@ struct
     if is_reachable t dest then
       t, false
     else (
-      let t = decrement_reachability t dest in
-      if is_reachable t dest then (
-        if Node.is_simple dest then
-          add_min_pred dest ~min_pred:source t, true
-        else
-          t, true
-      )
+      if is_reachable t source then 
+        (let t = decrement_reachability t dest in
+         if is_reachable t dest then (
+           if Node.is_simple dest then
+             add_min_pred dest ~min_pred:source t, true
+           else
+             t, true
+         )
+         else (t, false))
       else (t, false)
     )
 
@@ -423,3 +432,5 @@ struct
 
 
 end
+
+module Incremental2Framework = HCHandlerFramework (BasicHornClauses) (Incremental2Abstraction) (BasicFixpointHypergraph)

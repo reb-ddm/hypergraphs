@@ -9,6 +9,7 @@ module type HornClauseHandlerType = sig
   type clause = int * IdSet.t
   type t
 
+  val name : string
   val init : nr_vars:int -> t
   val add_clause : int * IdSet.t -> t -> t
   val clause_of_index : int -> t -> clause option
@@ -50,6 +51,7 @@ module HornClauseHandler (HC : FullyDynamicHornClauses) = struct
     compound_to_int: CompoundIntConversion.t;
   }
 
+  let name = HC.name
   let print_clause hc (head, body) =
     print_string (Vars.int_to_var hc.vars head);
     print_string " := ";

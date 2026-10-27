@@ -78,4 +78,4 @@ let _generated_tests_for_graphs_steps test_gen test_name =
 
 let enabled_tests () = _generated_tests_for_graphs test_remove4 "remove 4"
 let debug = true
-let debug_enabled_tests () = [ List.nth (fst simple_tests) 14 ]
+let debug_enabled_tests () = [ List.nth (fst simple_tests) 0 ]

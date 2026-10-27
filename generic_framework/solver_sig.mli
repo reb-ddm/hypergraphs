@@ -5,9 +5,12 @@ sig
   type vars
 
   (** list of removed and added horn clause schemes*)
-  val diff_hcschemes : vars -> program -> program -> vars * horn_clause_scheme list * horn_clause_scheme list 
+  val diff_hcschemes : vars -> program -> program -> vars * horn_clause_scheme list * (horn_clause_scheme * int) list 
   val empty_program : program
   val empty_vars : vars
+  val clause_of_index : int -> vars -> horn_clause_scheme option
+  val var_to_string : int -> vars -> string
+  val print_clause : vars -> horn_clause_scheme -> unit
 
 end
 
@@ -16,7 +19,6 @@ sig
   type t
   type horn_clause_scheme
   type horn_clause
-  type literal
   type analysis_result
   type init_data
   val empty_datastructure : t * init_data
@@ -46,7 +48,6 @@ sig
   type horn_clause
   type analysis_result
   type init_data
-  type literal
   val name : string
   val empty : init_data -> t
 
@@ -59,7 +60,6 @@ sig
   (** one edge is visited during the removal of some edges in order to restore the information that was lost during the "remove information" phase. Returns true if the result changed.*)
   val restore_inf_edge : t -> horn_clause -> t * bool
   val return_result : t -> analysis_result
-  val is_reachable : t -> literal -> bool
 end
 
 module Framework :
@@ -89,8 +89,9 @@ module Framework :
         ProgramTrans.vars * IncStrategy.t * Abstraction.t
     end
 
-    (* module FrameworkHypergraph 
-    (ProgramTrans : ProgramToHCS with type horn_clause_scheme = Hypergraph_sig.edge) 
-    (Abstraction : AbstractionProof with type analysis_result = Hypergraph_sig.IdSet.t and type literal = Hypergraph_sig.Node.t) 
-    (_ : IncrementalSymbolicHornClauseSolverStrategy with type horn_clause_scheme = ProgramTrans.horn_clause_scheme and type horn_clause = Abstraction.horn_clause and type init_data = Abstraction.init_data) 
-    : Hypergraph_sig.FullyDynamicHornClauses *)
+open Hypergraph_sig
+module HCHandlerFramework 
+(ProgramTrans : ProgramToHCS with type horn_clause_scheme = int * IdSet.t and type program = string) 
+    (Abstraction : AbstractionProof with type analysis_result = IdSet.t) 
+    (_ : IncrementalSymbolicHornClauseSolverStrategy with type horn_clause_scheme = ProgramTrans.horn_clause_scheme and type horn_clause = Abstraction.horn_clause and type init_data = Abstraction.init_data)
+  : HcHandler.HornClauseHandlerType

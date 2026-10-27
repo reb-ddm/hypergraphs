@@ -30,7 +30,7 @@ let gen_operations nr_vars =
       Add c
     | n when n = removenr ->
       if nr_clauses >= 1 && not ([] = open_indexes) then
-        let+ c = oneofl open_indexes in
+        let+ c = oneof_list open_indexes in
         Remove c
       else
         let+ c = gen_clause nr_vars in
@@ -78,8 +78,7 @@ let print_operation = function
 
 let print_operations os = String.concat "\n" (List.map print_operation os)
 
-module HypergraphTestUtil (HC : FullyDynamicHornClauses) = struct
-  module Handler = HornClauseHandler (HC)
+module HypergraphTestUtil (Handler : HornClauseHandlerType) = struct
 
   let clause_of_index hg i =
     match Handler.clause_of_index i hg with
@@ -101,10 +100,10 @@ module HypergraphTestUtil (HC : FullyDynamicHornClauses) = struct
       (Handler.init ~nr_vars) operations
 end
 
-module TestPropertiesHypergraph (HC : FullyDynamicHornClauses) = struct
-  module TestHandler = HornClauseHandler (HC)
+module TestPropertiesHypergraph (TestHandler : HornClauseHandlerType) = struct
+
   module StringSet = Set.Make (String)
-  module TestUtil = HypergraphTestUtil (HC)
+  module TestUtil = HypergraphTestUtil (TestHandler)
 
   let to_set list = StringSet.of_seq (List.to_seq list)
 
@@ -154,7 +153,7 @@ module TestPropertiesHypergraph (HC : FullyDynamicHornClauses) = struct
             if open_ind = [] then
               return (-1, b, c)
             else
-              let+ i = oneofl open_ind in
+              let+ i = oneof_list open_ind in
               i, b, c ))
       (fun (i, nr_vars, operations) ->
         if i = -1 then
@@ -206,7 +205,7 @@ module TestPropertiesHypergraph (HC : FullyDynamicHornClauses) = struct
         close_reachable hg)
 
   module ReferenceHandler = HornClauseHandler (IncrementalHypergraph)
-  module ReferenceUtil = HypergraphTestUtil (IncrementalHypergraph)
+  module ReferenceUtil = HypergraphTestUtil (ReferenceHandler)
 
   let first_reachable_correct incrHyp testHyp =
     Seq.equal String.equal
@@ -224,19 +223,24 @@ module TestPropertiesHypergraph (HC : FullyDynamicHornClauses) = struct
   let all_tests =
     [ test_close; test_add; test_remove; test_open; test_reference ]
 end
-
-module TestIncremental = TestPropertiesHypergraph (IncrementalHypergraph)
+  module IncrementalHandler = HornClauseHandler (IncrementalHypergraph)
+module TestIncremental = TestPropertiesHypergraph (IncrementalHandler)
 
 let _tests_incremental = TestIncremental.all_tests
 
-module TestIncremental2 = TestPropertiesHypergraph (IncrementalHypergraph2)
-module TestParametric = TestPropertiesHypergraph (SemiParametricHypergraph)
-module TestMST = TestPropertiesHypergraph (FullyDynamicHypergraph)
+  module Incremental2Handler = HornClauseHandler (IncrementalHypergraph2)
+module TestIncremental2 = TestPropertiesHypergraph (Incremental2Handler)
+  module SemiParametricHandler = HornClauseHandler (SemiParametricHypergraph)
+module TestParametric = TestPropertiesHypergraph (SemiParametricHandler)
+  module FullyDynamicHandler = HornClauseHandler (FullyDynamicHypergraph)
+module TestMST = TestPropertiesHypergraph (FullyDynamicHandler)
+module TestFrameworkIncremental2 = TestPropertiesHypergraph (Incremental2_framework.Incremental2Framework)
 
-let tests_parameteric = TestParametric.all_tests
+let _tests_parameteric = TestParametric.all_tests
 let _tests_mst = TestMST.all_tests
-let tests_incremental2 = TestIncremental2.all_tests
-let _ = QCheck_runner.run_tests_main (tests_parameteric @ tests_incremental2)
+let tests_framework = TestFrameworkIncremental2.all_tests
+let _tests_incremental2 = TestIncremental2.all_tests
+let _ = QCheck_runner.run_tests_main ((* tests_parameteric @ *) tests_framework) 
 
 (* let _ =
    Gen.generate ~n:1 (gen_operations 7)

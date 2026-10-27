@@ -1,0 +1,17 @@
+100
+s
+add a:=a
+add b:=b
+add schema v=. # v := va
+print
+reachable
+add schema v=. # a := av
+print
+reachable
+add ab
+print
+reachable
+add ba
+print
+reachable
+quit

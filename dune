@@ -1,9 +1,10 @@
 (library
  (name incremental_analysis_interactive_agent)
- (libraries res incremental_analysis_util incremental_analysis_algorithms)
+ (libraries res incremental_analysis_util incremental_analysis_algorithms
+ incremental_analysis_generic_framework)
  (modules InteractiveAgent)
  (flags
-  (:standard -w @a-40-42 -open Incremental_analysis_util))
+  (:standard -w @a-40-42 -open Incremental_analysis_util -open Incremental_analysis_generic_framework))
  (preprocess
   (pps ppx_deriving.ord)))
 
@@ -71,7 +72,8 @@
 
 (executable
  (name QuickCheckTests)
- (libraries qcheck incremental_analysis_util incremental_analysis_algorithms)
+ (libraries qcheck incremental_analysis_util incremental_analysis_algorithms
+ incremental_analysis_generic_framework)
  (modules QuickCheckTests)
  (public_name QuickCheckTests)
  (package kappa-binaries)
@@ -84,4 +86,6 @@
    -open
    Incremental_analysis_util
    -open
-   Incremental_analysis_algorithms)))
+   Incremental_analysis_algorithms
+   -open 
+   Incremental_analysis_generic_framework)))

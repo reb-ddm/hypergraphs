@@ -1,17 +1,17 @@
 open Hypergraph_sig
 
 (**
-DATA STRUCTURE:
-Hypergraph which remembers for each node a minimal (not necessarily the shortest, but the "first" one that was added) path from the initial states to the node.
-ADDING A CLAUSE:
-Restart fixpoint iteration.
-REMOVING A CLAUSE:
-If the predecessor of a node is removed, then set all the successors as unreachable.
-The take all the nodes that were thus set as unreachable and recalculate their new predecessor.
-Optimization: before removing the reachability, check if there is an alternative path from source to goal with <= n steps. (n = max_depth_local_path_search = 3).
-RUNTIME:
-For adding a clause, linear in the size of the newly reachable nodes.
-For removing a clause, either O(1) if a non-predecessor node is removed, else O(number of successors).
+   DATA STRUCTURE:
+   Hypergraph which remembers for each node a minimal (not necessarily the shortest, but the "first" one that was added) path from the initial states to the node.
+   ADDING A CLAUSE:
+   Restart fixpoint iteration.
+   REMOVING A CLAUSE:
+   If the predecessor of a node is removed, then set all the successors as unreachable.
+   The take all the nodes that were thus set as unreachable and recalculate their new predecessor.
+   Optimization: before removing the reachability, check if there is an alternative path from source to goal with <= n steps. (n = max_depth_local_path_search = 3).
+   RUNTIME:
+   For adding a clause, linear in the size of the newly reachable nodes.
+   For removing a clause, either O(1) if a non-predecessor node is removed, else O(number of successors).
 *)
 
 module IncrementalHypergraph2 = struct
@@ -20,17 +20,17 @@ module IncrementalHypergraph2 = struct
   module AdjacencyList = MutableNodeMap (NodeSet)
 
   module ReachabilityStatus = MutableNodeMap (struct
-    include Int
+      include Int
 
-    let empty () = 1
-  end)
+      let empty () = 1
+    end)
 
 
   module MinPredsMap = MutableNodeMap (struct
-    type t = Node.t option
+      type t = Node.t option
 
-    let empty () = None
-  end)
+      let empty () = None
+    end)
 
   type t = {
     succs: AdjacencyList.t;
@@ -115,10 +115,10 @@ module IncrementalHypergraph2 = struct
         let reach =
           IdSet.fold
             (fun node reach ->
-              let status =
-                ReachabilityStatus.get (Simple node) t.reachability_status
-              in
-              reach + status)
+               let status =
+                 ReachabilityStatus.get (Simple node) t.reachability_status
+               in
+               reach + status)
             set 0
         in
         let () = ReachabilityStatus.add node reach t.reachability_status in
@@ -213,8 +213,8 @@ module IncrementalHypergraph2 = struct
       Hypergraphs.update_successors_after_removal is_reachable
         increment_reachability
         (fun hg y ->
-          let hg = remove_min_pred y hg in
-          increment_reachability hg y)
+           let hg = remove_min_pred y hg in
+           increment_reachability hg y)
         visit_node succs_of y [] hg
     in
     Hypergraphs.propagate is_reachable preds_of hg closure c_set
@@ -244,38 +244,38 @@ module IncrementalHypergraph2 = struct
           let reachable_nodes, result =
             NodeSet.fold
               (fun succ (reachable_nodes, acc) ->
-                if Option.is_some acc then
-                  reachable_nodes, acc
-                else (
-                  match succ with
-                  | Node.Simple i ->
-                    process_simple_node i reachable_nodes depth, acc
-                  | Node.Compound _ ->
-                    let preds =
-                      NodeSet.fold
-                        (fun pred idset ->
-                          match pred with
-                          | Node.Simple pred -> IdSet.add pred idset
-                          | Node.Compound _ -> idset)
-                        (preds_of hg succ) (IdSet.empty ())
-                    in
-                    if IdSet.subset preds reachable_nodes then (
-                      let succs = succs_of hg succ in
-                      if NodeSet.mem y succs then
-                        ( reachable_nodes,
-                          Some succ (*TODO should stop the iteration instead*) )
-                      else
-                        ( NodeSet.fold
-                            (fun succ2 reachable_nodes ->
-                              match succ2 with
-                              | Node.Simple i ->
-                                process_simple_node i reachable_nodes depth
-                              | Node.Compound _ -> reachable_nodes)
-                            succs reachable_nodes,
-                          acc )
-                    ) else
-                      reachable_nodes, acc
-                ))
+                 if Option.is_some acc then
+                   reachable_nodes, acc
+                 else (
+                   match succ with
+                   | Node.Simple i ->
+                     process_simple_node i reachable_nodes depth, acc
+                   | Node.Compound _ ->
+                     let preds =
+                       NodeSet.fold
+                         (fun pred idset ->
+                            match pred with
+                            | Node.Simple pred -> IdSet.add pred idset
+                            | Node.Compound _ -> idset)
+                         (preds_of hg succ) (IdSet.empty ())
+                     in
+                     if IdSet.subset preds reachable_nodes then (
+                       let succs = succs_of hg succ in
+                       if NodeSet.mem y succs then
+                         ( reachable_nodes,
+                           Some succ (*TODO should stop the iteration instead*) )
+                       else
+                         ( NodeSet.fold
+                             (fun succ2 reachable_nodes ->
+                                match succ2 with
+                                | Node.Simple i ->
+                                  process_simple_node i reachable_nodes depth
+                                | Node.Compound _ -> reachable_nodes)
+                             succs reachable_nodes,
+                           acc )
+                     ) else
+                       reachable_nodes, acc
+                 ))
               succs (reachable_nodes, None)
           in
           match result with

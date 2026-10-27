@@ -1,6 +1,5 @@
 open HcHandler
 open Incremental_analysis_algorithms
-open Hypergraph_sig
 
 let help_message =
   "Available commands:\n\
@@ -17,8 +16,7 @@ let help_message =
    Horn clause syntax:\n\
    <head> := <body>\n"
 
-let init_loop n (module HypergraphAlg : FullyDynamicHornClauses) =
-  let module HypergraphHCH = HornClauseHandler (HypergraphAlg) in
+let init_loop n (module HypergraphHCH : HornClauseHandlerType) =
   let hc = HypergraphHCH.init ~nr_vars:n in
   let rec loop hc =
     print_string "> ";
@@ -88,21 +86,23 @@ let rec ask_nr_variables s =
     ask_nr_variables "Please enter a number. Input the number of variables: "
 
 let list_of_modules =
-  [ "incremental"; "incremental2"; "mst"; "parametric"; "semiparametric" ]
+  [ "incremental"; "incremental2"; "mst"; "parametric"; "semiparametric"; "incremental2 framework" ]
 
 let ask_module () =
   let rec ask_module s =
     print_endline s;
     match String.trim (read_line ()) with
     | "incremental" | "i" ->
-      (module IncrementalHypergraph : FullyDynamicHornClauses)
+      (module HornClauseHandler(IncrementalHypergraph) : HornClauseHandlerType)
     | "incremental2" | "i2" ->
-      (module IncrementalHypergraph2 : FullyDynamicHornClauses)
-    | "mst" | "m" -> (module FullyDynamicHypergraph : FullyDynamicHornClauses)
+      (module HornClauseHandler(IncrementalHypergraph2) : HornClauseHandlerType)
+    | "mst" | "m" -> (module HornClauseHandler(FullyDynamicHypergraph) : HornClauseHandlerType)
     | "parametric" | "p" ->
-      (module ParametricHypergraph : FullyDynamicHornClauses)
+      (module HornClauseHandler(ParametricHypergraph) : HornClauseHandlerType)
     | "semiparametric" | "s" ->
-      (module SemiParametricHypergraph : FullyDynamicHornClauses)
+      (module HornClauseHandler(SemiParametricHypergraph) : HornClauseHandlerType)
+    | "incremental2 framework" | "i2f" ->
+      (module Incremental2_framework.Incremental2Framework : HornClauseHandlerType)
     | _ ->
       ask_module
         ("Please enter '" ^ String.concat "' or '" list_of_modules ^ "'. ")
