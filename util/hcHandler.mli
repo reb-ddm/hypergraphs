@@ -4,7 +4,7 @@ exception InvalidVarName of string
 exception InvalidCharachter of string
 exception InvalidCommand of string
 
-module HornClauseHandler : functor (_ : FullyDynamicHornClauses) -> sig
+module type HornClauseHandlerType = sig 
   type clause = int * IdSet.t
   type t
 
@@ -20,14 +20,17 @@ module HornClauseHandler : functor (_ : FullyDynamicHornClauses) -> sig
   val to_dot : t -> string
 
   type parse_output =
-    | Add of clause
+    | Add of clause list
     | Remove of clause * int
     | OpenChapter of clause list
     | CloseChapter
 
+  val print_clause : t -> clause -> unit
   val parse_clause : string -> t -> t * parse_output
   val to_string : t -> string
   val remove_clause : t -> int * IdSet.t -> int -> t
   val open_chapter : t -> clause list -> t
   val close_chapter : t -> t
 end
+
+module HornClauseHandler : functor (_ : FullyDynamicHornClauses) -> HornClauseHandlerType

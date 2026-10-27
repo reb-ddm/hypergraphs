@@ -12,7 +12,8 @@ let help_message =
    - close\n\
    - print\n\
    - reachable\n\
-   - dot\n\n\
+   - dot\n\
+   - add schema v = <regex> # <horn clause using v>\n\
    Horn clause syntax:\n\
    <head> := <body>\n"
 
@@ -47,7 +48,10 @@ let init_loop n (module HypergraphAlg : FullyDynamicHornClauses) =
         let hc, parse_output = HypergraphHCH.parse_clause input hc in
         let hc =
           match parse_output with
-          | Add clause -> HypergraphHCH.add_clause clause hc
+          | Add clauses -> 
+            let () = print_string "Adding clauses:\n" in
+            let () = List.iter (fun c -> HypergraphHCH.print_clause hc c) clauses in
+            List.fold_left (fun hc clause -> HypergraphHCH.add_clause clause hc) hc clauses
           | Remove (clause, index) ->
             HypergraphHCH.remove_clause hc clause index
           | OpenChapter clauses -> HypergraphHCH.open_chapter hc clauses

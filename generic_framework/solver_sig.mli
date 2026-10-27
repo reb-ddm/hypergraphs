@@ -89,8 +89,8 @@ module Framework :
         ProgramTrans.vars * IncStrategy.t * Abstraction.t
     end
 
-    module FrameworkHypergraph 
+    (* module FrameworkHypergraph 
     (ProgramTrans : ProgramToHCS with type horn_clause_scheme = Hypergraph_sig.edge) 
     (Abstraction : AbstractionProof with type analysis_result = Hypergraph_sig.IdSet.t and type literal = Hypergraph_sig.Node.t) 
     (_ : IncrementalSymbolicHornClauseSolverStrategy with type horn_clause_scheme = ProgramTrans.horn_clause_scheme and type horn_clause = Abstraction.horn_clause and type init_data = Abstraction.init_data) 
-    : Hypergraph_sig.FullyDynamicHornClauses
+    : Hypergraph_sig.FullyDynamicHornClauses *)

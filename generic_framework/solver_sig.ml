@@ -27,12 +27,6 @@ sig
     (** The removed Horn Clause schemes are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
   val update_remove_hcs : t -> horn_clause_scheme list -> t 
 
-   (** The added Horn Clauses are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
-  val update_add_hc : t -> horn_clause list ->t
-    
-    (** The removed Horn Clauses are registered to the fixpoint algorithm, which updates the next horn clauses to be iterated *)
-  val update_remove_hc : t -> horn_clause list -> t 
-
   val next_hc_add : t -> t * horn_clause option
 
   (** Given a Horn Clause that modified the result, add all its successors to the next horn clauses to be iterated. Used when a Horn Clause is added. *)

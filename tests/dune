@@ -9,6 +9,7 @@
   kappa_data_structures
   kappa_kasa_kastor_toolset
   incremental_analysis_algorithms
+  incremental_analysis_generic_framework
   psq
   lwt.unix
   gnuplot)

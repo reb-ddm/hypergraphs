@@ -1,6 +1,6 @@
 (library
  (name incremental_analysis_util)
- (libraries res)
+ (libraries res re)
  (flags
   (:standard -w @a-40-42))
  (preprocess

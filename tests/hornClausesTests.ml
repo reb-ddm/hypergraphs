@@ -98,8 +98,8 @@ module RunTests (HC : FullyDynamicHornClauses) = struct
     let hc, parse_output = HypergraphHCH.parse_clause input hc in
     let hc_opt, must_be_added =
       match parse_output with
-      | Add clause ->
-        ( run_with_timeout timeout (fun () -> HypergraphHCH.add_clause clause hc),
+      | Add clauses ->
+        ( run_with_timeout timeout (fun () -> List.fold_left (fun hc clause -> HypergraphHCH.add_clause clause hc) hc clauses),
           Some true )
       | Remove (clause, index) ->
         ( run_with_timeout timeout (fun () ->
